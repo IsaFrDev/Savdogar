@@ -85,11 +85,13 @@ api.interceptors.response.use(
                 return Promise.reject(error);
             }
 
-            // If refresh token call itself fails, logout
+            // If refresh token call itself fails with 401/403, logout
             if (originalRequest.url?.includes('/auth/token/refresh/')) {
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
-                window.location.href = '/login';
+                if (error.response?.status === 401 || error.response?.status === 403) {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    window.location.href = '/login';
+                }
                 return Promise.reject(error);
             }
 
@@ -119,12 +121,16 @@ api.interceptors.response.use(
 
                     originalRequest.headers.Authorization = `Bearer ${access}`;
                     return api(originalRequest);
-                } catch (refreshError) {
+                } catch (refreshError: any) {
                     isRefreshing = false;
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
-                        window.location.href = '/login';
+                    
+                    // Only logout if the refresh token itself is invalid (401/403)
+                    if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
+                        localStorage.removeItem('access_token');
+                        localStorage.removeItem('refresh_token');
+                        if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+                            window.location.href = '/login';
+                        }
                     }
                     return Promise.reject(refreshError);
                 }

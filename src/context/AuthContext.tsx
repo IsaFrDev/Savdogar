@@ -74,9 +74,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
                 const response = await authApi.me();
                 setUser(response.data);
-            } catch (error) {
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
+            } catch (error: any) {
+                if (error.response?.status === 401 || error.response?.status === 403) {
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('refresh_token');
+                    setUser(null);
+                }
             }
         }
         setIsLoading(false);
