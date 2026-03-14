@@ -108,6 +108,7 @@ export function AdminLogin({ onLogin, onBack }: AdminLoginProps) {
                         placeholder="••••••••"
                         icon={<Lock className="w-5 h-5" />}
                         required
+                        showPasswordToggle
                     />
 
                     <Button

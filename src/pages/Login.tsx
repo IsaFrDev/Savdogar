@@ -190,14 +190,15 @@ export function Login({ onLogin, onRegister }: LoginProps) {
               icon={<Mail className="w-5 h-5" />}
             />
             <div className="space-y-3">
-              <Input
-                label={t('password')}
-                type="password"
-                value={password}
-                onChange={setPassword}
-                placeholder="••••••••"
-                icon={<Lock className="w-5 h-5" />}
-              />
+            <Input
+              label={t('password')}
+              type="password"
+              value={password}
+              onChange={setPassword}
+              placeholder="••••••••"
+              icon={<Lock className="w-5 h-5" />}
+              showPasswordToggle
+            />
               <div className="flex justify-end">
                 <button type="button" className="text-[10px] font-bold uppercase tracking-widest text-[var(--brand-primary)] hover:brightness-125 transition-all">
                   {t('forgotPassword')}

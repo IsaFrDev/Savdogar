@@ -209,6 +209,7 @@ export function Register({ onSuccess, onLogin }: RegisterProps) {
               placeholder="••••••••"
               icon={<Lock className="w-5 h-5" />}
               required
+              showPasswordToggle
             />
             <Input
               label={t('confirmPassword')}
@@ -218,6 +219,7 @@ export function Register({ onSuccess, onLogin }: RegisterProps) {
               placeholder="••••••••"
               icon={<Lock className="w-5 h-5" />}
               required
+              showPasswordToggle
             />
           </div>
 

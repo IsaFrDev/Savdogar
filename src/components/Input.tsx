@@ -1,5 +1,6 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { cn } from '../utils/cn';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface InputProps {
   label?: string;
@@ -12,6 +13,7 @@ interface InputProps {
   className?: string;
   disabled?: boolean;
   required?: boolean;
+  showPasswordToggle?: boolean;
 }
 
 export function Input({
@@ -24,8 +26,13 @@ export function Input({
   icon,
   className,
   disabled,
-  required
+  required,
+  showPasswordToggle
 }: InputProps) {
+  const [showPassword, setShowPassword] = useState(false);
+  const isPassword = type === 'password';
+  const inputType = isPassword && showPassword ? 'text' : type;
+
   return (
     <div className={cn("space-y-2", className)}>
       {label && (
@@ -41,7 +48,7 @@ export function Input({
           </div>
         )}
         <input
-          type={type}
+          type={inputType}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -49,11 +56,21 @@ export function Input({
           required={required}
           autoComplete="off"
           className={cn(
-            "w-full py-3.5 pr-5 bg-[var(--color-surface-raised)] border-1.5 border-[var(--color-border)] rounded-2xl text-[var(--text-primary)] transition-all focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[var(--brand-primary-glow)] outline-none",
+            "w-full py-3.5 bg-[var(--color-surface-raised)] border-1.5 border-[var(--color-border)] rounded-2xl text-[var(--text-primary)] transition-all focus:border-[var(--brand-primary)] focus:ring-4 focus:ring-[var(--brand-primary-glow)] outline-none",
             icon ? "pl-16" : "pl-5",
+            showPasswordToggle && isPassword ? "pr-14" : "pr-5",
             disabled && "opacity-40 cursor-not-allowed"
           )}
         />
+        {showPasswordToggle && isPassword && (
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--brand-primary)] transition-colors p-1"
+          >
+            {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+          </button>
+        )}
       </div>
       {helper && (
         <p className="text-[10px] text-[var(--text-muted)] ml-1 font-medium">{helper}</p>
