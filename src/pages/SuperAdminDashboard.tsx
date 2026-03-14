@@ -529,8 +529,11 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                                     <div className="w-12 h-12 rounded-2xl bg-[var(--bg-sidebar)] border border-[var(--glass-border)] flex items-center justify-center font-black text-[var(--brand-primary)] group-hover:scale-110 group-hover:shadow-[0_0_30px_var(--brand-primary-glow)] transition-all duration-500">
                                                         {store.name.charAt(0)}
                                                     </div>
-                                                    <div>
-                                                        <p className="text-base font-black text-[var(--text-primary)] tracking-tight">{store.name}</p>
+                                                    <div 
+                                                        onClick={() => onManageStore?.(store.id)}
+                                                        className="cursor-pointer group/name"
+                                                    >
+                                                        <p className="text-base font-black text-[var(--text-primary)] tracking-tight group-hover/name:text-[var(--brand-primary)] transition-colors">{store.name}</p>
                                                         <div className="flex items-center gap-2 mt-1">
                                                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em]">{store.business_type}</p>
                                                             {store.subscription_expiry && (
@@ -636,8 +639,11 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                                         <div className="w-11 h-11 lg:w-12 lg:h-12 rounded-[1.25rem] bg-[var(--bg-sidebar)] border border-[var(--glass-border)] flex items-center justify-center font-black text-[var(--brand-primary)] group-hover:scale-110 group-hover:shadow-[0_0_30px_var(--brand-primary-glow)] transition-all duration-500">
                                                             {store.name.charAt(0)}
                                                         </div>
-                                                        <div className="min-w-0">
-                                                            <p className="text-[15px] font-black text-[var(--text-primary)] truncate tracking-tight">{store.name}</p>
+                                                        <div 
+                                                            onClick={() => onManageStore?.(store.id)}
+                                                            className="min-w-0 cursor-pointer group/name"
+                                                        >
+                                                            <p className="text-[15px] font-black text-[var(--text-primary)] truncate tracking-tight group-hover/name:text-[var(--brand-primary)] transition-colors">{store.name}</p>
                                                             <p className="text-[10px] text-[var(--text-muted)] font-bold lowercase tracking-wider truncate mt-1">{store.slug}.savdoon.uz</p>
                                                         </div>
                                                     </div>

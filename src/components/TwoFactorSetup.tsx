@@ -14,7 +14,7 @@ interface TwoFactorSetupProps {
 
 export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
     const { setup2FA, enable2FA } = useAuth();
-    const { language } = useApp();
+    const { t, language } = useApp();
 
     const [step, setStep] = useState<'scan' | 'verify' | 'success'>('scan');
     const [loading, setLoading] = useState(false);
@@ -84,7 +84,7 @@ export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
                                 <Shield className="w-8 h-8 text-[var(--brand-primary)]" />
                             </div>
                             <h2 className="text-xl font-black text-white uppercase tracking-wider">
-                                {language === 'uz' ? "2FA-NI SOZLASH" : "SETUP 2FA"}
+                                {t('twoFactorAuth')}
                             </h2>
                             <p className="text-xs text-slate-400 mt-2 uppercase tracking-widest font-bold">
                                 {language === 'uz' ? "Authenticator ilovasi bilan skan qiling" : "Scan with Authenticator app"}
@@ -138,10 +138,10 @@ export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
                     <div className="space-y-6">
                         <div className="text-center">
                             <h2 className="text-xl font-black text-white uppercase tracking-wider">
-                                {language === 'uz' ? "KODNI TASDIQLASH" : "VERIFY CODE"}
+                                {t('verificationCode')}
                             </h2>
                             <p className="text-xs text-slate-400 mt-2 uppercase tracking-widest font-bold">
-                                {language === 'uz' ? "Ilovadagi 6 xonali kodni kiriting" : "Enter 6-digit code from app"}
+                                {t('verificationCodeHint')}
                             </p>
                         </div>
 
@@ -165,14 +165,14 @@ export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
                                 onClick={() => setStep('scan')}
                                 className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[11px]"
                             >
-                                {language === 'uz' ? "ORTGA" : "BACK"}
+                                {t('back')}
                             </Button>
                             <Button
                                 onClick={handleVerify}
                                 disabled={loading || code.length < 6}
                                 className="flex-[2] h-14 bg-[var(--brand-primary)] text-[var(--primary-foreground)] font-black uppercase tracking-[0.2em] text-[11px] shadow-lg shadow-[var(--brand-primary-glow)]"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : (language === 'uz' ? "TASDIQLASH" : "VERIFY")}
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('verify')}
                             </Button>
                         </div>
                     </div>
@@ -185,10 +185,10 @@ export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
                                 <Check className="w-8 h-8 text-emerald-400" />
                             </div>
                             <h2 className="text-xl font-black text-white uppercase tracking-wider">
-                                {language === 'uz' ? "2FA YOQILDI!" : "2FA ENABLED!"}
+                                {t('2faEnabled')}
                             </h2>
                             <p className="text-xs text-slate-400 mt-2 uppercase tracking-widest font-bold">
-                                {language === 'uz' ? "Zaxira kodlarini saqlab qo'ying" : "Save your backup codes"}
+                                {t('saveBackupCodes')}
                             </p>
                         </div>
 
@@ -205,21 +205,19 @@ export function TwoFactorSetup({ onClose, onSuccess }: TwoFactorSetupProps) {
                                 className="flex-1 h-14 font-black uppercase tracking-[0.2em] text-[11px]"
                                 icon={copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                             >
-                                {copied ? (language === 'uz' ? "NUSXALANDI" : "COPIED") : (language === 'uz' ? "NUSXALASH" : "COPY")}
+                                {copied ? t('copied') : t('copy')}
                             </Button>
                             <Button
                                 onClick={handleSuccessClose}
                                 className="flex-1 h-14 bg-emerald-600 font-black uppercase tracking-[0.2em] text-[11px]"
                             >
-                                {language === 'uz' ? "YOPISH" : "CLOSE"}
+                                {t('close')}
                             </Button>
                         </div>
 
                         <div className="p-4 rounded-xl bg-[var(--brand-primary)]/5 border border-[var(--brand-primary)]/10">
                             <p className="text-[10px] text-slate-400 leading-relaxed font-bold uppercase tracking-wider">
-                                {language === 'uz'
-                                    ? "DIQQAT: Telefoningizni yo'qotsangiz, ushbu kodlar orqali hisobingizga kira olasiz. Ularni xavfsiz joyda saqlang."
-                                    : "NOTICE: If you lose your phone, these codes are the only way to access your account. Store them securely."}
+                                {t('backupCodesNotice')}
                             </p>
                         </div>
                     </div>

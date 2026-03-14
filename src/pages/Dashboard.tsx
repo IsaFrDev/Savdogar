@@ -750,6 +750,15 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
             </div>
 
             <div className="flex items-center gap-2 lg:gap-6">
+              {!isCustomer && currentStore && (
+                <button
+                  onClick={() => onViewStore?.(currentStore.id)}
+                  className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-[10px] font-black uppercase tracking-widest transition-all hover:bg-[var(--brand-primary)] hover:text-white border border-[var(--brand-primary)]/20"
+                >
+                  <Eye className="w-3.5 h-3.5" />
+                  <span className="hidden lg:inline">{t('viewStorefront') || 'View Store'}</span>
+                </button>
+              )}
               {onBackToAdmin && (
                 <button
                   onClick={onBackToAdmin}

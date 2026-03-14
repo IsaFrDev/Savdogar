@@ -258,8 +258,9 @@ export function Login({ onLogin, onRegister, onAdminLogin }: LoginProps) {
               type="text"
               value={deviceCode}
               onChange={setDeviceCode}
-              placeholder="123456"
+              placeholder="000 000"
               icon={<Shield className="w-5 h-5" />}
+              helper={t('verificationCodeHint')}
             />
 
             <Button type="submit" variant="primary" size="lg" className="w-full h-14" disabled={isLoading}>
@@ -302,8 +303,9 @@ export function Login({ onLogin, onRegister, onAdminLogin }: LoginProps) {
               type="text"
               value={twoFactorCode}
               onChange={setTwoFactorCode}
-              placeholder={useBackupCode ? "ABC12345" : "000000"}
+              placeholder={useBackupCode ? "ABC12345" : "000 000"}
               icon={<Lock className="w-5 h-5" />}
+              helper={!useBackupCode ? t('verificationCodeHint') : undefined}
             />
 
             <Button type="submit" variant="primary" size="lg" className="w-full h-14" disabled={isLoading}>

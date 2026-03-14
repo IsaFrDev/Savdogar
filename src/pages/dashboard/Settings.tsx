@@ -159,13 +159,13 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
 
   const handleGenerateApiKey = async () => {
     if (!storeId) return;
-    if (apiKey && !confirm(language === 'uz' ? "API kalitini yangilamoqchimisiz? Eski kalit ishlamay qoladi." : "Rotate API Key? The old key will stop working.")) return;
+    if (apiKey && !confirm(t('rotateKeyConfirmation'))) return;
 
     setRotatingKey(true);
     try {
       const response = await storeApi.generateApiKey(storeId);
       setApiKey(response.data.api_key);
-      setNotification({ type: 'success', message: language === 'uz' ? "API kalit yangilandi" : "API Key updated" });
+      setNotification({ type: 'success', message: t('apiKeyUpdated') });
       setTimeout(() => setNotification(null), 3000);
     } catch (error) {
       console.error('Failed to generate API key:', error);
@@ -177,7 +177,7 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
 
   const handleCopyApiKey = () => {
     navigator.clipboard.writeText(apiKey);
-    setNotification({ type: 'success', message: language === 'uz' ? "Nusxalandi" : "Copied to clipboard" });
+    setNotification({ type: 'success', message: t('copied') });
     setTimeout(() => setNotification(null), 3000);
   };
 
@@ -248,7 +248,7 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
   };
 
   const handleEndAllSessions = async () => {
-    if (!confirm(language === 'uz' ? "Barcha boshqa sessiyalarni yakunlamoqchimisiz?" : "End all other sessions?")) return;
+    if (!confirm(t('logoutAllOthersConfirmation'))) return;
     try {
       await endAllSessions();
       loadSessions();
@@ -264,7 +264,7 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
     { id: 'localization' as SettingsTab, label: t('localization'), icon: Globe },
     { id: 'currency' as SettingsTab, label: language === 'uz' ? 'Valyuta' : 'Currency', icon: DollarSign },
     { id: 'roles' as SettingsTab, label: t('roles'), icon: Users },
-    { id: 'security' as SettingsTab, label: language === 'uz' ? 'Xavfsizlik' : 'Security', icon: Shield },
+    { id: 'security' as SettingsTab, label: t('security'), icon: Shield },
   ];
 
   const businessTypes = ['grocery', 'clothing', 'electronics', 'services', 'restaurant', 'beauty', 'home', 'other'];
@@ -907,26 +907,26 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
                 <div className="space-y-8">
                   <div className="border-b border-[var(--glass-border)] pb-8">
                     <h2 className="text-2xl font-black text-[var(--text-main)] tracking-tight uppercase">
-                      API CONFIGURATION
+                      {t('apiConfiguration')}
                     </h2>
                   </div>
 
                   <div className="p-8 rounded-[2rem] bg-[var(--bg-surface)] border border-[var(--glass-border)] relative overflow-hidden">
                     <div className="flex items-center justify-between mb-4">
-                      <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em]">Master API Key</label>
+                      <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em]">{t('masterApiKey')}</label>
                       <button
                         onClick={handleGenerateApiKey}
                         disabled={rotatingKey}
                         className="flex items-center gap-2 text-[10px] font-black text-[var(--brand-primary)] uppercase tracking-wider hover:brightness-110 transition-colors"
                       >
                         <RefreshCw className={`w-3 h-3 ${rotatingKey ? 'animate-spin' : ''}`} />
-                        {apiKey ? (t('rotateKey') || "Yangilash") : (t('generateKey') || "Yaratish")}
+                        {apiKey ? t('rotateKey') : t('generateKey')}
                       </button>
                     </div>
 
                     <div className="flex items-center gap-4 bg-[var(--color-surface)] p-2 rounded-xl border border-[var(--glass-border)]">
                       <div className="flex-1 font-mono text-sm text-[var(--brand-primary)] px-4 truncate">
-                        {apiKey || (t('noApiKey') || "API kalit mavjud emas")}
+                        {apiKey || t('noApiKey')}
                       </div>
                       {apiKey && (
                         <div className="flex items-center gap-2 pr-2">
@@ -948,7 +948,7 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
                     </div>
 
                     <p className="mt-4 text-[10px] text-[var(--text-dim)] font-bold leading-relaxed">
-                      {t('apiKeyWarning') || "Bu kalit orqali tashqi tizimlar do'koningiz ma'lumotlariga kira oladi. Kalitni sir saqlang!"}
+                      {t('apiKeyWarning')}
                     </p>
                   </div>
                 </div>
@@ -957,10 +957,10 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
                 <div className="space-y-8">
                   <div className="border-b border-[var(--glass-border)] pb-8">
                     <h2 className="text-2xl font-black text-[var(--text-main)] tracking-tight">
-                      {t('twoFactorAuth') || "Two-Factor Authentication (2FA)"}
+                      {t('twoFactorAuth')}
                     </h2>
                     <p className="text-[10px] text-[var(--text-dim)] uppercase tracking-[0.3em] font-black mt-2">
-                      {t('twoFactorDesc') || "Add an extra layer of security to your account"}
+                      {t('twoFactorDesc')}
                     </p>
                   </div>
 
@@ -971,29 +971,29 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
                       </div>
                       <div>
                         <h4 className="font-black text-[var(--text-main)] uppercase tracking-wider text-sm">
-                          {user?.two_factor_enabled ? (t('enabled') || "ENABLED") : (t('disabled') || "DISABLED")}
+                          {user?.two_factor_enabled ? t('enabled') : t('disabled')}
                         </h4>
                         <p className="text-[var(--text-dim)] text-xs mt-1 font-bold">
                           {user?.two_factor_enabled
-                            ? (t('accountSecured') || "Your account is secured.")
-                            : (t('enableTwoFactorRecommendation') || "Highly recommended to enable for better security.")}
+                            ? t('accountSecured')
+                            : t('enableTwoFactorRecommendation')}
                         </p>
                       </div>
                     </div>
                     {user?.two_factor_enabled ? (
                       <Button
                         variant="outline"
-                        onClick={() => { if (confirm(t('disable2FAConfirmation') || "Disable 2FA?")) disable2FA() }}
+                        onClick={() => { if (confirm(t('disable2FAConfirmation'))) disable2FA() }}
                         className="rounded-xl border-[var(--glass-border)] text-[var(--text-dim)] hover:text-rose-500 hover:bg-rose-500/5 text-[10px] font-black uppercase tracking-widest px-6 h-12"
                       >
-                        {t('disable') || "DISABLE"}
+                        {t('disable')}
                       </Button>
                     ) : (
                       <Button
                         onClick={() => setShow2FASetup(true)}
                         className="rounded-xl bg-[var(--brand-primary)] hover:brightness-110 text-[var(--primary-foreground)] text-[10px] font-black uppercase tracking-widest px-8 shadow-xl shadow-[var(--brand-primary-glow)] h-12"
                       >
-                        {t('enable') || "ENABLE"}
+                        {t('enable')}
                       </Button>
                     )}
                   </div>
@@ -1004,10 +1004,10 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
                   <div className="border-b border-[var(--glass-border)] pb-8 flex items-center justify-between">
                     <div>
                       <h2 className="text-2xl font-black text-[var(--text-main)] tracking-tight uppercase">
-                        {t('activeDevices') || "Active Devices"}
+                        {t('activeDevices')}
                       </h2>
                       <p className="text-[10px] text-[var(--text-dim)] uppercase tracking-[0.3em] font-black mt-2">
-                        {t('activeDevicesDesc') || "All devices currently logged into your account"}
+                        {t('activeDevicesDesc')}
                       </p>
                     </div>
                     {sessions.length > 1 && (
@@ -1015,7 +1015,7 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
                         onClick={handleEndAllSessions}
                         className="text-[10px] font-black text-rose-500 hover:brightness-125 uppercase tracking-widest underline underline-offset-4"
                       >
-                        {t('logoutAllOthers') || "LOGOUT ALL OTHERS"}
+                        {t('logoutAllOthers')}
                       </button>
                     )}
                   </div>
@@ -1034,7 +1034,7 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
                               <h5 className="font-black text-[var(--text-main)] text-sm uppercase tracking-wider">{session.device_name}</h5>
                               {session.is_current && (
                                 <span className="px-2 py-0.5 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-[8px] font-black uppercase tracking-widest border border-[var(--brand-primary)]/20">
-                                  {t('current') || "Current"}
+                                  {t('current')}
                                 </span>
                               )}
                             </div>
@@ -1047,7 +1047,7 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
                           <button
                             onClick={() => handleEndSession(session.id)}
                             className="p-3 rounded-xl bg-transparent hover:bg-rose-500/10 text-[var(--text-dim)] hover:text-rose-500 border border-transparent hover:border-rose-500/20 transition-all duration-300"
-                            title={t('endSession') || "End session"}
+                            title={t('endSession')}
                           >
                             <LogOut className="w-5 h-5" />
                           </button>

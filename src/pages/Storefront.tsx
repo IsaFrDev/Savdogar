@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Menu, X, Plus, Minus, Trash2, ArrowRight, Check, Package, Loader2, Search, Star, Heart, SlidersHorizontal, Sparkles, Play, MapPin, User, Phone, ShieldCheck, ChevronRight } from 'lucide-react';
+import { ShoppingCart, Menu, X, Plus, Minus, Trash2, ArrowRight, Check, Package, Loader2, Search, Star, Heart, SlidersHorizontal, Sparkles, Play, MapPin, User, Phone, ShieldCheck, ChevronRight, ShieldAlert } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { productApi, categoryApi, orderApi, storeApi, wishlistApi, reviewApi, promoCodeApi, searchApi, loyaltyApi } from '../services/api';
 import { getMediaUrl } from '../utils/media';
@@ -134,8 +134,11 @@ export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) 
     }
   };
 
+  const [error, setError] = useState<string | null>(null);
+
   const loadStoreData = async () => {
     setLoading(true);
+    setError(null);
     try {
       const [storeRes, productsRes, categoriesRes] = await Promise.all([
         storeApi.get(storeId!),
@@ -145,8 +148,9 @@ export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) 
       setStore(storeRes.data);
       setProducts(Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data.results || []));
       setCategories(Array.isArray(categoriesRes.data) ? categoriesRes.data : (categoriesRes.data.results || []));
-    } catch (error) {
-      console.error('Failed to load storefront data:', error);
+    } catch (err: any) {
+      console.error('Failed to load storefront data:', err);
+      setError(err.response?.data?.error || err.message || 'Failed to load store');
     }
     setLoading(false);
     loadWishlist();
@@ -369,10 +373,31 @@ export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) 
     }
   };
 
-  if (loading || !store) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-[var(--bg-main)] flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-[var(--primary)] animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !store) {
+    return (
+      <div className="min-h-screen bg-[var(--bg-main)] flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 rounded-3xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center mb-6">
+          <ShieldAlert className="w-10 h-10 text-rose-500" />
+        </div>
+        <h2 className="text-2xl font-black text-[var(--text-primary)] mb-2 uppercase tracking-tight">
+          {error || 'Store Not Found'}
+        </h2>
+        <p className="text-[var(--text-secondary)] mb-8 max-w-md font-medium">
+          {language === 'uz' ? 'Do\'kon ma\'lumotlarini yuklashda xatolik yuz berdi. Iltimos, qayta urinib ko\'ring yoki do\'kon holatini tekshiring.' :
+            language === 'ru' ? 'Ошибка при загрузке данных магазина. Пожалуйста, попробуйте еще раз или проверьте статус магазина.' :
+              'Something went wrong while loading the store. Please try again or check the store status.'}
+        </p>
+        <Button onClick={onBack} variant="outline" className="h-12 px-8 rounded-xl font-bold">
+          {t('goBack')}
+        </Button>
       </div>
     );
   }
