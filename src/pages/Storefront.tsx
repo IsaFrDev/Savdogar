@@ -534,7 +534,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) 
                 </button>
               )}
               <Button variant="ghost" size="sm" onClick={onBack} className="hidden sm:inline-flex text-[10px] font-black uppercase tracking-widest border border-[var(--color-border)] hover:bg-[var(--color-surface-raised)] shadow-sm">Dashboard</Button>
-              {onBackToAdmin && (
+              {onBackToAdmin && user?.role === 'superadmin' && (
                 <button
                   onClick={onBackToAdmin}
                   className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 group border-none"

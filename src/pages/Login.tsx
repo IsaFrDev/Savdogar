@@ -13,10 +13,9 @@ import { ThemeToggle } from '../components/ThemeToggle';
 interface LoginProps {
   onLogin: () => void;
   onRegister: () => void;
-  onAdminLogin?: () => void;
 }
 
-export function Login({ onLogin, onRegister, onAdminLogin }: LoginProps) {
+export function Login({ onLogin, onRegister }: LoginProps) {
   const { t, language } = useApp();
   const { login, loginWithFaceId, verify2FA } = useAuth();
 
@@ -357,14 +356,6 @@ export function Login({ onLogin, onRegister, onAdminLogin }: LoginProps) {
             </button>
           </p>
 
-          {onAdminLogin && (
-            <button
-              onClick={onAdminLogin}
-              className="mt-8 text-[9px] font-black uppercase tracking-[0.5em] text-[var(--text-muted)] hover:text-[var(--brand-primary)] transition-all block w-full opacity-50 hover:opacity-100"
-            >
-              {t('superAdminPlatform')}
-            </button>
-          )}
         </div>
       </GlassCard>
     </div>

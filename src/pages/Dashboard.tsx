@@ -698,7 +698,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
               )}
               {sidebarOpen && (
                 <div className="flex flex-col gap-1">
-                  {onBackToAdmin && (
+                  {onBackToAdmin && user?.role === 'superadmin' && (
                     <button
                       onClick={onBackToAdmin}
                       className="p-2.5 hover:bg-[var(--brand-primary-glow)] rounded-xl transition-all group/admin"

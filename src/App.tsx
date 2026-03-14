@@ -280,7 +280,6 @@ function AppContent() {
           <Login
             onLogin={() => setPage('dashboard')}
             onRegister={() => setPage('register')}
-            onAdminLogin={() => setPage('admin-login')}
           />
         );
       case 'register':
@@ -357,7 +356,6 @@ function AppContent() {
           <Login
             onLogin={() => setPage('dashboard')}
             onRegister={() => setPage('register')}
-            onAdminLogin={() => setPage('admin-login')}
           />
         );
     }
