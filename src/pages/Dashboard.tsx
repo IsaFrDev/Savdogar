@@ -78,6 +78,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
   const [showNearby, setShowNearby] = useState(false);
   const [nearbyStores, setNearbyStores] = useState<any[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   // WebSocket for real-time updates
   const { status: wsStatus, reconnect: reconnectWs } = useStoreWebSocket(currentStore?.id || null, (event: any) => {
@@ -89,6 +90,12 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       }
       // Reload all stores to keep everything in sync
       loadStores();
+    } else if (event.type === 'chat_event' || (event.message && event.message.type === 'chat_event')) {
+      // Handle real-time chat notifications
+      const chatData = event.message || event;
+      if (chatData.event === 'new_message' && activeTab !== 'support') {
+        setUnreadMessages(prev => prev + 1);
+      }
     }
   });
 
@@ -124,7 +131,10 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
     if (initialTab) {
       setActiveTab(initialTab);
     }
-  }, [initialTab]);
+    if (activeTab === 'support') {
+      setUnreadMessages(0);
+    }
+  }, [initialTab, activeTab]);
 
   const loadMarketplace = async () => {
     try {
@@ -193,7 +203,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
     { id: 'overview', label: t('overview'), icon: LayoutDashboard },
     { id: 'products', label: t('products'), icon: Package },
     { id: 'orders', label: t('orders'), icon: ShoppingCart },
-    { id: 'support', label: t('support') || 'Support & Chat', icon: MessageSquare },
+    { id: 'support', label: t('support') || 'Support & Chat', icon: MessageSquare, badge: unreadMessages > 0 ? unreadMessages : undefined },
     { id: 'categories', label: t('categories') || 'Categories', icon: FolderOpen },
     { id: 'qr', label: t('qrOrder') || 'QR-Order', icon: QrCode },
     { id: 'discounts', label: t('discounts'), icon: Tag },
@@ -648,6 +658,11 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
                     >
                       {tab.label}
                     </motion.span>
+                  )}
+                  {tab.badge !== undefined && (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 animate-bounce">
+                      {tab.badge}
+                    </span>
                   )}
                   {activeTab === tab.id && (
                     <motion.div
