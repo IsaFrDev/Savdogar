@@ -1,0 +1,18 @@
+import os
+from django.core.asgi import get_asgi_application
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.auth import AuthMiddlewareStack
+import chat.routing
+import stores.routing
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'savdoon.settings')
+
+application = ProtocolTypeRouter({
+    "http": get_asgi_application(),
+    "websocket": AuthMiddlewareStack(
+        URLRouter(
+            chat.routing.websocket_urlpatterns +
+            stores.routing.websocket_urlpatterns
+        )
+    ),
+})
