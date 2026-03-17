@@ -143,7 +143,7 @@ export function Login({ onLogin, onRegister }: LoginProps) {
         >
           <div className="w-24 h-24 rounded-3xl bg-white flex items-center justify-center mx-auto mb-8 shadow-2xl relative group overflow-hidden p-4">
             <img
-              src="/savdoon-logo.png"
+              src="/savdoon-logo.jpg"
               alt="Savdoon Logo"
               className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
             />

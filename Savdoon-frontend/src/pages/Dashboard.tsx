@@ -525,7 +525,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
                   />
                 ) : (
                   <img
-                    src="/savdoon-logo.png"
+                    src="/savdoon-logo.jpg"
                     alt="Savdoon Logo"
                     className="w-full h-full object-contain rounded-full"
                   />
@@ -635,7 +635,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
 
             {/* Navigation Sections */}
             <nav className="space-y-2">
-              {tabs.map((tab, index) => tab.id === 'divider' ? (
+              {tabs.map((tab: any, index) => tab.id === 'divider' ? (
                 <div key={`div-${index}`} className="my-6 border-t border-[var(--color-border)] mx-4 opacity-50" />
               ) : (
                 <button

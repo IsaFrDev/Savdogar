@@ -298,7 +298,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                         className="flex items-center gap-4 hover:scale-105 active:scale-95 transition-all outline-none"
                     >
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-accent)] flex items-center justify-center shadow-lg shadow-[var(--brand-primary-glow)] flex-shrink-0 overflow-hidden">
-                            <img src="/savdoon-logo.png" alt="Savdoon" className="w-full h-full object-cover p-1" />
+                            <img src="/savdoon-logo.jpg" alt="Savdoon" className="w-full h-full object-cover p-1" />
                         </div>
                         {isSidebarOpen && (
                             <motion.span
