@@ -8,6 +8,8 @@ interface User {
     first_name: string;
     last_name: string;
     role: 'superadmin' | 'store_admin' | 'customer' | 'courier';
+    is_superuser: boolean;
+    is_staff: boolean;
     phone?: string;
     avatar?: string;
     face_id_registered: boolean;

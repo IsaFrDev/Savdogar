@@ -707,7 +707,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
                     {user?.first_name ? `${user.first_name} ${user.last_name}` : user?.username}
                   </p>
                   <p className="text-[9px] text-[var(--brand-primary)] truncate uppercase tracking-[0.2em] font-black mt-1 opacity-80">
-                    {user?.role === 'superadmin' ? t('superadminRole') : user?.role === 'store_admin' ? t('storeAdminRole') : t('customerRole')}
+                    {(user?.role === 'superadmin' || user?.is_superuser) ? t('superadminRole') : user?.role === 'store_admin' ? t('storeAdminRole') : t('customerRole')}
                   </p>
                 </div>
               )}
