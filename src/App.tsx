@@ -4,6 +4,7 @@ import AuthProvider, { useAuth } from './context/AuthContext';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { StoreWizard } from './pages/StoreWizard';
+import { Marketplace } from './pages/Marketplace';
 
 import { Dashboard } from './pages/Dashboard';
 import { CourierDashboard } from './pages/dashboard/CourierDashboard';
@@ -20,12 +21,12 @@ import { motion } from 'framer-motion';
 import RejectionModal from './components/RejectionModal';
 
 
-type Page = 'login' | 'register' | 'wizard' | 'dashboard' | 'storefront' | 'admin-login' | 'super-admin' | 'courier-dashboard' | 'ai-intel';
+type Page = 'login' | 'register' | 'wizard' | 'dashboard' | 'storefront' | 'admin-login' | 'super-admin' | 'courier-dashboard' | 'ai-intel' | 'marketplace';
 
 function AppContent() {
   const { isLoading, isAuthenticated, isSuperAdmin, user, logout } = useAuth();
   const { maintenanceMode, t } = useApp();
-  const [page, setPage] = useState<Page>('login');
+  const [page, setPage] = useState<Page>('marketplace');
   const [storeId, setStoreId] = useState<number | undefined>(undefined);
   const [isPendingStore, setIsPendingStore] = useState(false);
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
@@ -89,8 +90,8 @@ function AppContent() {
           }
         } catch (error) {
           console.error('Failed to load store by slug:', error);
-          // If forced slug fails, just show login
-          if (forcedSlug) setPage('login');
+          // If forced slug fails, just show marketplace
+          if (forcedSlug) setPage('marketplace');
         }
       }
     };
@@ -275,6 +276,18 @@ function AppContent() {
 
   const renderPage = () => {
     switch (page) {
+      case 'marketplace':
+        return (
+          <Marketplace 
+            onLogin={() => setPage('login')}
+            onRegister={() => setPage('register')}
+            onDashboard={() => setPage('dashboard')}
+            onViewStore={(id) => {
+              setStoreId(id);
+              setPage('storefront');
+            }}
+          />
+        );
       case 'login':
         return (
           <Login
