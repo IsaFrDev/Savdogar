@@ -74,7 +74,7 @@ export function Login({ onLogin, onRegister }: LoginProps) {
         throw new Error(t('faceIdNotSupported'));
       }
 
-      await loginWithFaceId();
+      await loginWithFaceId(email.trim() || undefined);
       setFaceIdMessage(t('loginWithFaceIdSuccess'));
       setTimeout(onLogin, 500);
     } catch (err: any) {
@@ -229,16 +229,31 @@ export function Login({ onLogin, onRegister }: LoginProps) {
                 </div>
               </div>
 
-              <Button
-                variant="outline"
-                type="button"
-                className="w-full mt-8 h-12 rounded-2xl border-[var(--color-border)] text-[var(--text-secondary)] hover:text-[var(--brand-primary)]"
-                icon={isFaceIdLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Scan className="w-5 h-5" />}
-                onClick={handleFaceIdLogin}
-                disabled={isFaceIdLoading}
-              >
-                {t('faceIdLogin')}
-              </Button>
+              <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5 space-y-4 backdrop-blur-sm">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
+                    <Scan className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-primary)]">
+                      {t('faceIdLogin')}
+                    </p>
+                    <p className="mt-1.5 text-[10px] leading-relaxed text-[var(--text-muted)]">
+                      {t('faceIdEmailHint')}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  type="button"
+                  className="w-full h-12 rounded-xl border-[var(--brand-primary)]/30 text-[var(--text-secondary)] hover:border-[var(--brand-primary)]/60 hover:text-[var(--brand-primary)]"
+                  icon={isFaceIdLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
+                  onClick={handleFaceIdLogin}
+                  disabled={isFaceIdLoading}
+                >
+                  {isFaceIdLoading ? t('checking') : t('faceIdLogin')}
+                </Button>
+              </div>
             </div>
           </form>
         ) : step === 'device_verification' ? (

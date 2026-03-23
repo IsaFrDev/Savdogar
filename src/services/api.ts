@@ -170,18 +170,16 @@ export const authApi = {
     refreshToken: (refresh: string) =>
         api.post('/auth/token/refresh/', { refresh }),
 
-    // Face ID
+    // Face ID / WebAuthn
     getFaceIdRegisterOptions: () => api.get('/auth/face-id/register/'),
-    registerFaceId: (credentialId: string, publicKey: string) =>
-        api.post('/auth/face-id/register/', { credential_id: credentialId, public_key: publicKey }),
+    registerFaceId: (registration_response: Record<string, unknown>) =>
+        api.post('/auth/face-id/register/', { registration_response }),
 
-    getFaceIdLoginOptions: () => api.get('/auth/face-id/login/'),
-    loginWithFaceId: (data: {
-        credential_id: string;
-        authenticator_data: string;
-        client_data_json: string;
-        signature: string;
-    }) => api.post('/auth/face-id/login/', data),
+    getFaceIdLoginOptions: (email?: string) =>
+        api.get('/auth/face-id/login/', { params: email ? { email: email.trim() } : {} }),
+
+    loginWithFaceId: (authentication_response: Record<string, unknown>) =>
+        api.post('/auth/face-id/login/', { authentication_response }),
 
     listUsers: () => api.get('/auth/users/'),
     createUser: (data: any) => api.post('/auth/users/create/', data),
@@ -665,25 +663,6 @@ export const recommendationsApi = {
 export const loyaltyApi = {
     getPoints: () => api.get('/auth/loyalty/points/'),
     getTransactions: (storeId?: number) => api.get('/auth/loyalty/transactions/', { params: { store: storeId } }),
-};
-
-// ERP API
-export const erpApi = {
-    // Finance
-    getExpenses: (storeId: number) => api.get('/erp/expenses/', { params: { store: storeId } }),
-    createExpense: (data: any) => api.post('/erp/expenses/', data),
-    getRevenues: (storeId: number) => api.get('/erp/revenues/', { params: { store: storeId } }),
-    createRevenue: (data: any) => api.post('/erp/revenues/', data),
-    getFinanceSummary: (storeId: number) => api.get('/erp/analytics/summary/', { params: { store_id: storeId } }),
-
-    // Suppliers
-    listSuppliers: (storeId: number) => api.get('/erp/suppliers/', { params: { store: storeId } }),
-    createSupplier: (data: any) => api.post('/erp/suppliers/', data),
-
-    // Purchase Orders
-    listPurchaseOrders: (storeId: number) => api.get('/erp/purchase-orders/', { params: { store: storeId } }),
-    createPurchaseOrder: (data: any) => api.post('/erp/purchase-orders/', data),
-    getPurchaseOrder: (id: number) => api.get(`/erp/purchase-orders/${id}/`),
 };
 
 export default api;

@@ -47,6 +47,8 @@ export const translations = {
     signToManageStores: 'Sign in to manage your stores',
     loginWithFaceIdSuccess: 'Logged in with Face ID!',
     faceIdLoginFailed: 'Face ID login failed',
+    faceIdEmailHint:
+      'Enter the same email as your account before Face ID (recommended on Windows). Leave empty only if your device uses a saved passkey for this site.',
     '2faEnabled': '2FA Enabled!',
     saveBackupCodes: 'Save your backup codes',
     backupCodesNotice: 'NOTICE: If you lose your phone, these codes are the only way to access your account. Store them securely.',
@@ -781,6 +783,8 @@ export const translations = {
     signToManageStores: "Do'konlaringizni boshqarish uchun kiring",
     loginWithFaceIdSuccess: 'Face ID orqali kirildi!',
     faceIdLoginFailed: 'Face ID bilan kirishda xatolik',
+    faceIdEmailHint:
+      'Face ID / Windows Hello uchun yuqoridagi email maydonini hisobingizdagi manzil bilan to‘ldiring (kompyuterda tavsiya).',
     '2faEnabled': '2FA Yoqildi!',
     saveBackupCodes: 'Zaxira kodlarini saqlab qo\'ying',
     backupCodesNotice: 'DIQQAT: Telefoningizni yo\'qotsangiz, ushbu kodlar orqali hisobingizga kira olasiz. Ularni xavfsiz joyda saqlang.',
@@ -1524,6 +1528,8 @@ export const translations = {
     signToManageStores: 'Войдите для управления магазинами',
     loginWithFaceIdSuccess: 'Вход через Face ID выполнен!',
     faceIdLoginFailed: 'Ошибка входа через Face ID',
+    faceIdEmailHint:
+      'Укажите email аккаунта выше для Face ID / Windows Hello (рекомендуется на ПК).',
     '2faEnabled': '2FA Включена!',
     saveBackupCodes: 'Сохраните ваши резервные коды',
     backupCodesNotice: 'ВНИМАНИЕ: Если вы потеряете телефон, эти коды — единственный способ получить доступ к вашему аккаунту. Храните их надежно.',
