@@ -7,12 +7,27 @@ from datetime import timedelta
 import os
 import dj_database_url
 from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
+from cryptography.fernet import Fernet
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
+
+def _env_bool(name: str, default: bool) -> bool:
+    v = os.environ.get(name, '').strip().lower()
+    if v in ('true', '1', 'yes'):
+        return True
+    if v in ('false', '0', 'no'):
+        return False
+    return default
+
+
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-savdoon-dev-key-change-in-production')
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
+
+if not DEBUG and SECRET_KEY.startswith('django-insecure'):
+    raise ImproperlyConfigured('DJANGO_SECRET_KEY must be set to a strong value when DEBUG=False')
 
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = [
@@ -183,8 +198,9 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_HTTPONLY = False
 CSRF_USE_SESSIONS = False
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# Secure cookies break HTTP localhost; default off in DEBUG, on in production
+SESSION_COOKIE_SECURE = _env_bool('SESSION_COOKIE_SECURE', default=not DEBUG)
+CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 from corsheaders.defaults import default_headers
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
@@ -226,9 +242,19 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
-# Encryption Key (Generated for AES-256)
-# In production, this should be in environment variables
-FIELD_ENCRYPTION_KEY = b'CHANGE_ME_IN_PRODUCTION_TO_A_VALID_FERNET_KEY_32_BYTES_BASE64='
+# Fernet key for phone field encryption (32-byte url-safe base64)
+_field_key = os.environ.get('FIELD_ENCRYPTION_KEY', '').strip()
+if _field_key:
+    try:
+        Fernet(_field_key.encode('ascii'))
+    except Exception as exc:
+        raise ImproperlyConfigured('FIELD_ENCRYPTION_KEY must be a valid Fernet key') from exc
+    FIELD_ENCRYPTION_KEY = _field_key.encode('ascii')
+elif DEBUG:
+    # Fixed dev-only key so local data stays decryptable across restarts
+    FIELD_ENCRYPTION_KEY = b'v2S2rIlVQGgWQAqmEutJGQVI3rsdPW5p9eTjwmXaHQ4='
+else:
+    raise ImproperlyConfigured('FIELD_ENCRYPTION_KEY is required when DEBUG=False')
 
 # Swagger/OpenAPI settings
 SPECTACULAR_SETTINGS = {
@@ -247,10 +273,14 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-# WebAuthn settings
+# WebAuthn settings (comma-separated WEBAUTHN_ORIGIN for multiple frontends)
 WEBAUTHN_RP_ID = os.environ.get('WEBAUTHN_RP_ID', 'localhost')
 WEBAUTHN_RP_NAME = 'Savdoon'
-WEBAUTHN_ORIGIN = os.environ.get('WEBAUTHN_ORIGIN', 'http://localhost:5173')
+_webauthn_origin_env = os.environ.get('WEBAUTHN_ORIGIN', 'http://localhost:5173')
+if ',' in _webauthn_origin_env:
+    WEBAUTHN_ORIGIN = [o.strip() for o in _webauthn_origin_env.split(',') if o.strip()]
+else:
+    WEBAUTHN_ORIGIN = _webauthn_origin_env.strip()
 
 # Security Settings
 SECURE_BROWSER_XSS_FILTER = True

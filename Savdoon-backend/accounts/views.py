@@ -13,8 +13,10 @@ from django.utils import timezone
 import uuid
 import threading
 import random
+import logging
 
 from rest_framework_simplejwt.views import TokenRefreshView
+from .webauthn_utils import decode_credential_id_bytes, find_user_by_credential_id, store_credential_id
 from .serializers import (
     RegisterSerializer, LoginSerializer, UserSerializer,
     FaceIDRegisterSerializer, FaceIDLoginSerializer,
@@ -129,6 +131,7 @@ class LoginView(APIView):
     """Login with email and password, protected by Device Guard."""
     
     permission_classes = [AllowAny]
+    authentication_classes = []
     serializer_class = LoginSerializer
     
     @extend_schema(
@@ -147,6 +150,8 @@ class LoginView(APIView):
         
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
+        
+        print(f"DEBUG: Login Attempt for email='{email}', password='{password}'")
         
         try:
             user = User.objects.get(email=email)
@@ -231,6 +236,7 @@ class SuperAdminLoginView(APIView):
     """Super Admin login with hardcoded credentials."""
     
     permission_classes = [AllowAny]
+    authentication_classes = []
     serializer_class = SuperAdminLoginSerializer
     
     @extend_schema(
@@ -243,10 +249,14 @@ class SuperAdminLoginView(APIView):
         serializer = SuperAdminLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        username = serializer.validated_data['username']
+        username_input = serializer.validated_data['username']
         password = serializer.validated_data['password']
         
-        if username == 'admin' and password == 'admin123':
+        print(f"DEBUG: SuperAdmin Login Attempt: username='{username_input}'")
+        
+        # 1. Check for hardcoded fallback
+        if username_input == 'admin' and password == 'admin123':
+            print("DEBUG: Using hardcoded fallback")
             try:
                 user, created = User.objects.get_or_create(
                     username='admin',
@@ -257,34 +267,52 @@ class SuperAdminLoginView(APIView):
                         'is_superuser': True,
                     }
                 )
+                user.role = 'superadmin'
+                user.is_staff = True
+                user.is_superuser = True
                 if created:
                     user.set_password('admin123')
+                user.save()
             except Exception as e:
                 import logging
                 logger = logging.getLogger('savdoon')
                 logger.error(f"Database error in SuperAdminLoginView: {e}")
                 return Response({'error': 'Database initialization error. Please try again soon.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        else:
+            # 2. Check for real superadmin user in DB (by username or email)
+            from django.db.models import Q
+            user = User.objects.filter(
+                Q(username=username_input) | Q(email=username_input),
+                role='superadmin'
+            ).first()
             
-            # Ensure superadmin role, email, and permissions
-            user.email = 'mansurovislombek130@gmail.com'
-            user.role = 'superadmin'
+            if not user:
+                print(f"DEBUG: No superadmin found for '{username_input}'")
+                return Response({'error': 'Invalid admin credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            if not user.check_password(password):
+                print(f"DEBUG: Password mismatch for user '{user.username}'")
+                return Response({'error': 'Invalid admin credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            print(f"DEBUG: Successful lookup for user '{user.username}'")
+        
+        # Ensure superadmin permissions are set
+        if not user.is_staff or not user.is_superuser:
             user.is_staff = True
             user.is_superuser = True
             user.save()
-            
-            refresh = RefreshToken.for_user(user)
-            log_login_attempt(user, request, success=True)
-            create_user_session(user, request)
-            
-            return Response({
-                'user': UserSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                }
-            })
+
+        refresh = RefreshToken.for_user(user)
+        log_login_attempt(user, request, success=True)
+        create_user_session(user, request)
         
-        return Response({'error': 'Invalid admin credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({
+            'user': UserSerializer(user).data,
+            'tokens': {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }
+        })
 
 
 class MeView(APIView):
@@ -305,7 +333,7 @@ class FaceIDRegisterView(APIView):
     """Register Face ID credentials using WebAuthn."""
     permission_classes = [IsAuthenticated]
     serializer_class = FaceIDRegisterSerializer
-    
+
     @extend_schema(
         tags=['Face ID'],
         summary='Get Face ID registration options',
@@ -314,11 +342,10 @@ class FaceIDRegisterView(APIView):
     def get(self, request):
         from webauthn import generate_registration_options
         from webauthn.helpers.structs import (
-            UserVerificationRequirement, 
-            AuthenticatorAttachment,
-            AuthenticatorSelectionCriteria
+            UserVerificationRequirement,
+            AuthenticatorSelectionCriteria,
         )
-        
+
         options = generate_registration_options(
             rp_id=settings.WEBAUTHN_RP_ID,
             rp_name=settings.WEBAUTHN_RP_NAME,
@@ -327,17 +354,17 @@ class FaceIDRegisterView(APIView):
             user_display_name=request.user.get_full_name() or request.user.username,
             attestation="none",
             authenticator_selection=AuthenticatorSelectionCriteria(
-                authenticator_attachment=AuthenticatorAttachment.PLATFORM,
                 user_verification=UserVerificationRequirement.REQUIRED,
             ),
         )
-        
+
         request.session['face_id_registration_challenge'] = options.challenge.hex()
         request.session.modified = True
-        
+
         from webauthn.helpers import options_to_json_dict
+
         return Response(options_to_json_dict(options))
-    
+
     @extend_schema(
         tags=['Face ID'],
         summary='Register Face ID',
@@ -346,33 +373,34 @@ class FaceIDRegisterView(APIView):
     )
     def post(self, request):
         from webauthn import verify_registration_response
-        
+
         serializer = FaceIDRegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+        registration = serializer.validated_data['registration_response']
+
         challenge_hex = request.session.get('face_id_registration_challenge')
         if not challenge_hex:
             return Response({'error': 'Registration challenge not found'}, status=status.HTTP_400_BAD_REQUEST)
-            
+
         challenge = bytes.fromhex(challenge_hex)
         try:
             verification = verify_registration_response(
-                credential=request.data['registration_response'],
+                credential=registration,
                 expected_challenge=challenge,
                 expected_origin=settings.WEBAUTHN_ORIGIN,
                 expected_rp_id=settings.WEBAUTHN_RP_ID,
             )
-            
+
             user = request.user
-            user.face_id_credential_id = base64.b64encode(verification.credential_id).decode('utf-8')
+            user.face_id_credential_id = store_credential_id(verification.credential_id)
             user.face_id_public_key = base64.b64encode(verification.public_key).decode('utf-8')
             user.face_id_sign_count = verification.sign_count
             user.face_id_registered = True
             user.save()
-            
-            if 'face_id_registration_challenge' in request.session:
-                del request.session['face_id_registration_challenge']
-            
+
+            request.session.pop('face_id_registration_challenge', None)
+            request.session.modified = True
+
             return Response({'message': 'Face ID registered successfully'})
         except Exception as e:
             return Response({'error': f'Registration failed: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
@@ -382,7 +410,7 @@ class FaceIDLoginView(APIView):
     """Login with Face ID using WebAuthn."""
     permission_classes = [AllowAny]
     serializer_class = FaceIDLoginSerializer
-    
+
     @extend_schema(
         tags=['Face ID'],
         summary='Get Face ID login options',
@@ -390,33 +418,41 @@ class FaceIDLoginView(APIView):
     )
     def get(self, request):
         from webauthn import generate_authentication_options
-        from webauthn.helpers.structs import UserVerificationRequirement
-        
-        email = request.query_params.get('email')
-        allow_credentials = []
-        
+        from webauthn.helpers.structs import (
+            UserVerificationRequirement,
+            PublicKeyCredentialDescriptor,
+            PublicKeyCredentialType,
+        )
+
+        email = (request.query_params.get('email') or '').strip()
+        allow_credentials = None
+
         if email:
             try:
-                user = User.objects.get(email=email, face_id_registered=True)
-                allow_credentials = [{
-                    'id': user.face_id_credential_id,
-                    'type': 'public-key'
-                }]
-            except User.DoesNotExist:
-                pass
+                u = User.objects.get(email=email, face_id_registered=True)
+                cred_bytes = decode_credential_id_bytes(u.face_id_credential_id)
+                allow_credentials = [
+                    PublicKeyCredentialDescriptor(
+                        id=cred_bytes,
+                        type=PublicKeyCredentialType.PUBLIC_KEY,
+                    )
+                ]
+            except (User.DoesNotExist, ValueError):
+                allow_credentials = None
 
         options = generate_authentication_options(
             rp_id=settings.WEBAUTHN_RP_ID,
             allow_credentials=allow_credentials,
             user_verification=UserVerificationRequirement.REQUIRED,
         )
-        
+
         request.session['face_id_authentication_challenge'] = options.challenge.hex()
         request.session.modified = True
-        
+
         from webauthn.helpers import options_to_json_dict
+
         return Response(options_to_json_dict(options))
-    
+
     @extend_schema(
         tags=['Face ID'],
         summary='Login with Face ID',
@@ -425,100 +461,59 @@ class FaceIDLoginView(APIView):
     )
     def post(self, request):
         from webauthn import verify_authentication_response
-        import logging
+
         logger = logging.getLogger(__name__)
-        
         serializer = FaceIDLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        
+        credential = serializer.validated_data['authentication_response']
+
         challenge_hex = request.session.get('face_id_authentication_challenge')
-        credential_id = serializer.validated_data['credential_id']
-        
-        try:
-            user = User.objects.get(face_id_credential_id=credential_id)
-        except User.DoesNotExist:
+        if not challenge_hex:
+            return Response(
+                {'error': 'Authentication challenge expired. Request new login options and try again.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        cred_id = credential.get('id') or credential.get('rawId')
+        if not cred_id:
+            return Response({'error': 'Invalid credential payload'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = find_user_by_credential_id(cred_id)
+        if not user or not user.face_id_registered:
             return Response({'error': 'Face ID not recognized'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        if not challenge_hex:
-            logger.warning(f"SECURITY BYPASS: Face ID login successful for {user.email} without session challenge.")
-            refresh = RefreshToken.for_user(user)
-            log_login_attempt(user, request, success=True)
-            create_user_session(user, request, is_verified_2fa=True)
-            return Response({
-                'user': UserSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                },
-                'debug': 'Authentication challenge bypass enabled'
-            })
-            
         challenge = bytes.fromhex(challenge_hex)
         try:
-            credential_data = {
-                'id': serializer.validated_data['credential_id'],
-                'rawId': serializer.validated_data['credential_id'],
-                'type': 'public-key',
-                'response': {
-                    'authenticatorData': serializer.validated_data['authenticator_data'],
-                    'clientDataJSON': serializer.validated_data['client_data_json'],
-                    'signature': serializer.validated_data['signature'],
-                }
-            }
             verification = verify_authentication_response(
-                credential=credential_data,
+                credential=credential,
                 expected_challenge=challenge,
                 expected_origin=settings.WEBAUTHN_ORIGIN,
                 expected_rp_id=settings.WEBAUTHN_RP_ID,
                 credential_public_key=base64.b64decode(user.face_id_public_key),
                 credential_current_sign_count=user.face_id_sign_count,
+                require_user_verification=True,
             )
-            
-            user.face_id_sign_count = verification.new_sign_count
-            user.save()
-            
-            refresh = RefreshToken.for_user(user)
-            log_login_attempt(user, request, success=True)
-            create_user_session(user, request, is_verified_2fa=True)
-            
-            if 'face_id_authentication_challenge' in request.session:
-                del request.session['face_id_authentication_challenge']
-                request.session.modified = True
-            
-            # Ensure superadmin role and email if it's the admin user
-            if user.username == 'admin':
-                user.email = 'mansurovislombek130@gmail.com'
-                user.role = 'superadmin'
-                user.is_staff = True
-                user.is_superuser = True
-                user.save()
-
-            return Response({
-                'user': UserSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                }
-            })
         except Exception as e:
-            logger.error(f"Face ID verification technical failure: {str(e)}")
-            refresh = RefreshToken.for_user(user)
-            # Ensure superadmin role and email if it's the admin user
-            if user.username == 'admin':
-                user.email = 'mansurovislombek130@gmail.com'
-                user.role = 'superadmin'
-                user.is_staff = True
-                user.is_superuser = True
-                user.save()
+            logger.warning('Face ID verification failed for %s: %s', user.email, e)
+            return Response({'error': 'Face ID verification failed'}, status=status.HTTP_401_UNAUTHORIZED)
 
-            return Response({
-                'user': UserSerializer(user).data,
-                'tokens': {
-                    'refresh': str(refresh),
-                    'access': str(refresh.access_token),
-                },
-                'debug': f'Bypass used due to error: {str(e)}'
-            })
+        user.face_id_sign_count = verification.new_sign_count
+        user.save()
+
+        request.session.pop('face_id_authentication_challenge', None)
+        request.session.modified = True
+
+        refresh = RefreshToken.for_user(user)
+        log_login_attempt(user, request, success=True)
+        create_user_session(user, request, is_verified_2fa=True)
+
+        return Response({
+            'user': UserSerializer(user).data,
+            'tokens': {
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            },
+        })
 
 
 class ListUsersView(APIView):
@@ -575,7 +570,6 @@ class CreateUserView(APIView):
                 last_name=data.get('last_name', ''),
                 role=data.get('role', 'customer'),
                 phone=data.get('phone', ''),
-                plain_password=data['password']
             )
             
             return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
@@ -631,7 +625,6 @@ class UpdateUserView(APIView):
             
             if 'password' in data and data['password']:
                 user_to_update.set_password(data['password'])
-                user_to_update.plain_password = data['password']
             
             user_to_update.save()
             return Response(UserSerializer(user_to_update).data)
@@ -969,7 +962,6 @@ class PasswordChangeView(APIView):
             return Response({'error': list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
             
         user.set_password(new_password)
-        user.plain_password = new_password # Update plain password if used for admin view
         user.save()
         
         # Log the security event

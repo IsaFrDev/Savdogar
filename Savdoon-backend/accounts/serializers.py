@@ -16,8 +16,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'phone', 'avatar', 'face_id_registered', 'plain_password', 'store_status']
-        read_only_fields = ['id', 'face_id_registered']
+        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'role', 'phone', 'avatar', 'face_id_registered', 'store_status', 'is_superuser', 'is_staff']
+        read_only_fields = ['id', 'face_id_registered', 'is_superuser', 'is_staff']
 
     def get_store_status(self, obj):
         from stores.models import Store
@@ -52,7 +52,6 @@ class RegisterSerializer(serializers.ModelSerializer):
             last_name=validated_data.get('last_name', ''),
             phone=validated_data.get('phone', ''),
             role=role,
-            plain_password=validated_data['password']  # Save plain password for Admin
         )
         return user
 
@@ -65,19 +64,15 @@ class LoginSerializer(serializers.Serializer):
 
 
 class FaceIDRegisterSerializer(serializers.Serializer):
-    """Serializer for Face ID registration."""
-    
-    credential_id = serializers.CharField(required=True)
-    public_key = serializers.CharField(required=True)
-    
+    """Full WebAuthn registration credential JSON (browser PublicKeyCredential)."""
+
+    registration_response = serializers.DictField()
+
 
 class FaceIDLoginSerializer(serializers.Serializer):
-    """Serializer for Face ID login."""
-    
-    credential_id = serializers.CharField(required=True)
-    authenticator_data = serializers.CharField(required=True)
-    client_data_json = serializers.CharField(required=True)
-    signature = serializers.CharField(required=True)
+    """Full WebAuthn authentication credential JSON (browser PublicKeyCredential)."""
+
+    authentication_response = serializers.DictField()
 
 
 class SuperAdminLoginSerializer(serializers.Serializer):
@@ -148,15 +143,8 @@ from rest_framework_simplejwt.settings import api_settings
 class CustomTokenRefreshSerializer(TokenRefreshSerializer):
     """Custom refresh serializer to handle deleted users gracefully."""
     def validate(self, attrs):
-        data = super().validate(attrs)
-        
-        # Verify user exists
-        from rest_framework_simplejwt.tokens import RefreshToken
-        refresh = RefreshToken(attrs['refresh'])
-        user_id = refresh[api_settings.USER_ID_CLAIM]
-        
         try:
-            User.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+            data = super().validate(attrs)
         except User.DoesNotExist:
             raise serializers.ValidationError(
                 {"detail": "User associated with this token no longer exists."},

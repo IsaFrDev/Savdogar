@@ -1,0 +1,19 @@
+# Python
+**/__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+*.log
+
+# Local / debug (do not push)
+Savdoon-backend/db_prod_v1.sqlite3
+Savdoon-backend/debug_login*.py
+Savdoon-backend/create_clean_admin.py
+
+# Node
+Savdoon-frontend/node_modules/
+Savdoon-frontend/dist/
+
+# IDE
+.idea/
+.vscode/

@@ -25,11 +25,22 @@ class StoreViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_permissions(self):
-        if self.action in ['retrieve', 'by_slug', 'marketplace', 'nearby']:
+        # Allow unauthorized users for public actions
+        public_actions = ['list', 'retrieve', 'by_slug', 'marketplace', 'nearby']
+        if getattr(self, 'action', None) in public_actions or \
+           (hasattr(self, 'request') and self.request and self.request.method == 'GET'):
             return [AllowAny()]
-        if self.action == 'destroy':
+        if getattr(self, 'action', None) == 'destroy':
             return [IsAuthenticated(), IsSuperAdmin()]
         return [IsAuthenticated()]
+
+    def get_authenticators(self):
+        # Allow unauthorized users for public actions (GET requests)
+        public_actions = ['list', 'retrieve', 'by_slug', 'marketplace', 'nearby']
+        if getattr(self, 'action', None) in public_actions or \
+           (hasattr(self, 'request') and self.request and self.request.method == 'GET'):
+            return []
+        return super().get_authenticators()
 
     def get_queryset(self):
         user = self.request.user

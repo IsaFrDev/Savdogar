@@ -812,16 +812,9 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                                             <span className="text-[10px] font-black text-[var(--brand-primary)] uppercase tracking-widest">Login: <span className="text-[var(--text-primary)] lowercase">{u.username}</span></span>
                                                             <div className="flex items-center gap-2 group/pass">
                                                                 <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Pass:</span>
-                                                                {u.plain_password ? (
-                                                                    <button
-                                                                        onClick={() => alert(`Password for ${u.username}: ${u.plain_password}`)}
-                                                                        className="px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-[10px] font-bold text-slate-300 transition-all border border-white/5"
-                                                                    >
-                                                                        Reveal
-                                                                    </button>
-                                                                ) : (
-                                                                    <span className="text-[10px] text-slate-600 italic">Encrypted</span>
-                                                                )}
+                                                                <span className="text-[10px] text-slate-500 italic">
+                                                                    {language === 'uz' ? 'Faqat xesh (tiklash orqali)' : language === 'ru' ? 'Только хеш (сброс пароля)' : 'Hashed only (use reset)'}
+                                                                </span>
                                                             </div>
                                                         </div>
                                                     </td>

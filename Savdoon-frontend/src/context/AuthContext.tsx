@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authApi } from '../services/api';
+import { bufferToBase64URL, base64URLToBuffer } from '../utils/webauthn';
 
 interface User {
     id: number;
@@ -8,6 +9,8 @@ interface User {
     first_name: string;
     last_name: string;
     role: 'superadmin' | 'store_admin' | 'customer' | 'courier';
+    is_superuser: boolean;
+    is_staff: boolean;
     phone?: string;
     avatar?: string;
     face_id_registered: boolean;
@@ -25,7 +28,7 @@ interface AuthContextType {
     register: (data: RegisterData) => Promise<void>;
     logout: () => void;
     registerFaceId: () => Promise<void>;
-    loginWithFaceId: () => Promise<void>;
+    loginWithFaceId: (email?: string) => Promise<void>;
     refreshUser: () => Promise<void>;
     verify2FA: (email: string, code: string, useBackupCode?: boolean) => Promise<void>;
     setup2FA: () => Promise<any>;
@@ -125,20 +128,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const registerFaceId = async () => {
-        if (!navigator.credentials) {
+        if (!navigator.credentials?.create) {
             throw new Error('WebAuthn not supported');
         }
 
-        // Get registration options from server
         const optionsResponse = await authApi.getFaceIdRegisterOptions();
         const options = optionsResponse.data;
 
-        // Convert challenge to ArrayBuffer
-        const challenge = Uint8Array.from(atob(options.challenge.replace(/-/g, '+').replace(/_/g, '/')), (c: string) => c.charCodeAt(0));
-        const userId = Uint8Array.from(options.user.id, (c: string) => c.charCodeAt(0));
+        const challenge = base64URLToBuffer(options.challenge);
+        const userId = base64URLToBuffer(options.user.id);
 
-        // Create credentials
-        const credential = await navigator.credentials.create({
+        const credential = (await navigator.credentials.create({
             publicKey: {
                 challenge,
                 rp: options.rp,
@@ -152,75 +152,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 attestation: options.attestation,
                 authenticatorSelection: options.authenticatorSelection,
             },
-        }) as PublicKeyCredential;
+        })) as PublicKeyCredential | null;
 
         if (!credential) {
             throw new Error('Failed to create credential');
         }
 
-        const response = credential.response as AuthenticatorAttestationResponse;
+        const attestation = credential.response as AuthenticatorAttestationResponse;
+        const registration_response = {
+            id: bufferToBase64URL(credential.rawId),
+            rawId: bufferToBase64URL(credential.rawId),
+            type: 'public-key',
+            response: {
+                clientDataJSON: bufferToBase64URL(attestation.clientDataJSON),
+                attestationObject: bufferToBase64URL(attestation.attestationObject),
+                transports: attestation.getTransports?.() ?? undefined,
+            },
+        };
 
-        // Convert to base64
-        const credentialId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
-        const publicKey = btoa(String.fromCharCode(...new Uint8Array(response.getPublicKey() || new ArrayBuffer(0))));
-
-        // Register with server
-        await authApi.registerFaceId(credentialId, publicKey);
+        await authApi.registerFaceId(registration_response);
         await refreshUser();
     };
 
-    const loginWithFaceId = async () => {
-        if (!navigator.credentials) {
+    const loginWithFaceId = async (email?: string) => {
+        if (!navigator.credentials?.get) {
             throw new Error('WebAuthn not supported');
         }
 
-        // Get login options from server
-        const optionsResponse = await authApi.getFaceIdLoginOptions();
+        const optionsResponse = await authApi.getFaceIdLoginOptions(email);
         const options = optionsResponse.data;
 
-        // Convert challenge to ArrayBuffer
-        const challenge = Uint8Array.from(atob(options.challenge.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
-
-        // Convert allowed credentials
-        const allowCredentials = options.allowCredentials.map((cred: { id: string; type: string }) => ({
+        const challenge = base64URLToBuffer(options.challenge);
+        const allowCredentials = (options.allowCredentials || []).map((cred: { id: string; type: string }) => ({
             type: cred.type,
-            id: Uint8Array.from(atob(cred.id.replace(/-/g, '+').replace(/_/g, '/')), (c: string) => c.charCodeAt(0)),
+            id: base64URLToBuffer(cred.id),
         }));
 
-        // Get credentials
-        const credential = await navigator.credentials.get({
+        const credential = (await navigator.credentials.get({
             publicKey: {
                 challenge,
                 rpId: options.rpId,
                 timeout: options.timeout,
                 userVerification: options.userVerification,
-                allowCredentials,
+                allowCredentials: allowCredentials.length ? allowCredentials : undefined,
             },
-        }) as PublicKeyCredential;
+        })) as PublicKeyCredential | null;
 
         if (!credential) {
             throw new Error('Failed to get credential');
         }
 
-        const response = credential.response as AuthenticatorAssertionResponse;
+        const assertion = credential.response as AuthenticatorAssertionResponse;
+        const authentication_response = {
+            id: bufferToBase64URL(credential.rawId),
+            rawId: bufferToBase64URL(credential.rawId),
+            type: 'public-key',
+            response: {
+                authenticatorData: bufferToBase64URL(assertion.authenticatorData),
+                clientDataJSON: bufferToBase64URL(assertion.clientDataJSON),
+                signature: bufferToBase64URL(assertion.signature),
+            },
+        };
 
-        // Convert to base64
-        const credentialId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
-        const authenticatorData = btoa(String.fromCharCode(...new Uint8Array(response.authenticatorData)));
-        const clientDataJSON = btoa(String.fromCharCode(...new Uint8Array(response.clientDataJSON)));
-        const signature = btoa(String.fromCharCode(...new Uint8Array(response.signature)));
-
-        // Login with server
         try {
-            const loginResponse = await authApi.loginWithFaceId({
-                credential_id: credentialId,
-                authenticator_data: authenticatorData,
-                client_data_json: clientDataJSON,
-                signature,
-            });
+            const loginResponse = await authApi.loginWithFaceId(authentication_response);
 
-            if (!loginResponse.data || !loginResponse.data.tokens) {
-                console.error('Login response missing tokens:', loginResponse.data);
+            if (!loginResponse.data?.tokens) {
                 throw new Error('Invalid login response from server');
             }
 
@@ -228,9 +225,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.setItem('access_token', tokens.access);
             localStorage.setItem('refresh_token', tokens.refresh);
             setUser(userData);
-        } catch (error: any) {
-            if (error.response) {
-                console.error('Face ID Login Server Error:', error.response.data);
+        } catch (error: unknown) {
+            const err = error as { response?: { data?: unknown } };
+            if (err.response) {
+                console.error('Face ID Login Server Error:', err.response.data);
             }
             throw error;
         }

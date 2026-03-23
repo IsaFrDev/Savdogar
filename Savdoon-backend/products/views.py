@@ -41,7 +41,8 @@ class CategoryViewSet(viewsets.ModelViewSet):
     
     def get_authenticators(self):
         # Allow public access for GET requests
-        if self.request.method == 'GET':
+        if (hasattr(self, 'request') and self.request and self.request.method == 'GET') or \
+           getattr(self, 'action', None) in ['list', 'retrieve']:
             return []
         return super().get_authenticators()
 
@@ -69,7 +70,8 @@ class ProductViewSet(viewsets.ModelViewSet):
     
     def get_authenticators(self):
         # Allow public access for GET requests
-        if self.request.method == 'GET':
+        if (hasattr(self, 'request') and self.request and self.request.method == 'GET') or \
+           getattr(self, 'action', None) in ['list', 'retrieve', 'public']:
             return []
         return super().get_authenticators()
 
@@ -240,6 +242,13 @@ class ReviewViewSet(viewsets.ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
+    def get_authenticators(self):
+        # Allow public access for GET requests
+        if (hasattr(self, 'request') and self.request and self.request.method == 'GET') or \
+           getattr(self, 'action', None) in ['list', 'retrieve']:
+            return []
+        return super().get_authenticators()
+
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 

@@ -1,58 +1,56 @@
 #!/bin/bash
-# Savdoon Ultimate Startup & Diagnosis Script
+# Savdoon startup (Railway / Docker-friendly)
 
-echo "--- STARTUP INITIATED ---"
+set -e
+
+echo "--- Savdoon backend startup ---"
 date
 
-# 1. Environment and Filesystem Info
-echo "WHOAMI: $(whoami)"
 echo "PWD: $(pwd)"
-echo "LS ROOT:"
-ls -F
+echo "DATABASE_URL set: $([ -n "${DATABASE_URL:-}" ] && echo yes || echo no)"
 
-# 2. Check Migrations existence
-echo "CHECKING MIGRATIONS DIRECTORIES:"
-ls -d accounts/migrations/ stores/migrations/ products/migrations/ || echo "Some migration directories are missing!"
-
-echo "LISTING ACCOUNTS MIGRATIONS:"
-ls -la accounts/migrations/
-
-# 3. DB Settings Check
-echo "DATABASE SETUP:"
-echo "Using DATABASE_URL: ${DATABASE_URL:-None (Defaulting to SQLite)}"
-
-# 4. Mandatory Sync/Migrate
-echo "RUNNING DJANGO COMMANDS:"
-
-# Force static directory creation
 mkdir -p staticfiles media logs
-chmod -R 777 logs media staticfiles
+chmod -R 777 logs media staticfiles 2>/dev/null || true
 
-echo "Step: Collectstatic"
+echo "Collect static..."
 python3 manage.py collectstatic --noinput
 
-echo "Step: Showmigrations"
-python3 manage.py showmigrations
+echo "Migrate..."
+python3 manage.py migrate --noinput
 
-echo "Step: Makemigrations (Safety check)"
-python3 manage.py makemigrations --noinput
+# Optional one-time bootstrap (never commit real passwords — use Railway/Vercel env vars)
+# SAVDOON_BOOTSTRAP=1 SAVDOON_ADMIN_EMAIL=... SAVDOON_ADMIN_PASSWORD=... SAVDOON_ADMIN_USERNAME=admin
+if [ "${SAVDOON_BOOTSTRAP:-0}" = "1" ] && [ -n "${SAVDOON_ADMIN_EMAIL:-}" ] && [ -n "${SAVDOON_ADMIN_PASSWORD:-}" ]; then
+  echo "Running guarded superuser bootstrap..."
+  UNAME="${SAVDOON_ADMIN_USERNAME:-admin}"
+  python3 manage.py shell <<'PYCODE'
+import os
+from django.contrib.auth import get_user_model
+from stores.models import Store
 
-echo "Step: Migrate"
-python3 manage.py migrate --noinput || { echo "MIGRATION FAILED!"; exit 1; }
+User = get_user_model()
+email = os.environ["SAVDOON_ADMIN_EMAIL"]
+password = os.environ["SAVDOON_ADMIN_PASSWORD"]
+username = os.environ.get("SAVDOON_ADMIN_USERNAME", "admin")
+if not User.objects.filter(email=email).exists():
+    User.objects.create_superuser(username, email, password, role="superadmin")
+    print("Created superuser:", email)
+else:
+    print("Superuser email already exists, skipping create:", email)
 
-# 5. Inspection
-echo "Step: Inspect DB"
-python3 inspect_db.py
+owner = User.objects.filter(role="superadmin").first()
+if owner and not Store.objects.filter(slug="savdoon").exists():
+    Store.objects.create(
+        owner=owner,
+        name="Savdoon Main Store",
+        slug="savdoon",
+        status="approved",
+        business_type="electronics",
+        description="Official Savdoon store",
+    )
+    print("Created default savdoon store")
+PYCODE
+fi
 
-# 6. Superuser
-echo "Step: Superuser"
-python3 manage.py shell -c "from accounts.models import User; User.objects.filter(username='admin').exists() or User.objects.create_superuser('admin', 'mansurovislombek130@gmail.com', 'admin123')" || echo "Admin check failed"
-
-# 7. Final Check
-echo "FILESYSTEM POST-SETUP:"
-ls -l db_prod_v1.sqlite3 || echo "db_prod_v1.sqlite3 NOT CREATED!"
-ls -d staticfiles || echo "staticfiles directory NOT FOUND!"
-
-# 8. Start Server
-echo "LAUNCHING DAPHNE (ASGI)..."
-exec daphne savdoon.asgi:application --bind 0.0.0.0 --port $PORT
+echo "Starting Daphne on port ${PORT:-8000}..."
+exec daphne savdoon.asgi:application --bind 0.0.0.0 --port "${PORT:-8000}"
