@@ -229,10 +229,10 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
     const totalRevenue = allOrders.reduce((sum, o) => sum + (Number(o.total) || Number(o.total_amount) || 0), 0);
 
     const stats = [
-        { label: t('totalStores'), value: allStores.length.toString(), change: '+0%', icon: Store, gradient: 'from-violet-600 via-indigo-600 to-blue-600', glow: 'shadow-indigo-500/20' },
+        { label: t('totalStores'), value: allStores.length.toString(), change: '+0%', icon: Store, gradient: 'from-cyan-600 via-cyan-600 to-blue-600', glow: 'shadow-cyan-500/20' },
         { label: t('pendingStores'), value: pendingStores.length.toString(), change: t('approvalPending'), icon: Clock, gradient: 'from-amber-600 via-orange-600 to-rose-600', glow: 'shadow-orange-500/20' },
         { label: language === 'uz' ? 'Jami Savdo' : 'Общая Продажа', value: totalRevenue.toLocaleString() + ' UZS', change: '+0%', icon: DollarSign, gradient: 'from-emerald-600 via-teal-600 to-cyan-600', glow: 'shadow-teal-500/20' },
-        { label: t('totalUsers'), value: allUsers.length.toString(), change: '+0%', icon: Users, gradient: 'from-fuchsia-600 via-purple-600 to-indigo-600', glow: 'shadow-purple-500/20' },
+        { label: t('totalUsers'), value: allUsers.length.toString(), change: '+0%', icon: Users, gradient: 'from-violet-600 via-purple-600 to-indigo-600', glow: 'shadow-purple-500/20' },
     ];
 
     const handleLogoutAction = () => {
@@ -325,7 +325,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                     )}
                 </div>
 
-                <nav className="flex-1 p-4 space-y-2">
+                <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto custom-scrollbar">
                     {menuItems.map((item) => (
                         <button
                             key={item.id}
@@ -339,138 +339,99 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                 }
                                 if (window.innerWidth < 1024) setIsSidebarOpen(false);
                             }}
-                            className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all relative group ${activeTab === item.id
-                                ? 'text-white bg-indigo-500/10 border border-indigo-500/20 shadow-xl shadow-indigo-500/5'
-                                : 'text-slate-400 hover:text-indigo-400 hover:bg-white/[0.03]'
-                                }`}
+                            className={`w-full group relative flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 ${
+                                activeTab === item.id
+                                    ? 'bg-cyan-500/10 text-cyan-400'
+                                    : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                            }`}
                         >
-                            <item.icon className={`w-5 h-5 flex-shrink-0 transition-colors ${activeTab === item.id ? 'text-indigo-400' : 'group-hover:text-indigo-400'}`} />
-                            {isSidebarOpen && (
-                                <div className="flex-1 flex items-center justify-between text-left">
-                                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="font-bold text-[13px] tracking-wide">
-                                        {item.label}
-                                    </motion.span>
-                                    {item.badge !== undefined && item.badge > 0 && (
-                                        <span className="bg-rose-500/20 text-rose-400 text-[10px] font-black px-1.5 py-0.5 rounded-md border border-rose-500/20">
-                                            {item.badge}
-                                        </span>
-                                    )}
-                                </div>
-                            )}
                             {activeTab === item.id && (
                                 <motion.div
-                                    layoutId="activeTabIndicator"
-                                    className="absolute left-0 w-1 h-6 bg-indigo-500 rounded-r-full shadow-[0_0_15px_rgba(99,102,241,0.5)]"
+                                    layoutId="sidebar-active"
+                                    className="absolute left-0 w-1.5 h-6 bg-cyan-400 rounded-r-full shadow-[0_0_15px_rgba(34,211,238,0.5)]"
                                 />
+                            )}
+                            <item.icon className={`w-5 h-5 transition-transform duration-300 group-hover:scale-110 ${activeTab === item.id ? 'text-cyan-400' : 'text-slate-500'}`} />
+                            {isSidebarOpen && (
+                                <span className="text-sm font-black uppercase tracking-widest">{t(`dashboard.${item.label.toLowerCase()}`)}</span>
+                            )}
+                            {activeTab === item.id && isSidebarOpen && (
+                                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.8)]" />
                             )}
                         </button>
                     ))}
                 </nav>
 
-                <div className="p-4 border-t border-white/5">
+                {/* Footer Actions */}
+                <div className="p-6 space-y-3">
+                    <button
+                        onClick={onSwitchToUserView}
+                        className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-slate-900/50 hover:bg-slate-800 text-slate-400 hover:text-white transition-all border border-white/5 group"
+                    >
+                        <Scan className="w-5 h-5 text-violet-400 group-hover:rotate-12 transition-transform" />
+                        {isSidebarOpen && <span className="text-xs font-black uppercase tracking-widest">User View</span>}
+                    </button>
                     <button
                         onClick={handleLogoutAction}
-                        className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all group"
+                        className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-rose-500/5 hover:bg-rose-500 text-rose-500 hover:text-white transition-all border border-rose-500/10 group"
                     >
-                        <LogOut className="w-5 h-5 flex-shrink-0 group-hover:scale-110 transition-transform" />
-                        {isSidebarOpen && <span className="font-bold text-sm uppercase tracking-widest">{t('logout')}</span>}
+                        <LogOut className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+                        {isSidebarOpen && <span className="text-xs font-black uppercase tracking-widest">{t('auth.logout')}</span>}
                     </button>
                 </div>
             </motion.aside>
 
             {/* Main Content */}
             <main
-                className={`transition-all duration-300 min-h-screen ${isSidebarOpen ? 'lg:ml-[280px]' : 'lg:ml-[80px]'
-                    }`}
+                className={`transition-all duration-500 min-h-screen flex flex-col ${
+                    isSidebarOpen ? 'ml-[280px]' : 'ml-0'
+                }`}
             >
-                {/* Top Header */}
-                <header className="h-20 bg-[var(--bg-header)] backdrop-blur-md border-b border-[var(--glass-border)] flex items-center justify-between px-4 lg:px-8 sticky top-0 z-40">
-                    <div className="flex items-center gap-4 lg:gap-6">
+                {/* Header */}
+                <header className="sticky top-0 z-40 bg-[#020617]/60 backdrop-blur-xl border-b border-white/5 px-8 h-24 flex items-center justify-between">
+                    <div className="flex items-center gap-6">
                         <button
                             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                            className="p-2.5 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--bg-surface-hover)] text-slate-400 hover:text-white transition-all border border-[var(--glass-border)]"
+                            className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400 transition-all border border-white/5"
                         >
                             <Menu className="w-5 h-5" />
                         </button>
-
-                        <button
-                            onClick={() => setActiveTab('dashboard')}
-                            className="flex items-center gap-3 lg:hidden hover:opacity-80 transition-opacity active:scale-95"
-                        >
-                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-accent)] flex items-center justify-center shadow-lg shadow-[var(--brand-primary-glow)]">
-                                <ShieldCheck className="w-5 h-5 text-white" />
-                            </div>
-                            <span className="font-black text-sm tracking-tighter text-[var(--text-primary)]">SAVDOON</span>
-                        </button>
-                        <div className="hidden sm:flex items-center gap-3 bg-white/[0.03] border border-white/5 px-4 py-2.5 rounded-2xl focus-within:border-indigo-500/50 transition-all shadow-inner">
-                            <Search className="w-4 h-4 text-slate-500" />
+                        <div className="relative group hidden lg:block">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 group-focus-within:text-cyan-400 transition-colors" />
                             <input
                                 type="text"
-                                placeholder={t('search')}
-                                className="bg-transparent border-none focus:ring-0 text-[13px] text-slate-200 placeholder:text-slate-500 w-32 md:w-64 font-medium"
+                                placeholder={t('dashboard.search')}
+                                className="bg-white/5 border border-white/5 rounded-2xl pl-12 pr-12 py-3 w-80 text-sm focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500/50 outline-none transition-all placeholder:text-slate-600"
                             />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                                ⌘K
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-3 lg:gap-5 relative">
-                        <div className="flex items-center p-1 bg-white/[0.03] border border-white/5 rounded-xl">
+                    <div className="flex items-center gap-4 sm:gap-6">
+                        <div className="hidden sm:flex items-center gap-4">
                             <LanguageSwitcher />
-                        </div>
-                        <button
-                            onClick={() => setShowNotifications(!showNotifications)}
-                            className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] text-slate-400 hover:text-white transition-all border border-white/5 relative shadow-sm"
-                        >
-                            <Bell className="w-5 h-5" />
-                            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-indigo-500 rounded-full border-2 border-slate-900" />
-                        </button>
-
-                        <AnimatePresence>
-                            {showNotifications && (
-                                <>
-                                    <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)} />
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                        className="absolute right-0 top-full mt-3 w-80 bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden"
-                                    >
-                                        <div className="p-4 border-b border-[var(--glass-border)] flex items-center justify-between">
-                                            <span className="text-xs font-black text-[var(--text-primary)] uppercase tracking-widest">{t('notifications')}</span>
-                                            <span className="text-[10px] text-[var(--brand-primary)] font-bold uppercase tracking-widest">1 New</span>
-                                        </div>
-                                        <div className="p-2">
-                                            <div className="p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer">
-                                                <div className="flex gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary-glow)] flex items-center justify-center text-[var(--brand-primary)] group-hover:bg-[var(--brand-primary)]/20 transition-all flex-shrink-0">
-                                                        <ShieldCheck className="w-4 h-4" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs font-bold text-[var(--text-primary)] leading-normal">System Update</p>
-                                                        <p className="text-[10px] text-[var(--text-muted)] mt-1 leading-relaxed">System status labels internationalization completed.</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="p-3 bg-[var(--bg-surface-hover)] border-t border-[var(--glass-border)] text-center cursor-pointer hover:brightness-110 transition-all">
-                                            <span className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">{t('markAllAsRead')}</span>
-                                        </div>
-                                    </motion.div>
-                                </>
-                            )}
-                        </AnimatePresence>
-
-                        <div className="h-10 w-[1px] bg-white/5 mx-2 lg:mx-3" />
-                        <div className="flex items-center gap-3 lg:gap-4">
-                            <div className="text-right hidden md:block">
-                                <p className="text-[13px] font-black text-white leading-none mb-1.5">{user?.first_name || 'Admin'}</p>
-                                <div className="flex items-center justify-end gap-1.5">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                                    <p className="text-[9px] text-indigo-400 font-black uppercase tracking-[0.15em] leading-none">{t('superAdmin')}</p>
-                                </div>
+                            <div className="h-10 w-px bg-white/5 mx-2" />
+                            <div className="flex flex-col items-end">
+                                <span className="text-[10px] font-black text-cyan-400 uppercase tracking-[0.2em]">Superadmin</span>
+                                <span className="text-xs font-bold text-white tracking-tight">{user?.email}</span>
                             </div>
-                            <div className="w-10 h-10 lg:w-11 lg:h-11 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 p-[1px] border border-white/10">
-                                <div className="w-full h-full rounded-[14px] bg-slate-900 flex items-center justify-center font-black text-white text-xs lg:text-sm">
-                                    {user?.first_name?.charAt(0) || 'S'}{user?.last_name?.charAt(0) || 'A'}
+                        </div>
+
+                        <div className="flex items-center gap-4">
+                            <button
+                                onClick={() => setShowNotifications(!showNotifications)}
+                                className="p-3 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-cyan-400 transition-all border border-white/5 relative group"
+                            >
+                                <Bell className="w-5 h-5" />
+                                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-cyan-400 rounded-full shadow-[0_0_8px_rgba(34,211,238,0.8)] border-2 border-[#020617]" />
+                            </button>
+                            <div className="p-1 rounded-2xl bg-gradient-to-tr from-cyan-400 to-violet-500">
+                                <div className="p-1 rounded-[calc(1rem-4px)] bg-[#020617]">
+                                    <div className="w-10 h-10 rounded-xl bg-slate-900 border border-white/10 flex items-center justify-center overflow-hidden">
+                                        <div className="text-sm font-black text-cyan-400 uppercase">{user?.email?.[0]}</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -501,15 +462,15 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                         animate={{ opacity: 1, y: 0 }}
                                         transition={{ delay: i * 0.1, duration: 0.8, ease: [0.21, 1.02, 0.47, 0.98] }}
                                     >
-                                        <GlassCard className="p-7 lg:p-9 border-white/5 hover:border-white/10 transition-all duration-500 group relative overflow-hidden bg-white/[0.01]">
-                                            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 blur-[80px] rounded-full -mr-16 -mt-16 group-hover:bg-indigo-500/10 transition-colors" />
+                                        <GlassCard className="p-7 lg:p-9 border-white/5 hover:border-cyan-500/20 transition-all duration-500 group relative overflow-hidden bg-white/[0.01]">
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 blur-[80px] rounded-full -mr-16 -mt-16 group-hover:bg-cyan-500/10 transition-colors" />
                                             <div className="flex justify-between items-start mb-8">
                                                 <div className={`p-4 rounded-2xl bg-gradient-to-br ${stat.gradient} ${stat.glow} group-hover:scale-110 transition-transform duration-500 flex items-center justify-center p-[2px]`}>
-                                                    <div className="w-full h-full rounded-[14px] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-2.5">
+                                                    <div className="w-full h-full rounded-[14px] bg-slate-950/40 backdrop-blur-sm flex items-center justify-center p-2.5">
                                                         <stat.icon className="w-6 h-6 text-white" />
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest border border-emerald-500/20">
+                                                <div className="flex items-center gap-1.5 text-cyan-400 bg-cyan-500/10 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-widest border border-cyan-500/20">
                                                     <TrendingUp className="w-3.5 h-3.5" />
                                                     {stat.change}
                                                 </div>
@@ -540,7 +501,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                         {pendingStores.slice(0, 5).map((store) => (
                                             <div key={store.id} className="flex items-center justify-between p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:border-indigo-500/30 hover:bg-white/[0.04] transition-all duration-500 group">
                                                 <div className="flex items-center gap-5">
-                                                    <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-white/5 flex items-center justify-center font-black text-indigo-400 group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(99,102,241,0.2)] transition-all duration-500">
+                                                    <div className="w-12 h-12 rounded-2xl bg-slate-950 border border-white/5 flex items-center justify-center font-black text-cyan-400 group-hover:scale-110 group-hover:shadow-[0_0_30px_rgba(34,211,238,0.2)] transition-all duration-500">
                                                         {store.name.charAt(0)}
                                                     </div>
                                                     <div 
@@ -852,13 +813,13 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                                                     last_name: u.last_name || '' 
                                                                 });
                                                             }}
-                                                            className="p-3 rounded-2xl bg-indigo-500/5 text-indigo-400 hover:bg-indigo-500 hover:text-white border border-indigo-500/10 transition-all shadow-sm"
+                                                            className="p-3 rounded-2xl bg-cyan-500/5 text-cyan-400 hover:bg-cyan-500 hover:text-white border border-cyan-500/10 transition-all shadow-sm"
                                                         >
                                                             <Edit2 className="w-5 h-5" />
                                                         </button>
                                                         {u.id !== user?.id && (
                                                             <button
-                                                                onClick={() => handleDeleteUser(u.id, u.username)}
+                                                                onClick={() => handleDeleteUser(u.id)}
                                                                 className="p-3 rounded-2xl bg-rose-500/5 text-rose-500 hover:bg-rose-500 hover:text-white border border-rose-500/10 transition-all shadow-sm"
                                                             >
                                                                 <Trash2 className="w-5 h-5" />
@@ -904,7 +865,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                     <tbody className="divide-y divide-white/[0.02]">
                                         {allOrders.map((order: any) => (
                                             <tr key={order.id} className="hover:bg-white/[0.02] transition-all duration-500 group">
-                                                <td className="py-7 px-8 text-sm font-black text-indigo-400 group-hover:scale-105 transition-transform">#{order.id}</td>
+                                                <td className="py-7 px-8 text-sm font-black text-cyan-400 group-hover:scale-105 transition-transform">#{order.id}</td>
                                                 <td className="py-7 px-8">
                                                     <div>
                                                         <p className="text-sm font-black text-white uppercase tracking-tight">{order.customer_name}</p>
@@ -967,7 +928,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
 
                                     <div className="flex items-center justify-between mb-10 relative">
                                         <div className="flex items-center gap-4">
-                                            <div className="p-3.5 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                                            <div className="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
                                                 <Cpu className="w-6 h-6" />
                                             </div>
                                             <div>
@@ -1019,7 +980,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                                 </div>
                                                 <button
                                                     onClick={() => setMultiStoreEnabled(!multiStoreEnabled)}
-                                                    className={`w-12 h-6 rounded-full transition-all relative ${multiStoreEnabled ? 'bg-indigo-500' : 'bg-slate-800'}`}
+                                                    className={`w-12 h-6 rounded-full transition-all relative ${multiStoreEnabled ? 'bg-cyan-500' : 'bg-slate-800'}`}
                                                 >
                                                     <motion.div
                                                         animate={{ x: multiStoreEnabled ? 26 : 4 }}
@@ -1081,7 +1042,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                                     </button>
                                                 </div>
                                                 <div className="flex items-center gap-4">
-                                                    <code className="flex-1 bg-slate-950/50 p-4 rounded-2xl border border-white/5 text-indigo-400 font-mono text-[13px] tracking-widest truncate">
+                                                    <code className="flex-1 bg-slate-950 p-4 rounded-2xl border border-white/5 text-cyan-400 font-mono text-[13px] tracking-widest truncate">
                                                         {showKey ? apiKey : '••••••••••••••••••••••••••••••••'}
                                                     </code>
                                                     <button
@@ -1111,11 +1072,11 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                             </div>
 
                                             <div className="space-y-6">
-                                                <div className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--glass-border)]">
+                                                <div className="p-6 rounded-3xl bg-slate-950 border border-white/5">
                                                     <div className="flex items-center justify-between mb-4">
                                                         <div className="flex items-center gap-2">
-                                                            <Fingerprint className="w-5 h-5 text-indigo-400" />
-                                                            <span className="text-sm font-black text-[var(--text-primary)] uppercase tracking-wider">Face ID</span>
+                                                            <Fingerprint className="w-5 h-5 text-cyan-400" />
+                                                            <span className="text-sm font-black text-white uppercase tracking-wider">Face ID</span>
                                                         </div>
                                                         {user?.face_id_registered ? (
                                                             <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded text-[9px] font-black uppercase border border-emerald-500/20">Active</span>
@@ -1235,7 +1196,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                         {language === 'uz' ? 'Profilni Tahrirlash' : 'Edit User Profile'}
                                     </h3>
                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.2em] mt-1.5 flex items-center gap-2">
-                                        <User className="w-3 h-3 text-indigo-400" />
+                                        <Users className="w-3 h-3 text-cyan-400" />
                                         User ID: #{editingUser.id}
                                     </p>
                                 </div>
@@ -1306,10 +1267,10 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                     </button>
                                     <button
                                         type="submit"
-                                        disabled={actionLoading === 'editing'}
-                                        className="flex-[2] py-4 rounded-2xl bg-indigo-500 hover:brightness-110 text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-indigo-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+                                        disabled={actionLoading === 999999}
+                                        className="flex-[2] py-4 rounded-2xl bg-cyan-500 hover:brightness-110 text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl shadow-cyan-500/20 active:scale-95 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
                                     >
-                                        {actionLoading === 'editing' ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                                        {actionLoading === 999999 ? <Loader2 className="w-4 h-4 animate-spin" /> : (
                                             <>
                                                 <Save className="w-4 h-4" />
                                                 Confirm Changes
