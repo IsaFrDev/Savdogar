@@ -4,11 +4,14 @@ Django settings for Savdoon project.
 
 from pathlib import Path
 from datetime import timedelta
+import base64
 import os
 import dj_database_url
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
 from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
@@ -28,6 +31,18 @@ DEBUG = os.environ.get('DJANGO_DEBUG', 'True') == 'True'
 
 if not DEBUG and SECRET_KEY.startswith('django-insecure'):
     raise ImproperlyConfigured('DJANGO_SECRET_KEY must be set to a strong value when DEBUG=False')
+
+
+def _derive_field_encryption_key_from_secret(secret: str) -> bytes:
+    """Stable Fernet key from SECRET_KEY when FIELD_ENCRYPTION_KEY is unset (e.g. Railway)."""
+    kdf = PBKDF2HMAC(
+        algorithm=hashes.SHA256(),
+        length=32,
+        salt=b'savdoon-field-enc-v1',
+        iterations=480_000,
+    )
+    return base64.urlsafe_b64encode(kdf.derive(secret.encode('utf-8')))
+
 
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = [
@@ -254,7 +269,8 @@ elif DEBUG:
     # Fixed dev-only key so local data stays decryptable across restarts
     FIELD_ENCRYPTION_KEY = b'v2S2rIlVQGgWQAqmEutJGQVI3rsdPW5p9eTjwmXaHQ4='
 else:
-    raise ImproperlyConfigured('FIELD_ENCRYPTION_KEY is required when DEBUG=False')
+    # Production without explicit key: derive from DJANGO_SECRET_KEY (set FIELD_ENCRYPTION_KEY to override)
+    FIELD_ENCRYPTION_KEY = _derive_field_encryption_key_from_secret(SECRET_KEY)
 
 # Swagger/OpenAPI settings
 SPECTACULAR_SETTINGS = {
