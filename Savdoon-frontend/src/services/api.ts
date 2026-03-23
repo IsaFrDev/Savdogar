@@ -15,6 +15,14 @@ const api = axios.create({
     },
 });
 
+/** Persist access + rotated refresh (SIMPLE_JWT ROTATE_REFRESH_TOKENS + BLACKLIST_AFTER_ROTATION). */
+function applyTokenRefreshPayload(data: { access: string; refresh?: string }) {
+    localStorage.setItem('access_token', data.access);
+    if (data.refresh) {
+        localStorage.setItem('refresh_token', data.refresh);
+    }
+}
+
 // Add token to requests with proactive refresh
 api.interceptors.request.use(async (config) => {
     let token = localStorage.getItem('access_token');
@@ -40,11 +48,10 @@ api.interceptors.request.use(async (config) => {
                             const response = await axios.post(`${API_BASE_URL}/auth/token/refresh/`, {
                                 refresh: refreshToken,
                             });
-                            const { access } = response.data;
-                            localStorage.setItem('access_token', access);
-                            token = access;
+                            applyTokenRefreshPayload(response.data);
+                            token = response.data.access;
                             isRefreshing = false;
-                            onRefreshed(access);
+                            onRefreshed(response.data.access);
                         } catch (refreshError) {
                             isRefreshing = false;
                             // Let the response interceptor handle fatal refresh errors
@@ -87,7 +94,8 @@ api.interceptors.response.use(
 
             // If refresh token call itself fails with 401/403, logout
             if (originalRequest.url?.includes('/auth/token/refresh/')) {
-                if (error.response?.status === 401 || error.response?.status === 403) {
+                const st = error.response?.status;
+                if (st === 401 || st === 403 || st === 400) {
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');
                     window.location.href = '/login';
@@ -114,8 +122,8 @@ api.interceptors.response.use(
                         refresh: refreshToken,
                     });
 
-                    const { access } = response.data;
-                    localStorage.setItem('access_token', access);
+                    applyTokenRefreshPayload(response.data);
+                    const access = response.data.access;
                     isRefreshing = false;
                     onRefreshed(access);
 
@@ -123,9 +131,9 @@ api.interceptors.response.use(
                     return api(originalRequest);
                 } catch (refreshError: any) {
                     isRefreshing = false;
-                    
-                    // Only logout if the refresh token itself is invalid (401/403)
-                    if (refreshError.response?.status === 401 || refreshError.response?.status === 403) {
+
+                    const st = refreshError.response?.status;
+                    if (st === 401 || st === 403 || st === 400) {
                         localStorage.removeItem('access_token');
                         localStorage.removeItem('refresh_token');
                         if (window.location.pathname !== '/login' && window.location.pathname !== '/') {

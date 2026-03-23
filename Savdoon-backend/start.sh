@@ -18,6 +18,9 @@ python3 manage.py collectstatic --noinput
 echo "Migrate..."
 python3 manage.py migrate --noinput
 
+echo "Ensure default store slug=savdoon (no-op if exists or no superuser)..."
+python3 manage.py ensure_savdoon_store || true
+
 # Optional one-time bootstrap (never commit real passwords — use Railway/Vercel env vars)
 # SAVDOON_BOOTSTRAP=1 SAVDOON_ADMIN_EMAIL=... SAVDOON_ADMIN_PASSWORD=... SAVDOON_ADMIN_USERNAME=admin
 if [ "${SAVDOON_BOOTSTRAP:-0}" = "1" ] && [ -n "${SAVDOON_ADMIN_EMAIL:-}" ] && [ -n "${SAVDOON_ADMIN_PASSWORD:-}" ]; then

@@ -138,17 +138,9 @@ class DeviceVerificationSerializer(serializers.Serializer):
 
 
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
-from rest_framework_simplejwt.settings import api_settings
+
 
 class CustomTokenRefreshSerializer(TokenRefreshSerializer):
-    """Custom refresh serializer to handle deleted users gracefully."""
-    def validate(self, attrs):
-        try:
-            data = super().validate(attrs)
-        except User.DoesNotExist:
-            raise serializers.ValidationError(
-                {"detail": "User associated with this token no longer exists."},
-                code="user_not_found"
-            )
-            
-        return data
+    """JWT refresh; keep class for URL wiring / future hooks."""
+
+    pass
