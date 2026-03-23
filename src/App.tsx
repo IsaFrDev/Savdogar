@@ -88,8 +88,10 @@ function AppContent() {
             setIsPendingStore(false);
             setIsMaintenanceMode(false);
           }
-        } catch (error) {
-          console.error('Failed to load store by slug:', error);
+        } catch (error: any) {
+          if (error.response?.status !== 404) {
+             console.error('Failed to load store by slug:', error);
+          }
           // If forced slug fails, just show marketplace
           if (forcedSlug) setPage('marketplace');
         }

@@ -228,7 +228,8 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
     { id: 'profile', label: t('profileTitle') || 'Profile', icon: Settings },
   ];
 
-  const tabs = isCustomer ? customerTabs : (isSuperAdmin ? [...customerTabs, { id: 'divider', label: '', icon: () => null, disabled: true }, ...adminTabs] : adminTabs);
+  const showAdminTabs = !isCustomer && (!isSuperAdmin || stores.length > 0);
+  const tabs = isCustomer ? customerTabs : (isSuperAdmin ? (showAdminTabs ? [...customerTabs, { id: 'divider', label: '', icon: () => null, disabled: true }, ...adminTabs] : customerTabs) : adminTabs);
 
   const handleLogout = () => {
     logout();
