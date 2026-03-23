@@ -148,8 +148,13 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                 animate={{ opacity: 1, y: 0 }}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20 text-[var(--brand-primary)] text-xs font-black uppercase tracking-widest mb-6"
             >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Next-Gen E-commerce Platform</span>
+                <motion.div
+                    animate={{ rotate: [0, 15, -15, 0] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                >
+                    <Sparkles className="w-3.5 h-3.5" />
+                </motion.div>
+                <span>{t('nextGenPlatform') || 'Next-Gen E-commerce Platform'}</span>
             </motion.div>
             
             <motion.h1 
@@ -158,9 +163,9 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                 transition={{ delay: 0.1 }}
                 className="text-5xl lg:text-7xl font-black text-[var(--text-main)] tracking-tighter uppercase mb-6 leading-[0.9]"
             >
-                Everything you need <br />
+                {t('heroTitlePart1') || 'Everything you need'} <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-secondary,var(--brand-primary))]">
-                    in one place.
+                    {t('heroTitlePart2') || 'in one place.'}
                 </span>
             </motion.h1>
             
@@ -170,7 +175,7 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                 transition={{ delay: 0.2 }}
                 className="text-lg text-[var(--text-dim)] max-w-2xl mx-auto mb-10 font-medium"
             >
-                Discover premium stores, track orders, and experience the future of shopping with AI-powered personalized recommendations.
+                {t('heroSubtitle') || 'Discover premium stores, track orders, and experience the future of shopping with AI-powered personalized recommendations.'}
             </motion.p>
             
             {/* Search Bar */}
@@ -185,7 +190,7 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                     <Search className="w-5 h-5 text-[var(--text-dim)]" />
                     <input 
                         type="text" 
-                        placeholder={t('searchPlaceholder') || "Search stores, products, or types..."}
+                        placeholder={t('searchMarketplacePlaceholder') || "Search stores, products, or types..."}
                         className="flex-1 bg-transparent border-none outline-none px-4 text-sm font-bold text-[var(--text-main)] placeholder-[var(--text-dim)]"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -213,20 +218,20 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                         }`}
                     >
                         <MapPin className="w-4 h-4" />
-                        {nearbyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (showNearby ? 'Showing All' : 'Nearby Stores')}
+                        {nearbyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (showNearby ? t('showingAll') || 'Showing All' : t('nearbyStoresBtn') || 'Nearby Stores')}
                     </button>
                     
                     <div className="hidden sm:flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/5 border border-[var(--glass-border)] text-[var(--text-dim)]">
                         <TrendingUp className="w-4 h-4 text-emerald-500" />
                         <span className="text-[10px] font-black uppercase tracking-widest">
-                            {filteredStores.length} Stores Available
+                            {t('storesAvailable', { count: filteredStores.length })}
                         </span>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4">
                     <button className="text-[10px] font-black uppercase tracking-widest text-[var(--brand-primary)] hover:underline decoration-2 underline-offset-4">
-                        View Marketplace Map
+                        {t('viewMarketplaceMap') || 'View Marketplace Map'}
                     </button>
                 </div>
             </div>
@@ -237,13 +242,13 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 grayscale opacity-50">
                 <Loader2 className="w-12 h-12 text-[var(--brand-primary)] animate-spin mb-4" />
-                <p className="text-xs font-black uppercase tracking-[0.2em]">{t('loading') || 'Loading Magic...'}</p>
+                <p className="text-xs font-black uppercase tracking-[0.2em]">{t('loadingMagic') || 'Loading Magic...'}</p>
             </div>
           ) : filteredStores.length === 0 ? (
             <div className="text-center py-20 bg-white/5 rounded-[2.5rem] border border-dashed border-[var(--glass-border)]">
                 <Store className="w-20 h-20 text-[var(--text-dim)] mx-auto mb-6 opacity-10" />
                 <p className="text-lg font-bold text-[var(--text-dim)] uppercase tracking-widest">
-                    {searchQuery ? "No matches found for your search" : "The marketplace is currently resting"}
+                    {searchQuery ? (t('noMatchesFound') || "No matches found for your search") : (t('marketplaceResting') || "The marketplace is currently resting")}
                 </p>
             </div>
           ) : (
@@ -281,7 +286,7 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                     <div className="absolute top-4 left-4">
                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--brand-primary)] text-white text-[10px] font-black uppercase tracking-widest shadow-lg">
                             <ShieldCheck className="w-3.5 h-3.5" />
-                            Verified
+                            {t('verified') || 'Verified'}
                         </div>
                     </div>
                   </div>
@@ -304,7 +309,7 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                     </div>
 
                     <p className="text-[var(--text-dim)] text-sm font-medium leading-relaxed line-clamp-2 mb-8 flex-1">
-                      {ln(store, 'description') || "Explore unique products and premium quality services offered by this verified store."}
+                      {ln(store, 'description') || (t('verifiedStoreDesc') || "Explore unique products and premium quality services offered by this verified store.")}
                     </p>
 
                     <div className="flex items-center justify-between pt-6 border-t border-[var(--glass-border)] mt-auto">
@@ -339,13 +344,13 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
             </div>
             
             <p className="text-sm font-medium text-[var(--text-dim)]">
-                © 2026 Savdoon. Built for the modern ecosystem.
+                © 2026 Savdoon. {t('footerBuiltFor') || 'Built for the modern ecosystem.'}
             </p>
 
             <div className="flex items-center gap-6">
-                <a href="#" className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)] hover:text-[var(--brand-primary)] transition-colors">Terms</a>
-                <a href="#" className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)] hover:text-[var(--brand-primary)] transition-colors">Privacy</a>
-                <a href="#" className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)] hover:text-[var(--brand-primary)] transition-colors">Contact</a>
+                <a href="#" className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)] hover:text-[var(--brand-primary)] transition-colors">{t('termsLink') || 'Terms'}</a>
+                <a href="#" className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)] hover:text-[var(--brand-primary)] transition-colors">{t('privacyLink') || 'Privacy'}</a>
+                <a href="#" className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)] hover:text-[var(--brand-primary)] transition-colors">{t('contactLink') || 'Contact'}</a>
             </div>
         </div>
       </footer>
