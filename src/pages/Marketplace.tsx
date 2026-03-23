@@ -196,7 +196,9 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                     <div className="flex items-center gap-2">
-                        <kbd className="hidden sm:inline-flex px-2 py-1 rounded bg-white/5 border border-white/10 text-[10px] font-black uppercase text-slate-500">Cmd + K</kbd>
+                        <kbd className="hidden sm:inline-flex px-2 py-1 rounded-lg bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20 text-[10px] font-black uppercase text-[var(--brand-primary)]">
+                            {navigator.platform.indexOf('Mac') > -1 ? '⌘' : 'Ctrl'} + K
+                        </kbd>
                     </div>
                 </div>
             </motion.div>
