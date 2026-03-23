@@ -41,6 +41,22 @@ User = get_user_model()
 class CustomTokenRefreshView(TokenRefreshView):
     """Custom TokenRefreshView using CustomTokenRefreshSerializer."""
     serializer_class = CustomTokenRefreshSerializer
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            return super().post(request, *args, **kwargs)
+        except Exception as e:
+            import logging
+            import traceback
+            logger = logging.getLogger('savdoon')
+            
+            # Special case for users that no longer exist in the DB (e.g. after re-deploy/DB wipe)
+            if "User matching query does not exist" in str(e):
+                logger.warning(f"Token refresh failed: User does not exist (stale token). IP: {request.META.get('REMOTE_ADDR')}")
+                return Response({'error': 'User session is invalid or stale'}, status=status.HTTP_401_UNAUTHORIZED)
+                
+            logger.error(f"Error in CustomTokenRefreshView: {e}\n{traceback.format_exc()}")
+            return Response({'error': 'Token refresh failed temporarily'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class RegisterView(generics.CreateAPIView):

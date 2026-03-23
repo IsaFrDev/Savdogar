@@ -52,9 +52,16 @@ api.interceptors.request.use(async (config) => {
                             token = response.data.access;
                             isRefreshing = false;
                             onRefreshed(response.data.access);
-                        } catch (refreshError) {
+                        } catch (refreshError: any) {
                             isRefreshing = false;
-                            // Let the response interceptor handle fatal refresh errors
+                            const st = refreshError.response?.status;
+                            if (st === 401 || st === 403 || st === 400) {
+                                localStorage.removeItem('access_token');
+                                localStorage.removeItem('refresh_token');
+                                if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+                                    window.location.href = '/login';
+                                }
+                            }
                         }
                     }
                 }
@@ -98,7 +105,9 @@ api.interceptors.response.use(
                 if (st === 401 || st === 403 || st === 400) {
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('refresh_token');
-                    window.location.href = '/login';
+                    if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+                        window.location.href = '/login';
+                    }
                 }
                 return Promise.reject(error);
             }
