@@ -35,6 +35,7 @@ import {
     EyeOff,
     FileText,
     MessageCircle,
+    Plus
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
@@ -47,6 +48,7 @@ interface SuperAdminDashboardProps {
     onLogout: () => void;
     onSwitchToUserView?: () => void;
     onManageStore?: (id: number) => void;
+    onCreateStore?: () => void;
 }
 
 interface PendingStore {
@@ -66,7 +68,7 @@ interface PendingStore {
     telegram_username?: string;
 }
 
-export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStore }: SuperAdminDashboardProps) {
+export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStore, onCreateStore }: SuperAdminDashboardProps) {
     const { user, logout, registerFaceId, refreshUser } = useAuth();
     const { t, language, maintenanceMode, setMaintenanceMode, currency: defaultCurrency, setCurrency: setDefaultCurrency } = useApp();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'pending' | 'stores' | 'users' | 'payments' | 'settings' | 'audit'>('dashboard');
@@ -611,6 +613,15 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                     </p>
                                 </div>
                                 <div className="flex gap-3 self-end sm:self-auto">
+                                    {onCreateStore && activeTab === 'stores' && (
+                                        <button
+                                            onClick={onCreateStore}
+                                            className="px-6 py-3.5 rounded-xl bg-[var(--brand-primary)] text-white hover:brightness-110 transition-all shadow-lg shadow-[var(--brand-primary-glow)] font-black uppercase tracking-widest text-xs flex items-center gap-2"
+                                        >
+                                            <Plus className="w-4 h-4" />
+                                            {t('createStore') || "Yangi Do'kon Qo'shish"}
+                                        </button>
+                                    )}
                                     <button onClick={loadData} className="p-3.5 rounded-xl bg-[var(--bg-surface)] hover:bg-[var(--brand-primary)] text-[var(--text-primary)] hover:text-white transition-all border border-[var(--glass-border)] shadow-xl hover:shadow-[var(--brand-primary-glow)]">
                                         <Clock className="w-5 h-5" />
                                     </button>

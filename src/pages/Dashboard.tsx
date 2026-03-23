@@ -56,11 +56,12 @@ interface DashboardProps {
   onCreateStore: () => void;
   onBackToAdmin?: () => void;
   onViewStore?: (id: number) => void;
+  managedStoreId?: number;
   initialTab?: string;
 }
 
 
-export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore, initialTab }: DashboardProps) {
+export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore, managedStoreId, initialTab }: DashboardProps) {
   const { t, language, setStores: setGlobalStores, currentStore: globalStore, setCurrentStore: setGlobalStore, ln } = useApp();
   const { user, logout } = useAuth();
   const isCustomer = user?.role === 'customer';
@@ -177,19 +178,30 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
   const loadStores = async () => {
     setLoading(true);
     try {
-      const response = await storeApi.list();
-      setStores(response.data);
-      if (typeof setGlobalStores === 'function') {
-        setGlobalStores(response.data);
-      }
-      if (response.data.length > 0) {
-        if (!currentStore) {
-          setCurrentStore(response.data[0]);
-        } else {
-          // Refresh the current store data if it's already selected
-          const updated = response.data.find((s: any) => s.id === currentStore.id);
-          if (updated) {
-            setCurrentStore(updated);
+      if (managedStoreId && isSuperAdmin) {
+        // Superadmin impersonating a specific store
+        const response = await storeApi.get(managedStoreId);
+        const storeData = response.data;
+        setStores([storeData]);
+        setCurrentStore(storeData);
+        if (typeof setGlobalStores === 'function') {
+           setGlobalStores([storeData]);
+        }
+      } else {
+        const response = await storeApi.list();
+        setStores(response.data);
+        if (typeof setGlobalStores === 'function') {
+          setGlobalStores(response.data);
+        }
+        if (response.data.length > 0) {
+          if (!currentStore) {
+            setCurrentStore(response.data[0]);
+          } else {
+            // Refresh the current store data if it's already selected
+            const updated = response.data.find((s: any) => s.id === currentStore.id);
+            if (updated) {
+              setCurrentStore(updated);
+            }
           }
         }
       }

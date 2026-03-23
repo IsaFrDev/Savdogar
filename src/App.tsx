@@ -328,6 +328,7 @@ function AppContent() {
               setStoreId(id);
               setPage('storefront');
             }}
+            managedStoreId={storeId}
             initialTab={dashboardTab}
           />
         );
@@ -356,6 +357,10 @@ function AppContent() {
         return (
           <SuperAdminDashboard
             onLogout={handleLogout}
+            onCreateStore={() => {
+              setStoreId(undefined); // Clear store context just in case
+              setPage('wizard');
+            }}
             onSwitchToUserView={() => {
               setDashboardTab('discover');
               setPage('dashboard');
