@@ -9,11 +9,20 @@
 Savdoon-backend/db_prod_v1.sqlite3
 Savdoon-backend/debug_login*.py
 Savdoon-backend/create_clean_admin.py
+backend/
+.qoder/
+Savdoon.pptx
+Savdoon_Prezentatsiya.pptx
+test_terminal.py
 
 # Node
 Savdoon-frontend/node_modules/
 Savdoon-frontend/dist/
+node_modules
+dist
+.DS_Store
 
 # IDE
 .idea/
 .vscode/
+    

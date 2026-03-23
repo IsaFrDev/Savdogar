@@ -1,0 +1,281 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+:root {
+  /* Premium Light Theme - "High Contrast Slate" */
+  --font-family: 'Inter', sans-serif;
+  --border-radius: 2rem;
+  --glass-opacity: 0.05;
+
+  --font-heading: var(--font-family);
+  --font-body: var(--font-family);
+
+  --bg-main: #eef1f5;
+  --bg-gradient: radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.12) 0, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(124, 58, 237, 0.08) 0, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(244, 63, 94, 0.06) 0, transparent 50%);
+
+  --color-surface: rgba(255, 255, 255, 0.65);
+  --color-surface-raised: #f5f7fa;
+  --color-border: rgba(15, 23, 42, 0.18);
+  --color-border-bright: rgba(15, 23, 42, 0.28);
+
+  --bg-sidebar: rgba(255, 255, 255, 0.95);
+  --bg-header: rgba(255, 255, 255, 0.9);
+  --bg-surface: rgba(241, 245, 249, 0.8);
+  --bg-surface-hover: rgba(226, 232, 240, 0.8);
+  --glass-border: rgba(15, 23, 42, 0.12);
+  --text-main: #0f172a;
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+
+  --brand-primary: #4f46e5;
+  --brand-primary-glow: rgba(79, 70, 229, 0.18);
+  --brand-secondary: #7c3aed;
+  --brand-secondary-glow: rgba(124, 58, 237, 0.15);
+  --brand-accent: #f43f5e;
+
+  --shadow-premium: 0 10px 40px -8px rgba(15, 23, 42, 0.08), 0 4px 12px -2px rgba(15, 23, 42, 0.04);
+  --shadow-strong: 0 20px 50px -12px rgba(15, 23, 42, 0.12), 0 8px 16px -4px rgba(15, 23, 42, 0.08);
+  --glass-blur: blur(16px);
+}
+
+
+.light-theme {
+  --bg-main: #ffffff;
+  --color-surface: rgba(255, 255, 255, 0.9);
+  --color-surface-raised: #ffffff;
+  --brand-primary-glow: rgba(79, 70, 229, 0.08);
+  --glass-opacity: 0.03;
+}
+
+.ai-theme {
+  /* Inherits light-theme base but allowed to be overridden by root style props */
+  --bg-main: #f8fafc;
+  --glass-opacity: 0.04;
+}
+
+/* Base Styles */
+html {
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  scroll-behavior: smooth;
+}
+
+h1,
+h2,
+h3,
+h4,
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+body {
+  background: var(--bg-main);
+  background-image: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+}
+
+/* Sophisticated Background Mesh */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.02;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Premium Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-bright);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Reusable Utility Classes */
+.glass-card {
+  background: rgba(15, 23, 42, var(--glass-opacity));
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-premium);
+  border-radius: var(--border-radius);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: var(--color-border-bright);
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-strong);
+}
+
+.premium-button {
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+  color: white;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1.5rem;
+  border-radius: calc(var(--border-radius) / 2);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px var(--brand-primary-glow);
+  border: none;
+}
+
+.premium-button:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px var(--brand-primary-glow);
+  filter: brightness(1.1);
+}
+
+.premium-button:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--brand-primary), var(--brand-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Input Fields Overhaul */
+input,
+textarea,
+select {
+  background: var(--color-surface-raised);
+  border: 1.5px solid var(--color-border);
+  border-radius: calc(var(--border-radius) / 2);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  font-family: var(--font-body);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--brand-primary) !important;
+  box-shadow: 0 0 0 4px var(--brand-primary-glow) !important;
+  outline: none !important;
+  background: var(--color-surface) !important;
+}
+
+input::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* Active Nav State */
+.nav-link-active {
+  background: var(--brand-primary-glow);
+  color: var(--brand-primary) !important;
+  font-weight: 600;
+  border-right: 3px solid var(--brand-primary);
+}
+
+/* Animations */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-in {
+  animation: fadeInScale 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Responsive Overrides */
+@media (max-width: 768px) {
+  .glass-card {
+    border-radius: 1rem;
+  }
+
+  .glass-card:hover {
+    transform: none;
+  }
+
+  /* Prevent horizontal overflow on mobile */
+  body {
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Smaller inputs on mobile */
+  input, textarea, select {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+}
+
+@media (max-width: 1024px) {
+  /* Ensure no content push when sidebar is hidden */
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe area for notched phones */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Floating Animation */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-float {
+  animation: float 5s ease-in-out infinite;
+}
+
+/* Noise overlay lighter in light mode */
+.light-theme body::before {
+  opacity: 0.015;
+}
