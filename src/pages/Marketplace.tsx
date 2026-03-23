@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Store, 
@@ -38,6 +38,19 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
   const [showNearby, setShowNearby] = useState(false);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [nearbyStores, setNearbyStores] = useState<StoreType[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     loadMarketplace();
@@ -189,6 +202,7 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                 <div className="relative flex items-center bg-[var(--color-surface-raised)] border border-[var(--glass-border)] rounded-2xl h-14 px-5 focus-within:border-[var(--brand-primary)] transition-all">
                     <Search className="w-5 h-5 text-[var(--text-dim)]" />
                     <input 
+                        ref={searchInputRef}
                         type="text" 
                         placeholder={t('searchMarketplacePlaceholder') || "Search stores, products, or types..."}
                         className="flex-1 bg-transparent border-none outline-none px-4 text-sm font-bold text-[var(--text-main)] placeholder-[var(--text-dim)]"
