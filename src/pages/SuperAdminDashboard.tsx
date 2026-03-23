@@ -24,6 +24,7 @@ import {
     Shield,
     Terminal as TerminalIcon,
     Eye,
+    Edit2,
     Trash2,
     Globe,
     Cpu,
@@ -263,12 +264,12 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
     };
 
     return (
-        <div className="min-h-screen bg-[#020617] text-white font-sans selection:bg-cyan-500/30 transition-colors duration-300 relative">
+        <div className="min-h-screen bg-[#0a0a0a] text-white font-sans selection:bg-cyan-500/30 transition-colors duration-300 relative">
             {/* Background Decor */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-indigo-500/10 blur-[150px] rounded-full animate-pulse" />
-                <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-purple-600/5 blur-[150px] rounded-full animate-pulse" />
-                <div className="absolute top-[30%] right-[10%] w-[30%] h-[30%] bg-blue-500/5 blur-[120px] rounded-full" />
+                <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-indigo-500/5 blur-[120px] rounded-full animate-pulse" />
+                <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-purple-600/5 blur-[120px] rounded-full animate-pulse" />
+                <div className="absolute top-[30%] right-[10%] w-[30%] h-[30%] bg-cyan-500/5 blur-[100px] rounded-full" />
             </div>
 
             {/* Sidebar Overlay for Mobile */}
@@ -298,8 +299,8 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                         onClick={() => setActiveTab('dashboard')}
                         className="flex items-center gap-3 hover:opacity-80 transition-all outline-none"
                     >
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/40 flex-shrink-0 p-[2px]">
-                            <div className="w-full h-full rounded-[9px] bg-slate-900 flex items-center justify-center p-1.5 overflow-hidden">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 via-indigo-500 to-violet-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 flex-shrink-0 p-[2px]">
+                            <div className="w-full h-full rounded-[9px] bg-slate-950 flex items-center justify-center p-1.5 overflow-hidden">
                                 <img src="/savdoon-logo.jpg" alt="Savdoon" className="w-full h-full object-contain" />
                             </div>
                         </div>
