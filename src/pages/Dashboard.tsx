@@ -132,10 +132,13 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
     if (initialTab) {
       setActiveTab(initialTab);
     }
+  }, [initialTab]);
+
+  useEffect(() => {
     if (activeTab === 'support') {
       setUnreadMessages(0);
     }
-  }, [initialTab, activeTab]);
+  }, [activeTab]);
 
   const loadMarketplace = async () => {
     try {
