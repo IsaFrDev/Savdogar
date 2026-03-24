@@ -23,7 +23,13 @@ export function ContractPreview({ onAgree, agreed }: ContractPreviewProps) {
         setLoading(true);
         try {
             const response = await storeApi.getContractTemplate(language);
-            setContractContent(response.data.content);
+            const apiContent = response.data.content || '';
+            // Only use API content if it's a real, complete contract (> 200 chars)
+            if (apiContent.length > 200) {
+                setContractContent(apiContent);
+            } else {
+                setContractContent(getLocalContract(language));
+            }
         } catch (error) {
             // Fallback to hardcoded content
             setContractContent(getLocalContract(language));
@@ -89,7 +95,6 @@ Quyida imzo chekish orqali barcha shartlarga rozilik bildirasiz.
 Настоящий Договор заключается между Платформой Savdoon ("Платформа") и Владельцем магазина ("Вы").
 
 1. ПОДПИСКА И ОПЛАТА
-   1.1 Ежемесячная плата за платформу составляет 150,000 (сто пятьдесят тысяч) сум.
    1.1 Ежемесячная плата за платформу составляет 150,000 (сто пятьдесят тысяч) сум.
    1.2 Подписка должна продлеваться каждые 30 дней для поддержания активного статуса магазина.
    1.3 Все платежи не подлежат возврату.
