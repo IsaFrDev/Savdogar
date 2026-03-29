@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, Wand2, RefreshCw, Smartphone, Palette, Layout, MessageSquare, ArrowLeft, Loader2 } from 'lucide-react';
+import { Send, Sparkles, Wand2, RefreshCw, Smartphone, Palette, Layout, MessageSquare, ArrowLeft, Loader2, Code, Save } from 'lucide-react';
 import { IPhone16Frame } from '../../components/IPhone16Frame';
 import { Storefront } from '../Storefront';
-import { builderApi } from '../../services/api';
+import api, { builderApi } from '../../services/api';
 import { useApp } from '../../context/AppContext';
 import { GlassCard } from '../../components/GlassCard';
 
@@ -27,13 +27,45 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [previewKey, setPreviewKey] = useState(0); // Used to force-refresh the preview iframe/component
+  
+  // Code Editor State
+  const [activeTab, setActiveTab] = useState<'chat' | 'code'>('chat');
+  const [schemaCode, setSchemaCode] = useState('[\n  // Loading...\n]');
+  const [isSavingSchema, setIsSavingSchema] = useState(false);
+  const [schemaError, setSchemaError] = useState('');
+  
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (activeTab === 'code') {
+      api.get(`/stores/${storeId}/`).then(res => {
+        setSchemaCode(JSON.stringify(res.data.ui_schema || [], null, 2));
+        setSchemaError('');
+      }).catch(err => console.error("Could not fetch schema", err));
+    }
+  }, [activeTab, storeId, previewKey]);
+
+  useEffect(() => {
+    if (scrollRef.current && activeTab === 'chat') {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages, isTyping, activeTab]);
+
+  const handleSaveSchema = async () => {
+    try {
+      setIsSavingSchema(true);
+      setSchemaError('');
+      const parsed = JSON.parse(schemaCode);
+      if (!Array.isArray(parsed)) throw new Error("Schema must be a JSON array.");
+      
+      await builderApi.saveSchema(storeId, parsed);
+      setPreviewKey(k => k + 1);
+    } catch (e: any) {
+      setSchemaError(e.message || "Invalid JSON array");
+    } finally {
+      setIsSavingSchema(false);
+    }
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
@@ -91,13 +123,31 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
               <p className="text-[10px] text-[var(--brand-primary)] font-black uppercase tracking-widest mt-1">Real-time Customization</p>
             </div>
           </div>
+          
+          <div className="flex bg-[var(--color-surface-raised)] border border-[var(--color-border)] p-1 rounded-xl">
+            <button 
+              onClick={() => setActiveTab('chat')} 
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'chat' ? 'bg-[var(--brand-primary)] text-white shadow-md' : 'text-[var(--text-dim)] hover:text-[var(--text-main)]'}`}
+            >
+              <MessageSquare className="w-3.5 h-3.5" /> Chat
+            </button>
+            <button 
+              onClick={() => setActiveTab('code')} 
+              className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'code' ? 'bg-[var(--brand-primary)] text-white shadow-md' : 'text-[var(--text-dim)] hover:text-[var(--text-main)]'}`}
+            >
+              <Code className="w-3.5 h-3.5" /> Schema
+            </button>
+          </div>
+
           <button onClick={() => setPreviewKey(k => k + 1)} className="p-2.5 rounded-xl hover:bg-[var(--color-surface-raised)] transition-all text-[var(--text-dim)]" title="Refresh Preview">
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Chat Area */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
+        {activeTab === 'chat' ? (
+          <>
+            {/* Chat Area */}
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
           {messages.map((msg) => (
             <motion.div
               key={msg.id}
@@ -141,10 +191,37 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
               disabled={!input.trim() || isTyping}
               className="p-3 bg-[var(--brand-primary)] text-white rounded-xl shadow-lg hover:shadow-[var(--brand-primary-glow)] transition-all disabled:opacity-50 disabled:grayscale"
             >
-              <Send className="w-5 h-5" />
             </button>
           </div>
         </div>
+          </>
+        ) : (
+          <div className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden">
+            <div className="flex-1 relative flex flex-col rounded-2xl border border-[var(--color-border)] overflow-hidden">
+              <div className="bg-[var(--color-surface-raised)] px-4 py-2 border-b border-[var(--color-border)] flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)]">ui_schema.json</span>
+              </div>
+              <textarea 
+                value={schemaCode} 
+                onChange={e => setSchemaCode(e.target.value)}
+                spellCheck={false}
+                className="flex-1 w-full bg-[#1e1e1e] text-[#d4d4d4] p-4 font-mono text-xs focus:outline-none resize-none leading-relaxed"
+                style={{ tabSize: 2 }}
+              />
+            </div>
+            {schemaError && (
+              <p className="text-red-500 text-[10px] font-bold uppercase tracking-widest px-2">{schemaError}</p>
+            )}
+            <button 
+              onClick={handleSaveSchema}
+              disabled={isSavingSchema}
+              className="w-full py-3.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[var(--brand-primary)]/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+            >
+              {isSavingSchema ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {language === 'uz' ? 'O\'zgarishlarni Saqlash' : 'Save Changes'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Right Preview Panel */}
