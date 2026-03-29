@@ -724,4 +724,11 @@ export const ikpuApi = {
     delete: (storeId: number, id: number) => api.delete(`/stores/${storeId}/ikpu/${id}/`),
 };
 
+// System & Terminal API
+export const systemApi = {
+    executeCommand: (command: string) => api.post('/system/terminal/', { command }),
+    exportProductsJson: (storeId: number) => 
+        api.get(`/products/export_json/`, { params: { store: storeId }, responseType: 'blob' }),
+};
+
 export default api;
