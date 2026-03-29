@@ -59,6 +59,7 @@ import { PaymentSettings } from './dashboard/PaymentSettings';
 import { DeliverySettings } from './dashboard/DeliverySettings';
 import { TariffPlan } from './dashboard/TariffPlan';
 import { Customers } from './dashboard/Customers';
+import { StoreAIBuilder } from './dashboard/StoreAIBuilder';
 import { useStoreWebSocket } from '../hooks/useStoreWebSocket';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 import { Download } from 'lucide-react';
@@ -259,6 +260,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       tabs: [
         { id: 'ai-studio', label: t('aiStudio') || 'AI Studio', icon: Sparkles },
         { id: 'ai-creative', label: t('aiCreative') || 'AI Creative', icon: Wand2 },
+        { id: 'ai-builder', label: 'AI Design Builder', icon: LayoutDashboard },
         { id: 'ai-stylist', label: t('aiStylist') || 'AI Stylist', icon: Wand2 },
         { id: 'ai-image-studio', label: t('aiImageStudio') || 'AI Image Studio', icon: Image },
         {
@@ -511,6 +513,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       case 'qr': return <QRCodeManager storeId={currentStore?.id?.toString() || ''} />;
       case 'ai-studio': return <AIStudio store={currentStore} onTabChange={setActiveTab} />;
       case 'ai-creative': return <AiCreativeSuite storeId={currentStore?.id} />;
+      case 'ai-builder': return <StoreAIBuilder storeId={currentStore?.id!} />;
       case 'ai-image-studio': return <AiImageStudio />;
       case 'ai-fitting-room': return <AiFittingRoom storeId={currentStore?.id} />;
       case 'marketing': return <Marketing />;

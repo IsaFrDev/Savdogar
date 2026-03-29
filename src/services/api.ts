@@ -731,4 +731,9 @@ export const systemApi = {
         api.get(`/products/export_json/`, { params: { store: storeId }, responseType: 'blob' }),
 };
 
+export const builderApi = {
+    chat: (storeId: number, message: string) => 
+        api.post('/stores/builder/chat/', { store_id: storeId, message }),
+};
+
 export default api;
