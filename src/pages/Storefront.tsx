@@ -476,6 +476,39 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
     return { order: index, ...(section.props || {}) };
   };
 
+  // HTML Template Engine
+  if (store?.store_html) {
+    let processedHtml = store.store_html;
+    
+    // Simple placeholder replacements
+    processedHtml = processedHtml
+      .replace(/{{STORE_NAME}}/g, store.name || '')
+      .replace(/{{BUSINESS_TYPE}}/g, store.business_type_display || '')
+      .replace(/{{DESCRIPTION}}/g, store.description || '')
+      .replace(/{{PRIMARY_COLOR}}/g, store.primary_color || '#6366F1')
+      .replace(/{{SECONDARY_COLOR}}/g, store.secondary_color || '#8B5CF6')
+      .replace(/{{ACCENT_COLOR}}/g, store.accent_color || '#F43F5E');
+
+    // Rendering dynamic sections inside HTML placeholders
+    if (processedHtml.includes('{{SCHEMA_SECTIONS}}') || processedHtml.includes('{{PRODUCTS_GRID}}')) {
+       // Note: For complex nested React components inside raw HTML, 
+       // we would ideally use a parsing library. For now, we'll split or 
+       // just allow the HTML to be a wrapper.
+    }
+
+    return (
+      <div 
+        className="min-h-screen font-sans" 
+        style={{ 
+          ...themeStyles,
+          backgroundColor: 'var(--bg-main)',
+          color: 'var(--text-primary)'
+        }}
+        dangerouslySetInnerHTML={{ __html: processedHtml }} 
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] font-sans selection:bg-[var(--primary)]/30 flex flex-col" style={themeStyles}>
       {/* Dynamic Background Gradient - Full Page Mesh */}
