@@ -571,7 +571,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
               autoplay={{ delay: 5000 }}
               pagination={{ clickable: true }}
               navigation={!isPreview}
-              className="mySwiper h-[300px] md:h-[500px]"
+              className={`mySwiper ${isPreview ? 'h-[250px]' : 'h-[300px] md:h-[500px]'}`}
             >
               {store.banners.map((banner: any) => (
                 <SwiperSlide key={banner.id}>
@@ -585,7 +585,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
                       <motion.h3
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
-                        className="text-2xl md:text-5xl font-black text-white uppercase tracking-tighter mb-4"
+                        className={`font-black text-white uppercase tracking-tighter mb-4 ${isPreview ? 'text-2xl' : 'text-2xl md:text-5xl'}`}
                       >
                         {banner.title}
                       </motion.h3>
@@ -775,7 +775,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
               <p className="text-slate-400 font-bold uppercase tracking-widest">{t('noProductsFound') || 'Mahsulotlar topilmadi'}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+            <div className={`grid grid-cols-1 ${isPreview ? 'gap-4 px-2' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8'}`}>
               {filteredProducts.map((product, index) => (
                 <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
                   <GlassCard className="overflow-hidden group cursor-pointer h-full flex flex-col border-white/5 hover:border-[var(--primary)]/30 hover:bg-white/5 duration-500">

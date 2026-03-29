@@ -62,11 +62,12 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
       setMessages(prev => [...prev, aiMsg]);
       // Increment previewKey to trigger a re-fetch of store data in the preview component
       setPreviewKey(prev => prev + 1);
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI Builder error:', error);
+      const errMsg = error.response?.data?.error || "Xatolik yuz berdi. Iltimos qayta urinib ko'ring.";
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
-        text: language === 'uz' ? "Xatolik yuz berdi. Iltimos qayta urinib ko'ring." : "An error occurred. Please try again.",
+        text: language === 'uz' ? errMsg : errMsg,
         sender: 'ai',
         timestamp: new Date()
       };
