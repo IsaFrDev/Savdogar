@@ -848,6 +848,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
           )
         }
       </section>
+      </section>
 
       {/* Overlays and Modals */}
       <div style={{ order: 999 }}>
