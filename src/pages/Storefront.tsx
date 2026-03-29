@@ -476,6 +476,73 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
     return { order: index, ...(section.props || {}) };
   };
 
+  const renderProductsGrid = () => (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
+      {isSearching ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-12 h-12 text-[var(--primary)] animate-spin mb-4" />
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">{t('searching') || 'Qidirilmoqda...'}</p>
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Search className="w-16 h-16 text-slate-800 mb-6 opacity-20" />
+          <p className="text-slate-400 font-bold uppercase tracking-widest">{t('noProductsFound') || 'Mahsulotlar topilmadi'}</p>
+        </div>
+      ) : (
+        <div className={`grid grid-cols-1 ${isPreview ? 'gap-4 px-2' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8'}`}>
+          {filteredProducts.map((product, index) => (
+            <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
+              <GlassCard className="overflow-hidden group cursor-pointer h-full flex flex-col border-white/5 hover:border-[var(--primary)]/30 hover:bg-white/5 duration-500">
+                <div className="aspect-square relative overflow-hidden bg-white/5 border-b border-[var(--color-border)]" onClick={() => setSelectedProduct(product)}>
+                  {product.images?.[0] ? (
+                    <img src={getMediaUrl(product.images[0].image) || undefined} alt={ln(product, 'name')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]"><Package className="w-16 h-16 opacity-10" /></div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--text-primary)]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="p-6 flex flex-col flex-1">
+                  <p className="text-[10px] text-[var(--primary)] font-black uppercase tracking-widest mb-2">{ln(product.category_obj || { name: product.category_name }, 'name')}</p>
+                  <h4 className="font-black text-[var(--text-primary)] text-lg mb-4 truncate uppercase tracking-tight">
+                    {ln(product, 'name')}
+                  </h4>
+                  <div className="flex items-center justify-between mt-auto gap-4">
+                    <span className="text-xl font-black text-[var(--text-primary)] tabular-nums">{product.price.toLocaleString()} <span className="text-xs text-[var(--text-muted)]">{currency}</span></span>
+                    {!store.catalog_mode ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                        disabled={product.stock === 0}
+                        className="p-3 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-toq)] text-[var(--primary-foreground)] transition-all shadow-lg shadow-[var(--primary-glow)] disabled:opacity-50 active:scale-95"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setSelectedProduct(product)}
+                        className="px-4 py-2 rounded-xl bg-[var(--color-surface-raised)] hover:bg-[var(--color-border)] text-[var(--text-primary)] text-[10px] font-black uppercase tracking-widest border border-[var(--color-border)] transition-all"
+                      >
+                        {t('viewDetails')}
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
+                    className="absolute top-4 left-4 p-2.5 rounded-xl bg-[var(--color-surface-raised)] border border-[var(--color-border-bright)] opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent)] hover:text-white shadow-xl z-10"
+                  >
+                    <Heart className={`w-4 h-4 ${wishlist.includes(product.id) ? 'fill-current text-[var(--accent)]' : 'text-[var(--text-muted)]'}`} />
+                  </button>
+                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all">
+                    <ShareButton url={`${window.location.origin}/store/${store?.slug}/product/${product.id}`} title={product.name} language={language} />
+                  </div>
+                </div>
+              </GlassCard>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
   // HTML Template Engine
   if (store?.store_html) {
     let processedHtml = store.store_html;
@@ -490,10 +557,15 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
       .replace(/{{ACCENT_COLOR}}/g, store.accent_color || '#F43F5E');
 
     // Rendering dynamic sections inside HTML placeholders
-    if (processedHtml.includes('{{SCHEMA_SECTIONS}}') || processedHtml.includes('{{PRODUCTS_GRID}}')) {
-       // Note: For complex nested React components inside raw HTML, 
-       // we would ideally use a parsing library. For now, we'll split or 
-       // just allow the HTML to be a wrapper.
+    if (processedHtml.includes('{{PRODUCTS_GRID}}')) {
+      const parts = processedHtml.split('{{PRODUCTS_GRID}}');
+      return (
+        <div className="min-h-screen font-sans" style={{ ...themeStyles, backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)' }}>
+          <div dangerouslySetInnerHTML={{ __html: parts[0] }} />
+          {renderProductsGrid()}
+          <div dangerouslySetInnerHTML={{ __html: parts[1] }} />
+        </div>
+      );
     }
 
     return (
@@ -815,72 +887,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
       </div>
 
       {/* Products Grid */}
-      < section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32" >
-        {
-          isSearching ? (
-            <div className="flex flex-col items-center justify-center py-20" >
-              <Loader2 className="w-12 h-12 text-[var(--primary)] animate-spin mb-4" />
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">{t('searching') || 'Qidirilmoqda...'}</p>
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Search className="w-16 h-16 text-slate-800 mb-6 opacity-20" />
-              <p className="text-slate-400 font-bold uppercase tracking-widest">{t('noProductsFound') || 'Mahsulotlar topilmadi'}</p>
-            </div>
-          ) : (
-            <div className={`grid grid-cols-1 ${isPreview ? 'gap-4 px-2' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8'}`}>
-              {filteredProducts.map((product, index) => (
-                <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
-                  <GlassCard className="overflow-hidden group cursor-pointer h-full flex flex-col border-white/5 hover:border-[var(--primary)]/30 hover:bg-white/5 duration-500">
-                    <div className="aspect-square relative overflow-hidden bg-white/5 border-b border-[var(--color-border)]" onClick={() => setSelectedProduct(product)}>
-                      {product.images?.[0] ? (
-                        <img src={getMediaUrl(product.images[0].image) || undefined} alt={ln(product, 'name')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]"><Package className="w-16 h-16 opacity-10" /></div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[var(--text-primary)]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <div className="p-6 flex flex-col flex-1">
-                      <p className="text-[10px] text-[var(--primary)] font-black uppercase tracking-widest mb-2">{ln(product.category_obj || { name: product.category_name }, 'name')}</p>
-                      <h4 className="font-black text-[var(--text-primary)] text-lg mb-4 truncate uppercase tracking-tight">
-                        {ln(product, 'name')}
-                      </h4>
-                      <div className="flex items-center justify-between mt-auto gap-4">
-                        <span className="text-xl font-black text-[var(--text-primary)] tabular-nums">{product.price.toLocaleString()} <span className="text-xs text-[var(--text-muted)]">{currency}</span></span>
-                        {!store.catalog_mode ? (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                            disabled={product.stock === 0}
-                            className="p-3 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-toq)] text-[var(--primary-foreground)] transition-all shadow-lg shadow-[var(--primary-glow)] disabled:opacity-50 active:scale-95"
-                          >
-                            <Plus className="w-5 h-5" />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setSelectedProduct(product)}
-                            className="px-4 py-2 rounded-xl bg-[var(--color-surface-raised)] hover:bg-[var(--color-border)] text-[var(--text-primary)] text-[10px] font-black uppercase tracking-widest border border-[var(--color-border)] transition-all"
-                          >
-                            {t('viewDetails')}
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
-                        className="absolute top-4 left-4 p-2.5 rounded-xl bg-[var(--color-surface-raised)] border border-[var(--color-border-bright)] opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent)] hover:text-white shadow-xl z-10"
-                      >
-                        <Heart className={`w-4 h-4 ${wishlist.includes(product.id) ? 'fill-current text-[var(--accent)]' : 'text-[var(--text-muted)]'}`} />
-                      </button>
-                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all">
-                        <ShareButton url={`${window.location.origin}/store/${store?.slug}/product/${product.id}`} title={product.name} language={language} />
-                      </div>
-                    </div>
-                  </GlassCard>
-                </motion.div>
-              ))}
-            </div>
-          )
-        }
-      </section>
+      {renderProductsGrid()}
       </section>
 
       {/* Overlays and Modals */}

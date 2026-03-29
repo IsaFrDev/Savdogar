@@ -51,36 +51,7 @@ const DEFAULT_STORE_HTML = `<!DOCTYPE html>
     <input type="text" placeholder="Qidirish..." />
   </div>
   
-  <div class="products">
-    <div class="product-card">
-      <div class="img">📦</div>
-      <div class="info">
-        <div class="name">Mahsulot 1</div>
-        <div class="price">50,000 UZS</div>
-      </div>
-    </div>
-    <div class="product-card">
-      <div class="img">📦</div>
-      <div class="info">
-        <div class="name">Mahsulot 2</div>
-        <div class="price">75,000 UZS</div>
-      </div>
-    </div>
-    <div class="product-card">
-      <div class="img">📦</div>
-      <div class="info">
-        <div class="name">Mahsulot 3</div>
-        <div class="price">120,000 UZS</div>
-      </div>
-    </div>
-    <div class="product-card">
-      <div class="img">📦</div>
-      <div class="info">
-        <div class="name">Mahsulot 4</div>
-        <div class="price">95,000 UZS</div>
-      </div>
-    </div>
-  </div>
+  {{PRODUCTS_GRID}}
   
   <div class="footer">
     <p>© {{STORE_NAME}} — Barcha huquqlar himoyalangan</p>
