@@ -366,7 +366,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                         value={storeSlug}
                                         onChange={setStoreSlug}
                                         placeholder="my-awesome-store"
-                                        helper={`${storeSlug || 'your-store'}.savdoon.local`}
+                                        helper={`${storeSlug || 'your-store'}.savdoon.uz`}
                                         className="font-mono text-sm"
                                     />
                                     <div className="space-y-1.5 text-left">

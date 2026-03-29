@@ -313,7 +313,11 @@ function AppContent() {
       case 'wizard':
         return (
           <StoreWizard
-            onComplete={() => setPage('dashboard')}
+            onComplete={() => {
+              setStoreId(undefined); // Clear any stale managed store
+              setDashboardTab(undefined); // Reset to default tab (overview)
+              setPage('dashboard');
+            }}
           />
         );
       case 'ai-intel':
