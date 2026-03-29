@@ -183,6 +183,71 @@ class AIService:
                 return self._safe_generate_content(model_names, full_prompt)
             except Exception as e:
                 log_ai_error(f"Chat error: {e}")
-        return None
+        
+        # --- ROBUST FALLBACK ---
+        fallback_msg = {
+            'uz': f"Kechirasiz, hozirda AI xizmati band. {store_info.get('name', 'Savdoon')} do'koni mahsulotlari haqida savolingiz bo'lsa, iltimos operator bilan bog'laning yoki birozdan so'ng yozing.",
+            'ru': f"Извините, сейчас ИИ-сервис перегружен. Если у вас есть вопросы по товарам магазина {store_info.get('name', 'Savdoon')}, пожалуйста, свяжитесь с оператором.",
+            'en': f"Sorry, the AI service is currently busy. If you have questions about {store_info.get('name', 'Savdoon')} products, please contact our support."
+        }
+        return fallback_msg.get(language, fallback_msg['en'])
+
+    def generate_ui_config(self, user_prompt, business_type, current_config=None):
+        """
+        Generates a new theme_config JSON based on user natural language.
+        Inspired by real-world examples like Korzinka/Makro for relevant industries.
+        """
+        if not self.client:
+            return current_config or {}
+
+        try:
+            system_prompt = f"""
+            You are a senior UI/UX Designer specializing in E-commerce Web Apps.
+            Your task is to generate a 'theme_config' JSON object for an online store.
+            
+            BUSINESS CONTEXT:
+            - Store Type: {business_type}
+            - Current Design: {current_config or "Default"}
+            
+            INSPIRATION RULES:
+            - If Grocery: Think 'Korzinka' or 'Makro' (Red/Green colors, clean grids, large banners, rounded corners).
+            - If Electronics: Think 'Apple' or 'Samsung' (Minimalist, dark/light modes, high contrast, sharp imagery).
+            - If Fashion: Think 'Zara' or 'H&M' (Large typography, white space, elegant transitions).
+            
+            JSON SCHEMA REQUIREMENTS (Return ONLY valid JSON):
+            {{
+              "primary_color": "hex code",
+              "secondary_color": "hex code",
+              "accent_color": "hex code",
+              "layout_type": "grid_compact | list_wide | masonry",
+              "banner_style": "rounded | sharp | glass",
+              "card_style": "minimal | elevated | glassmorphic",
+              "border_radius": "px or rem unit",
+              "font_family": "Google Font name",
+              "animations_enabled": true/false,
+              "swiper_speed": 300,
+              "header_style": "transparent | solid | floating",
+              "ai_logic_summary": "Short explanation in Uzbek of what was changed and why."
+            }}
+            
+            USER REQUEST: "{user_prompt}"
+            
+            IMPORTANT: Return ONLY the JSON object. No markdown, no triple backticks, no text before or after.
+            """
+            
+            model_names = self._get_model_names('text')
+            response_text = self._safe_generate_content(model_names, system_prompt)
+            
+            # Basic JSON cleanup in case AI adds backticks
+            if '```json' in response_text:
+                response_text = response_text.split('```json')[1].split('```')[0].strip()
+            elif '```' in response_text:
+                response_text = response_text.split('```')[1].split('```')[0].strip()
+            
+            import json
+            return json.loads(response_text)
+        except Exception as e:
+            log_ai_error(f"UI Config generation error: {e}")
+            raise Exception("Sun'iy intellekt APIdan javob olishda xatolik yuz berdi. Iltimos keyinroq qayta urinib ko'ring (API byudjeti tugagan bo'lishi mumkin).")
 
 ai_service = AIService()

@@ -21,7 +21,7 @@ class StoreSerializer(serializers.ModelSerializer):
             'business_type', 'business_description', 'business_description_uz', 'business_description_ru', 'logo', 'banner', 'status', 'pickup_address', 'latitude',
             'longitude', 'telegram_bot_token', 'telegram_chat_id', 'telegram_welcome', 'telegram_welcome_uz', 'telegram_welcome_ru', 'catalog_mode',
             'default_language', 'contract_signed', 'contract_signed_at',
-            'subdomain', 'created_at', 'updated_at', 'api_key', 'maintenance_mode',
+            'subdomain', 'created_at', 'updated_at', 'api_key', 'maintenance_mode', 'twa_enabled',
             'base_currency', 'use_auto_rates', 'manual_exchange_rates', 'telegram_username',
             'primary_color', 'secondary_color', 'phone', 'email', 'instagram_url',
             'telegram_channel', 'facebook_url', 'website_url', 'youtube_url', 'tiktok_url',
@@ -56,7 +56,7 @@ class StoreCreateSerializer(serializers.ModelSerializer):
             'pickup_address', 'latitude', 'longitude', 'telegram_bot_token',
             'telegram_chat_id', 'telegram_welcome', 'telegram_welcome_uz', 'telegram_welcome_ru', 'catalog_mode', 'default_language',
             'signature_data', 'agree_to_terms', 'telegram_username',
-            'primary_color', 'secondary_color', 'phone', 'email'
+            'primary_color', 'secondary_color', 'phone', 'email', 'twa_enabled'
         ]
     
     def validate_agree_to_terms(self, value):

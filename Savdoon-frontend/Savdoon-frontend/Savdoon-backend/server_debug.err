@@ -1,0 +1,23 @@
+C:\Users\hp\Desktop\Savdoon\backend\products\ai_service.py:3: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+SystemCheckError: System check identified some issues:
+
+ERRORS:
+notifications: (models.E028) db_table 'notifications' is used by multiple models: orders.Notification, savdoon.Notification.
+orders.Notification.user: (fields.E304) Reverse accessor 'User.notifications' for 'orders.Notification.user' clashes with reverse accessor for 'savdoon.Notification.recipient'.
+	HINT: Add or change a related_name argument to the definition for 'orders.Notification.user' or 'savdoon.Notification.recipient'.
+orders.Notification.user: (fields.E305) Reverse query name for 'orders.Notification.user' clashes with reverse query name for 'savdoon.Notification.recipient'.
+	HINT: Add or change a related_name argument to the definition for 'orders.Notification.user' or 'savdoon.Notification.recipient'.
+savdoon.Notification.recipient: (fields.E304) Reverse accessor 'User.notifications' for 'savdoon.Notification.recipient' clashes with reverse accessor for 'orders.Notification.user'.
+	HINT: Add or change a related_name argument to the definition for 'savdoon.Notification.recipient' or 'orders.Notification.user'.
+savdoon.Notification.recipient: (fields.E305) Reverse query name for 'savdoon.Notification.recipient' clashes with reverse query name for 'orders.Notification.user'.
+	HINT: Add or change a related_name argument to the definition for 'savdoon.Notification.recipient' or 'orders.Notification.user'.
+
+System check identified 5 issues (0 silenced).

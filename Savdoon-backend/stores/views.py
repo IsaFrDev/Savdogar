@@ -290,12 +290,23 @@ class StoreViewSet(viewsets.ModelViewSet):
             logger.error(f"Database error in by_slug: {e}")
             return Response({'error': 'Database initialization in progress. Please refresh in 30 seconds.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
-    @action(detail=False, methods=['get'], permission_classes=[AllowAny], authentication_classes=[])
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
     def marketplace(self, request):
+        from django.db.models import Q
         try:
-            stores = Store.objects.filter(status='approved', maintenance_mode=False).order_by('-rating', '-created_at')
+            # Base filter: approved and not in maintenance
+            base_filter = Q(status='approved', maintenance_mode=False)
+            
+            # If authenticated, also show their own stores (even if pending)
+            if request.user.is_authenticated:
+                base_filter |= Q(owner=request.user)
+                
+            stores = Store.objects.filter(base_filter).order_by('-rating', '-created_at').distinct()
             return Response(StoreSerializer(stores, many=True).data)
         except Exception as e:
+            import logging
+            logger = logging.getLogger('savdoon')
+            logger.error(f"Error in marketplace: {e}")
             return Response({'error': 'Database initializing...'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
     
     @action(detail=True, methods=['get'])

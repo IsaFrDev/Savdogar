@@ -4,6 +4,7 @@ from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from django.db import models
 from django.utils import timezone
+import datetime
 from datetime import timedelta
 from rest_framework.decorators import action
 from django.db.models import Q
@@ -446,3 +447,36 @@ class AIConciergeView(APIView):
         )
         
         return Response(response)
+    @action(detail=False, methods=['GET'])
+    def export_json(self, request):
+        """
+        Exports all products of a store to a JSON file.
+        Simulates a 3-second processing delay as requested.
+        """
+        import time
+        import json
+        from django.http import HttpResponse
+        
+        store_id = request.query_params.get('store')
+        if not store_id:
+            return Response({"error": "store_id is required"}, status=400)
+            
+        # Simulate processing delay
+        time.sleep(3)
+        
+        products = self.get_queryset().filter(store_id=store_id)
+        serializer = self.get_serializer(products, many=True)
+        
+        data = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "store_id": store_id,
+            "total_count": products.count(),
+            "products": serializer.data
+        }
+        
+        response = HttpResponse(
+            json.dumps(data, indent=4, ensure_ascii=False),
+            content_type='application/json'
+        )
+        response['Content-Disposition'] = f'attachment; filename="store_{store_id}_products_backup.json"'
+        return response

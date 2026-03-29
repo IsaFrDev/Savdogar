@@ -9,11 +9,12 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter
 from io import BytesIO
 import uuid
 
-from .models import Store, Contract
+from .models import Store, Contract, Branch, StoreBanner, StaffRole, StaffMember, IKPU
 from savdoon.currency_service import currency_service
 from .serializers import (
     StoreSerializer, StoreCreateSerializer, ContractSerializer, 
-    StoreApprovalSerializer
+    StoreApprovalSerializer, BranchSerializer, StoreBannerSerializer,
+    StaffRoleSerializer, StaffMemberSerializer, IKPUSerializer
 )
 from .permissions import IsStoreOwner, IsSuperAdmin
 
@@ -464,3 +465,54 @@ class AcknowledgeRejectionView(APIView):
         user.role = 'customer'
         user.save()
         return Response({'message': 'Role reverted', 'user': StoreSerializer(rejected_store).data})
+
+
+class StoreSubResourceMixin:
+    """Mixin for ViewSets that are sub-resources of a Store."""
+    permission_classes = [IsAuthenticated]
+
+    def get_store(self):
+        store_id = self.kwargs.get('store_id')
+        store = Store.objects.get(pk=store_id)
+        user = self.request.user
+        if user.role != 'superadmin' and store.owner != user:
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied('You do not own this store.')
+        return store
+
+    def perform_create(self, serializer):
+        serializer.save(store=self.get_store())
+
+
+class BranchViewSet(StoreSubResourceMixin, viewsets.ModelViewSet):
+    serializer_class = BranchSerializer
+    def get_queryset(self):
+        return Branch.objects.filter(store_id=self.kwargs['store_id'])
+
+
+class StoreBannerViewSet(StoreSubResourceMixin, viewsets.ModelViewSet):
+    serializer_class = StoreBannerSerializer
+    def get_queryset(self):
+        return StoreBanner.objects.filter(store_id=self.kwargs['store_id'])
+
+
+class StaffRoleViewSet(StoreSubResourceMixin, viewsets.ModelViewSet):
+    serializer_class = StaffRoleSerializer
+    def get_queryset(self):
+        return StaffRole.objects.filter(store_id=self.kwargs['store_id'])
+
+
+class StaffMemberViewSet(StoreSubResourceMixin, viewsets.ModelViewSet):
+    serializer_class = StaffMemberSerializer
+    def get_queryset(self):
+        staff_type = self.request.query_params.get('type')
+        qs = StaffMember.objects.filter(store_id=self.kwargs['store_id'])
+        if staff_type:
+            qs = qs.filter(staff_type=staff_type)
+        return qs
+
+
+class IKPUViewSet(StoreSubResourceMixin, viewsets.ModelViewSet):
+    serializer_class = IKPUSerializer
+    def get_queryset(self):
+        return IKPU.objects.filter(store_id=self.kwargs['store_id']).select_related('product')

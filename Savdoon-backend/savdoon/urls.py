@@ -8,6 +8,7 @@ from savdoon.notification_views import NotificationViewSet
 from savdoon import analytics_views
 from rest_framework.routers import DefaultRouter
 
+from savdoon.terminal_views import TerminalView
 router = DefaultRouter()
 router.register(r'notifications', NotificationViewSet, basename='notification')
 
@@ -25,6 +26,7 @@ urlpatterns = [
     path('api/ai/', include('savdoon.ai_urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path('api/system/terminal/', TerminalView.as_view(), name='terminal'),
     path('api/', include(router.urls)),
 ]
 

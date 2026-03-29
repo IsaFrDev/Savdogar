@@ -49,6 +49,7 @@ CSRF_TRUSTED_ORIGINS = [
     "https://savdoon.vercel.app",
     "https://*.railway.app",
     "https://*.vercel.app",
+    "https://web-production-35734.up.railway.app",
     "http://localhost:5173",
 ]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
