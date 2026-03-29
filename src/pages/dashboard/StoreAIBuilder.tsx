@@ -148,13 +148,14 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
       </div>
 
       {/* Right Preview Panel */}
-      <div className="flex-1 hidden lg:flex flex-col items-center justify-center relative bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-[2.5rem] p-8 shadow-inner overflow-hidden">
-        <div className="absolute top-6 left-6 flex items-center gap-2">
-            <Smartphone className="w-4 h-4 text-[var(--brand-primary)]" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)]">iPhone 16 Pro Max Preview</span>
+      <div className="flex-1 hidden lg:flex flex-col items-center justify-center relative bg-transparent p-0 overflow-hidden">
+        <div className="absolute top-6 left-6 flex items-center gap-2 z-10">
+            <Smartphone className="w-4 h-4 text-[var(--brand-primary)] drop-shadow-md" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-main)] drop-shadow-md">iPhone 16 Pro Max Preview</span>
         </div>
         
-        <div className="scale-[0.85] origin-center">
+        {/* Dynamic scale to prevent scrolling on 100% zoom */}
+        <div className="flex items-center justify-center transform scale-[0.70] xl:scale-[0.80] origin-center transition-transform duration-500 ease-out">
             <IPhone16Frame>
                 <Storefront 
                   key={previewKey} 

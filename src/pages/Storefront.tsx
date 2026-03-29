@@ -460,10 +460,26 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
     } as React.CSSProperties;
   })();
 
+  // UI Schema Engine
+  const defaultSchema = [
+    { type: 'Header' },
+    { type: 'HeroBanner' },
+    { type: 'SearchArea' },
+    { type: 'ProductsArea' }
+  ];
+  const activeSchema = (store?.ui_schema && store.ui_schema.length > 0) ? store.ui_schema : defaultSchema;
+
+  const getStyle = (type: string) => {
+    const section = activeSchema.find((b: any) => b.type === type);
+    if (!section) return { display: 'none' };
+    const index = activeSchema.indexOf(section);
+    return { order: index, ...(section.props || {}) };
+  };
+
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] font-sans selection:bg-[var(--primary)]/30" style={themeStyles}>
+    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] font-sans selection:bg-[var(--primary)]/30 flex flex-col" style={themeStyles}>
       {/* Dynamic Background Gradient - Full Page Mesh */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0" style={{ order: -1 }}>
         <div
           className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] blur-[120px] rounded-full opacity-30 animate-pulse-slow"
           style={{ background: `radial-gradient(circle, var(--primary-toq) 0%, transparent 70%)` }}
@@ -476,7 +492,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
       </div >
 
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[var(--color-surface)] backdrop-blur-xl border-b border-[var(--color-border)] shadow-sm">
+      <header className="sticky top-0 z-40 bg-[var(--color-surface)] backdrop-blur-xl border-b border-[var(--color-border)] shadow-sm" style={getStyle('Header')}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             <div className="flex items-center gap-4">
@@ -601,7 +617,10 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
             </Swiper>
           </div>
         )}
+      </section>
 
+      {/* Search & Intro Area */}
+      <section className="relative w-full z-10 pt-4 pb-12" style={getStyle('SearchArea')}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {(!store.banners || store.banners.length === 0) && (
@@ -666,9 +685,10 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
             </div>
           </motion.div>
         </div>
-      </section >
+      </section>
 
-      {/* Nearby Stores Discovery */}
+      {/* Main Products Area */}
+      <section className="relative w-full z-10 flex-1" style={getStyle('ProductsArea')}>
       {showNearby && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
@@ -827,9 +847,10 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
             </div>
           )
         }
-      </section >
+      </section>
 
-      {/* Cart Drawer - Dark Refresh */}
+      {/* Overlays and Modals */}
+      <div style={{ order: 999 }}>
       <AnimatePresence>
         {
           cartOpen && (
@@ -1468,6 +1489,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
           />
         )}
       </AnimatePresence>
-    </div >
+      </div>
+    </div>
   );
 }
