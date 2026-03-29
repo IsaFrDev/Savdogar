@@ -19,7 +19,7 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
-      text: language === 'uz' ? "Assalomu alaykum! Men do'koningizning AI dizayneriman. Qanday dizayn o'zgarishlarini xohlaysiz? Masalan: 'Ko'k rangli Korzinka uslubida dizayn ber' yoki 'Barcha tugmalarni yumaloq qil'.", 
+      text: language === 'uz' ? "Assalomu alaykum! Men do'koningizning AI dizayneriman. Qanday dizayn o'zgarishlarini xohlaysiz? Masalan: 'Ko'k rangli Korzinka uslubida dizayn ber' yoki 'Barcha tugmalarni yumaloq qil'." : "Hello! I am your store's AI designer. What design changes would you like? For example: 'Create a blue Korzinka-style design' or 'Make all buttons rounded'.", 
       sender: 'ai',
       timestamp: new Date()
     }
