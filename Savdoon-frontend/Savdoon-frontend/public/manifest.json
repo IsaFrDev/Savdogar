@@ -1,0 +1,24 @@
+{
+    "name": "Savdoon - Smart Commerce Platform",
+    "short_name": "Savdoon",
+    "description": "Next-gen multi-store e-commerce platform with AI",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#0a0b14",
+    "theme_color": "#6366f1",
+    "orientation": "portrait-primary",
+    "icons": [
+        {
+            "src": "/vite.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ],
+    "categories": [
+        "shopping",
+        "business"
+    ],
+    "lang": "en",
+    "dir": "ltr"
+}
