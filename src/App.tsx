@@ -103,16 +103,18 @@ function AppContent() {
 
   // Redirect based on auth state
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        if (isSuperAdmin && (page === 'login' || page === 'register' || page === 'admin-login')) {
+    if (!isLoading && isAuthenticated) {
+      // Only redirect if we are on a landing/auth page, not if we are browsing the marketplace
+      const authPages: Page[] = ['login', 'register', 'admin-login'];
+      const onAuthPage = authPages.includes(page);
+
+      if (onAuthPage) {
+        if (isSuperAdmin) {
           setPage('super-admin');
-        } else if (!isSuperAdmin && (page === 'login' || page === 'register')) {
-          if (user?.role === 'courier') {
-            setPage('courier-dashboard');
-          } else {
-            setPage('dashboard');
-          }
+        } else if (user?.role === 'courier') {
+          setPage('courier-dashboard');
+        } else {
+          setPage('dashboard');
         }
       }
     }

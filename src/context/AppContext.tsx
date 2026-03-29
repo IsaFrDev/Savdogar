@@ -36,8 +36,26 @@ export interface Store {
   instagram_url?: string;
   telegram_channel?: string;
   facebook_url?: string;
+  youtube_url?: string;
+  tiktok_url?: string;
   website_url?: string;
   telegram_username?: string;
+  telegram_bot_token?: string;
+  telegram_chat_id?: string;
+  working_hours?: any;
+  payment_methods?: any;
+  delivery_settings?: any;
+  balance?: number;
+  subscription_expiry?: string;
+  subscription_price?: number;
+  plan?: string;
+  eskiz_email?: string;
+  eskiz_token?: string;
+  is_phone_verified?: boolean;
+  twa_enabled?: boolean;
+  telegram_welcome?: string;
+  telegram_welcome_uz?: string;
+  telegram_welcome_ru?: string;
   theme_config?: {
     fontFamily?: string;
     borderRadius?: string;

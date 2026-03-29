@@ -49,6 +49,16 @@ import { Marketing } from './dashboard/Marketing';
 import AiCreativeSuite from './dashboard/AiCreativeSuite';
 import AiImageStudio from './dashboard/AiImageStudio';
 import AiFittingRoom from './dashboard/AiFittingRoom';
+import { Banners } from './dashboard/Banners';
+import { Branches } from './dashboard/Branches';
+import { Staff } from './dashboard/Staff';
+import { IKPU } from './dashboard/IKPU';
+import { Warehouse } from './dashboard/Warehouse';
+import { PlatformSettings } from './dashboard/PlatformSettings';
+import { PaymentSettings } from './dashboard/PaymentSettings';
+import { DeliverySettings } from './dashboard/DeliverySettings';
+import { TariffPlan } from './dashboard/TariffPlan';
+import { Customers } from './dashboard/Customers';
 import { useStoreWebSocket } from '../hooks/useStoreWebSocket';
 
 interface DashboardProps {
@@ -214,27 +224,61 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
     setLoading(false);
   };
 
-  const adminTabs = [
-    { id: 'overview', label: t('overview'), icon: LayoutDashboard },
-    { id: 'products', label: t('products'), icon: Package },
-    { id: 'orders', label: t('orders'), icon: ShoppingCart },
-    { id: 'support', label: t('support') || 'Support & Chat', icon: MessageSquare, badge: unreadMessages > 0 ? unreadMessages : undefined },
-    { id: 'categories', label: t('categories') || 'Categories', icon: FolderOpen },
-    { id: 'qr', label: t('qrOrder') || 'QR-Order', icon: QrCode },
-    { id: 'discounts', label: t('discounts'), icon: Tag },
-    { id: 'marketing', label: t('marketing') || 'Marketing', icon: Send },
-    { id: 'ai-stylist', label: t('aiStylist') || 'AI Stylist', icon: Wand2 },
-    { id: 'ai-studio', label: t('aiStudio') || 'AI Studio', icon: Sparkles },
-    { id: 'ai-creative', label: t('aiCreative') || 'AI Creative', icon: Wand2 },
-    { id: 'ai-image-studio', label: t('aiImageStudio') || 'AI Image Studio', icon: Image },
+  const adminGroups = [
     {
-      id: 'ai-fitting-room',
-      label: t('aiFittingRoom') || 'Virtual Fitting Room',
-      icon: Layers,
-      hidden: currentStore?.business_type !== 'clothing'
+      title: t('sales') || 'Savdo',
+      tabs: [
+        { id: 'overview', label: t('overview'), icon: LayoutDashboard },
+        { id: 'orders', label: t('orders'), icon: ShoppingCart },
+        { id: 'products', label: t('products'), icon: Package },
+        { id: 'categories', label: t('categories') || 'Kategoriyalar', icon: FolderOpen },
+        { id: 'customers', label: t('customers') || 'Mijozlar', icon: Star },
+        { id: 'support', label: t('support') || 'Chat', icon: MessageSquare, badge: unreadMessages > 0 ? unreadMessages : undefined },
+      ]
     },
-    { id: 'settings', label: t('settings'), icon: Settings },
-  ].filter(tab => !tab.hidden);
+    {
+      title: t('inventory') || 'Omborxona',
+      tabs: [
+        { id: 'warehouse', label: t('warehouse') || 'Ombor', icon: Store },
+        { id: 'ikpu', label: 'IKPU', icon: QrCode },
+      ]
+    },
+    {
+      title: t('marketing') || 'Marketing',
+      tabs: [
+        { id: 'marketing', label: t('marketing'), icon: Send },
+        { id: 'discounts', label: t('discounts'), icon: Tag },
+        { id: 'banners', label: t('banners') || 'Bannerlar', icon: Image },
+      ]
+    },
+    {
+      title: t('aiTools') || 'AI Imkoniyatlar',
+      tabs: [
+        { id: 'ai-studio', label: t('aiStudio') || 'AI Studio', icon: Sparkles },
+        { id: 'ai-creative', label: t('aiCreative') || 'AI Creative', icon: Wand2 },
+        { id: 'ai-stylist', label: t('aiStylist') || 'AI Stylist', icon: Wand2 },
+        { id: 'ai-image-studio', label: t('aiImageStudio') || 'AI Image Studio', icon: Image },
+        {
+          id: 'ai-fitting-room',
+          label: t('aiFittingRoom') || 'Virtual Fitting Room',
+          icon: Layers,
+          hidden: currentStore?.business_type !== 'clothing'
+        },
+      ]
+    },
+    {
+      title: t('settings') || 'Sozlamalar',
+      tabs: [
+        { id: 'settings', label: t('settings'), icon: Settings },
+        { id: 'branches', label: t('branches') || 'Filiallar', icon: MapPin },
+        { id: 'staff', label: t('staff') || 'Xodimlar', icon: ShieldCheck },
+        { id: 'payments', label: t('payments') || 'To\'lovlar', icon: ShoppingCart },
+        { id: 'delivery', label: t('delivery') || 'Yetkazib berish', icon: Package },
+        { id: 'platforms', label: t('platforms') || 'Platformalar', icon: Send },
+        { id: 'tariff', label: t('tariff') || 'Tarif', icon: Star },
+      ]
+    }
+  ] as { title: string; tabs: { id: string; label: string; icon: any; badge?: any; hidden?: boolean }[] }[];
 
   const customerTabs = [
     { id: 'discover', label: t('discoverStores') || 'Discover', icon: Store },
@@ -244,7 +288,20 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
   ];
 
   const showAdminTabs = !isCustomer && (!isSuperAdmin || stores.length > 0);
-  const tabs = isCustomer ? customerTabs : (isSuperAdmin ? (showAdminTabs ? [...customerTabs, { id: 'divider', label: '', icon: () => null, disabled: true }, ...adminTabs] : customerTabs) : adminTabs);
+  
+  const getTabs = () => {
+    if (isCustomer) return customerTabs;
+    if (isSuperAdmin && !showAdminTabs) return customerTabs;
+    
+    // For admin, we flatten the groups for the tab selection logic
+    const allAdminTabs = adminGroups.flatMap(group => group.tabs);
+    if (isSuperAdmin && showAdminTabs) {
+        return [...customerTabs, { id: 'divider', label: '', icon: () => null, disabled: true }, ...allAdminTabs];
+    }
+    return allAdminTabs;
+  };
+
+  const tabs = getTabs();
 
   const handleLogout = () => {
     logout();
@@ -329,6 +386,11 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
                         {index < 3 && (
                           <div className="absolute top-4 left-4 px-3 py-1 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg">
                             Top Store
+                          </div>
+                        )}
+                        {store.status && store.status !== 'approved' && (
+                          <div className="absolute top-4 right-4 px-3 py-1 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg z-10">
+                            {language === 'uz' ? 'Tekshirilmoqda' : 'Under Review'}
                           </div>
                         )}
                       </div>
@@ -416,7 +478,9 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
         <div className="text-center py-20 bg-[var(--color-surface-raised)] rounded-[2.5rem] border border-[var(--glass-border)]">
           <Store className="w-16 h-16 text-[var(--text-dim)] mx-auto mb-6 opacity-20" />
           <h2 className="text-2xl font-black text-[var(--text-main)] mb-2 tracking-tight uppercase">{t('noStoreFound') || "Do'kon topilmadi"}</h2>
-          <p className="text-[var(--text-dim)] mb-8 font-medium">Sotishni boshlash uchun birinchi do'koningizni yarating.</p>
+          <p className="text-[var(--text-dim)] mb-8 font-medium">
+            {language === 'uz' ? 'Sotishni boshlash uchun birinchi do\'koningizni yarating.' : 'Create your first store to start selling.'}
+          </p>
           <div className="flex flex-col items-center gap-4">
             <button
               onClick={onCreateStore}
@@ -489,6 +553,16 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
         <SettingsPage storeId={currentStore?.id} onUpdate={loadStores} />
       );
       case 'discounts': return <Discounts storeId={currentStore?.id} />;
+      case 'banners': return <Banners />;
+      case 'branches': return <Branches />;
+      case 'staff': return <Staff />;
+      case 'ikpu': return <IKPU />;
+      case 'warehouse': return <Warehouse />;
+      case 'platforms': return <PlatformSettings />;
+      case 'payments': return <PaymentSettings />;
+      case 'delivery': return <DeliverySettings />;
+      case 'tariff': return <TariffPlan />;
+      case 'customers': return <Customers />;
       default: return <Overview storeId={currentStore?.id} />;
     }
   };
@@ -650,44 +724,69 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
             )}
 
             {/* Navigation Sections */}
-            <nav className="space-y-2">
-              {tabs.map((tab: any, index) => tab.id === 'divider' ? (
-                <div key={`div-${index}`} className="my-6 border-t border-[var(--color-border)] mx-4 opacity-50" />
+            <nav className="flex-1 py-4 overflow-y-auto no-scrollbar space-y-4">
+              {(isCustomer || (isSuperAdmin && !showAdminTabs)) ? (
+                customerTabs.map((tab: any) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                        setActiveTab(tab.id);
+                        if (window.innerWidth < 1024) setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative ${activeTab === tab.id
+                        ? 'bg-[var(--brand-primary-glow)] text-[var(--brand-primary)] shadow-sm'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--color-border)]'
+                        }`}
+                  >
+                    <tab.icon className={`w-6 h-6 flex-shrink-0 transition-all ${activeTab === tab.id ? 'text-[var(--brand-primary)] scale-110' : 'group-hover:text-[var(--brand-primary)]'}`} />
+                    {sidebarOpen && (
+                        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px] font-bold tracking-tight">
+                            {tab.label}
+                        </motion.span>
+                    )}
+                  </button>
+                ))
               ) : (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    if (window.innerWidth < 1024) setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative ${activeTab === tab.id
-                    ? 'bg-[var(--brand-primary-glow)] text-[var(--brand-primary)] shadow-sm'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--color-border)]'
-                    }`}
-                >
-                  <tab.icon className={`w-6 h-6 flex-shrink-0 transition-all ${activeTab === tab.id ? 'text-[var(--brand-primary)] scale-110' : 'group-hover:text-[var(--brand-primary)]'}`} />
-                  {sidebarOpen && (
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-[12px] font-bold tracking-tight"
-                    >
-                      {tab.label}
-                    </motion.span>
-                  )}
-                  {tab.badge !== undefined && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 animate-bounce">
-                      {tab.badge}
-                    </span>
-                  )}
-                  {activeTab === tab.id && (
-                    <motion.div
-                      layoutId="activeTabGlow"
-                      className="absolute left-0 w-1.5 h-8 bg-[var(--brand-primary)] rounded-r-full shadow-[0_0_15px_var(--brand-primary-glow)]"
-                    />
-                  )}
-                </button>
-              ))}
+                adminGroups.map((group, groupIdx) => (
+                    <div key={groupIdx} className="space-y-1">
+                        {sidebarOpen && (
+                            <div className="px-6 py-2">
+                                <h3 className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.3em] opacity-60">
+                                    {group.title}
+                                </h3>
+                            </div>
+                        )}
+                        {group.tabs.filter(tab => !tab.hidden).map((tab: any) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => {
+                                    setActiveTab(tab.id);
+                                    if (window.innerWidth < 1024) setSidebarOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative ${activeTab === tab.id
+                                    ? 'bg-[var(--brand-primary-glow)] text-[var(--brand-primary)] shadow-sm'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--color-border)]'
+                                    }`}
+                            >
+                                <tab.icon className={`w-6 h-6 flex-shrink-0 transition-all ${activeTab === tab.id ? 'text-[var(--brand-primary)] scale-110' : 'group-hover:text-[var(--brand-primary)]'}`} />
+                                {sidebarOpen && (
+                                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px] font-bold tracking-tight">
+                                        {tab.label}
+                                    </motion.span>
+                                )}
+                                {tab.badge !== undefined && sidebarOpen && (
+                                    <span className="absolute right-4 bg-rose-500 text-white text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                                        {tab.badge}
+                                    </span>
+                                )}
+                                {activeTab === tab.id && (
+                                    <motion.div layoutId="activeTabGlow" className="absolute left-0 w-1.5 h-8 bg-[var(--brand-primary)] rounded-r-full shadow-[0_0_15px_var(--brand-primary-glow)]" />
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                ))
+              )}
             </nav>
 
             {onBackToAdmin && (
