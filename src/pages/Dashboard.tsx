@@ -60,6 +60,8 @@ import { DeliverySettings } from './dashboard/DeliverySettings';
 import { TariffPlan } from './dashboard/TariffPlan';
 import { Customers } from './dashboard/Customers';
 import { useStoreWebSocket } from '../hooks/useStoreWebSocket';
+import { usePWAInstall } from '../hooks/usePWAInstall';
+import { Download } from 'lucide-react';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -74,6 +76,7 @@ interface DashboardProps {
 export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore, managedStoreId, initialTab }: DashboardProps) {
   const { t, language, setStores: setGlobalStores, currentStore: globalStore, setCurrentStore: setGlobalStore, ln } = useApp();
   const { user, logout } = useAuth();
+  const { canInstall, install, isIOS, isInstalled } = usePWAInstall();
   const isCustomer = user?.role === 'customer';
   const isSuperAdmin = user?.role === 'superadmin';
 
@@ -809,6 +812,40 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
               </div>
             )}
           </div>
+
+          {/* PWA Install Button */}
+          {canInstall && (
+            <div className="px-6 py-4">
+              <button
+                onClick={install}
+                className={`w-full flex items-center gap-4 p-4 rounded-3xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-secondary)] text-white shadow-xl shadow-[var(--brand-primary-glow)] hover:scale-[1.02] active:scale-95 transition-all group overflow-hidden relative`}
+              >
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0 backdrop-blur-md">
+                   <Download className="w-5 h-5 text-white animate-bounce" />
+                </div>
+                {sidebarOpen && (
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-widest leading-tight opacity-80">
+                      App
+                    </p>
+                    <p className="text-sm font-black truncate leading-tight">
+                      Install Now
+                    </p>
+                  </div>
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* iOS Install Prompt */}
+          {isIOS && !isInstalled && (
+            <div className="px-6 py-2">
+              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-[9px] text-slate-400 font-bold uppercase tracking-widest text-center">
+                 iOS: Add to Home Screen
+              </div>
+            </div>
+          )}
 
           {/* User Menu Overhaul */}
           <div className="p-6 border-t border-[var(--color-border)]">

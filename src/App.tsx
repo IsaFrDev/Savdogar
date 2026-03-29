@@ -33,6 +33,21 @@ function AppContent() {
   const [pendingStoreName, setPendingStoreName] = useState('');
   const [dashboardTab, setDashboardTab] = useState<string | undefined>(undefined);
 
+  // Register Service Worker for PWA
+  useEffect(() => {
+    if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(error => {
+            console.log('SW registration failed: ', error);
+          });
+      });
+    }
+  }, []);
+
   // Check URL for subdomain or special paths
   useEffect(() => {
     const pathname = window.location.pathname;
