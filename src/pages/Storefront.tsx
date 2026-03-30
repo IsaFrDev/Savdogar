@@ -163,6 +163,15 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
 
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isPreview && onBackToAdmin) {
+      (window as any).backToAdmin = onBackToAdmin;
+    }
+    return () => {
+      delete (window as any).backToAdmin;
+    };
+  }, [isPreview, onBackToAdmin]);
+
   const loadStoreData = async () => {
     setLoading(true);
     setError(null);
@@ -641,6 +650,16 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
 
   return (
     <div className={`min-h-screen ${isPreview ? 'bg-transparent' : 'bg-[var(--bg-main)]'} text-[var(--text-primary)] font-sans selection:bg-[var(--primary)]/30 flex flex-col`} style={themeStyles}>
+      {isPreview && onBackToAdmin && (
+        <button 
+          onClick={onBackToAdmin}
+          className="fixed top-24 left-6 z-[100] p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl text-white hover:bg-white/20 transition-all flex items-center gap-3 shadow-2xl group overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--primary)]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ArrowRight className="w-5 h-5 -rotate-180" />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Dashbordga qaytish</span>
+        </button>
+      )}
       {/* Dynamic Background Gradient - Full Page Mesh */}
       <div className={`${isPreview ? 'absolute' : 'fixed'} inset-0 overflow-hidden pointer-events-none z-0`} style={{ order: -1 }}>
         <div
