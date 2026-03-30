@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Send, Sparkles, RefreshCw, Smartphone, MessageSquare, Loader2, Code, Save, FileCode } from 'lucide-react';
+import { Send, Sparkles, RefreshCw, Smartphone, MessageSquare, Loader2, Code, Save, FileCode, FolderPlus, FilePlus, Trash2 } from 'lucide-react';
 import { IPhone16Frame } from '../../components/IPhone16Frame';
 import { Storefront } from '../Storefront';
 import api, { builderApi } from '../../services/api';
@@ -81,8 +81,10 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
   const [isSavingSchema, setIsSavingSchema] = useState(false);
   const [schemaError, setSchemaError] = useState('');
   
-  // HTML Editor State
+  // HTML/Files Editor State
   const [htmlCode, setHtmlCode] = useState('');
+  const [storeFiles, setStoreFiles] = useState<Record<string, string>>({});
+  const [activeFile, setActiveFile] = useState<string>('index.html');
   const [isSavingHtml, setIsSavingHtml] = useState(false);
   const [htmlError, setHtmlError] = useState('');
   
@@ -94,11 +96,28 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
       api.get(`/stores/${storeId}/`).then(res => {
         setSchemaCode(JSON.stringify(res.data.ui_schema || [], null, 2));
         setSchemaError('');
-        setHtmlCode(res.data.store_html || DEFAULT_STORE_HTML);
+        
+        const files = res.data.store_files || {};
+        // Auto-migration for legacy store_html
+        if (Object.keys(files).length === 0 && res.data.store_html) {
+          files['index.html'] = res.data.store_html;
+        } else if (Object.keys(files).length === 0) {
+          files['index.html'] = DEFAULT_STORE_HTML;
+        }
+        
+        setStoreFiles(files);
+        setHtmlCode(files[activeFile] || files['index.html'] || '');
         setHtmlError('');
       }).catch(err => console.error("Could not fetch store data", err));
     }
   }, [activeTab, storeId, previewKey]);
+
+  useEffect(() => {
+    // Keep htmlCode in sync with storeFiles[activeFile]
+    if (storeFiles[activeFile] !== undefined) {
+      setHtmlCode(storeFiles[activeFile]);
+    }
+  }, [activeFile, storeFiles]);
 
   useEffect(() => {
     if (scrollRef.current && activeTab === 'chat') {
@@ -125,13 +144,31 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
     try {
       setIsSavingHtml(true);
       setHtmlError('');
-      await builderApi.saveHtml(storeId, htmlCode);
+      
+      // Update the current file in the tree before saving
+      const updatedFiles = { ...storeFiles, [activeFile]: htmlCode };
+      setStoreFiles(updatedFiles);
+      
+      await builderApi.saveFiles(storeId, updatedFiles);
       setPreviewKey(k => k + 1);
     } catch (e: any) {
-      setHtmlError(e.response?.data?.error || e.message || "Failed to save HTML");
+      setHtmlError(e.response?.data?.error || e.message || "Failed to save files");
     } finally {
       setIsSavingHtml(false);
     }
+  };
+
+  const createFile = (path: string) => {
+    if (storeFiles[path]) return;
+    setStoreFiles(prev => ({ ...prev, [path]: '' }));
+    setActiveFile(path);
+  };
+
+  const deleteFile = (path: string) => {
+    const newFiles = { ...storeFiles };
+    delete newFiles[path];
+    setStoreFiles(newFiles);
+    if (activeFile === path) setActiveFile('index.html');
   };
 
   const handleSend = async () => {
@@ -149,11 +186,20 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
     setIsTyping(true);
 
     try {
-      const response = await builderApi.chat(storeId, input);
+      const response = await api.post('/stores/builder/chat/', { 
+        store_id: storeId, 
+        message: input,
+        store_files: storeFiles // Pass the whole project tree to AI
+      });
+      
+      const aiData = response.data;
+      if (aiData.store_files) {
+        setStoreFiles(aiData.store_files);
+      }
       
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
-        text: response.data.ai_reply,
+        text: aiData.ai_reply,
         sender: 'ai',
         timestamp: new Date()
       };
@@ -262,33 +308,90 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
       );
     }
 
-    // HTML Tab
+    // HTML Tab (Explorer Mode)
     return (
-      <div className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden">
-        <div className="flex-1 relative flex flex-col rounded-2xl border border-[var(--color-border)] overflow-hidden">
-          <div className="bg-[var(--color-surface-raised)] px-4 py-2 border-b border-[var(--color-border)] flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)]">storefront.html</span>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400">LIVE EDITOR</span>
+      <div className="flex-1 flex overflow-hidden">
+        {/* Explorer Sidebar */}
+        <div className="w-64 border-r border-[var(--color-border)] bg-[var(--color-surface-raised)]/50 flex flex-col">
+          <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)]">Explorer</h3>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  const name = prompt(language === 'uz' ? "Fayl nomi (masalan: style.css):" : "File name (e.g. style.css):");
+                  if (name) createFile(name);
+                }}
+                className="p-1 hover:bg-[var(--color-surface)] rounded transition-colors" title="New File"
+              >
+                <FilePlus className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
+              </button>
+              <button className="p-1 hover:bg-[var(--color-surface)] rounded transition-colors" title="New Folder">
+                <FolderPlus className="w-3.5 h-3.5 text-[var(--text-dim)]" />
+              </button>
+            </div>
           </div>
+          
+          <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            {Object.keys(storeFiles).sort().map(path => (
+              <div 
+                key={path}
+                onClick={() => setActiveFile(path)}
+                className={`group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all ${activeFile === path ? 'bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20' : 'hover:bg-[var(--color-surface)] border border-transparent'}`}
+              >
+                <div className="flex items-center gap-2 overflow-hidden">
+                  {path.endsWith('.html') ? <Code className={`w-3.5 h-3.5 ${activeFile === path ? 'text-[var(--brand-primary)]' : 'text-orange-400'}`} /> : 
+                   path.endsWith('.css') ? <FileCode className={`w-3.5 h-3.5 ${activeFile === path ? 'text-[var(--brand-primary)]' : 'text-blue-400'}`} /> :
+                   <FileCode className={`w-3.5 h-3.5 ${activeFile === path ? 'text-[var(--brand-primary)]' : 'text-emerald-400'}`} />}
+                  <span className={`text-[11px] font-bold truncate ${activeFile === path ? 'text-[var(--text-main)]' : 'text-[var(--text-dim)]'}`}>{path}</span>
+                </div>
+                {path !== 'index.html' && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); deleteFile(path); }}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Editor Area */}
+        <div className="flex-1 flex flex-col min-w-0 bg-[#1e1e1e]">
+          {/* File Name Header */}
+          <div className="bg-[#252526] px-4 py-2 border-b border-black/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Code className="w-3.5 h-3.5 text-orange-400" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#cccccc]">{activeFile}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400 animate-pulse">Editor Mode</span>
+              <button 
+                onClick={handleSaveHtml}
+                disabled={isSavingHtml}
+                className="flex items-center gap-1.5 px-3 py-1 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white rounded text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+              >
+                {isSavingHtml ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                Save
+              </button>
+            </div>
+          </div>
+          
           <textarea 
             value={htmlCode} 
             onChange={e => setHtmlCode(e.target.value)}
             spellCheck={false}
-            className="flex-1 w-full bg-[#1e1e1e] text-[#ce9178] p-4 font-mono text-xs focus:outline-none resize-none leading-relaxed"
+            className="flex-1 w-full bg-[#1e1e1e] text-[#d4d4d4] p-6 font-mono text-xs focus:outline-none resize-none leading-relaxed selection:bg-[var(--brand-primary)]/30"
             style={{ tabSize: 2 }}
           />
+
+          {htmlError && (
+            <div className="p-2 bg-red-500/10 border-t border-red-500/20">
+               <p className="text-red-500 text-[9px] font-bold uppercase tracking-widest px-2">{htmlError}</p>
+            </div>
+          )}
         </div>
-        {htmlError && (
-          <p className="text-red-500 text-[10px] font-bold uppercase tracking-widest px-2">{htmlError}</p>
-        )}
-        <button 
-          onClick={handleSaveHtml}
-          disabled={isSavingHtml}
-          className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-        >
-          {isSavingHtml ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {language === 'uz' ? 'HTML Saqlash va Yangilash' : 'Save HTML & Refresh'}
-        </button>
       </div>
     );
   };

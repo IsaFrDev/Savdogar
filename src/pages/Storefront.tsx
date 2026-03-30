@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Menu, X, Plus, Minus, Trash2, ArrowRight, Check, Package, Loader2, Search, Star, Heart, SlidersHorizontal, Sparkles, Play, MapPin, User, Phone, ShieldCheck, ChevronRight, ShieldAlert } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -34,6 +35,25 @@ interface StorefrontProps {
   onBackToAdmin?: () => void;
   storeId?: number;
   isPreview?: boolean;
+}
+
+// Helper to isolate custom CSS
+function ShadowRoot({ children }: { children: React.ReactNode }) {
+  const shadowHostRef = useRef<HTMLDivElement>(null);
+  const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
+
+  useEffect(() => {
+    if (shadowHostRef.current && !shadowRoot) {
+      const root = shadowHostRef.current.attachShadow({ mode: 'open' });
+      setShadowRoot(root);
+    }
+  }, [shadowRoot]);
+
+  return (
+    <div ref={shadowHostRef} className="shadow-host w-full h-full">
+      {shadowRoot && ReactDOM.createPortal(children, shadowRoot)}
+    </div>
+  );
 }
 
 export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: StorefrontProps) {
@@ -544,8 +564,29 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
   );
 
   // HTML Template Engine
-  if (store?.store_html) {
-    let processedHtml = store.store_html;
+  if ((store?.store_files && Object.keys(store.store_files).length > 0) || store?.store_html) {
+    let processedHtml = "";
+    
+    if (store?.store_files && Object.keys(store.store_files).length > 0) {
+      // Explorer Mode: Use index.html or main.html as entry point
+      processedHtml = store.store_files['index.html'] || store.store_files['main.html'] || '';
+      
+      // Virtual Asset Resolution: Replace <link> and <script> tags with actual content from store_files
+      Object.keys(store.store_files).forEach(path => {
+        const content = store.store_files[path];
+        if (path.endsWith('.css')) {
+          const styleTag = `<style data-path="${path}">${content}</style>`;
+          // Support both absolute-looking and relative-looking paths
+          processedHtml = processedHtml.replace(new RegExp(`<link[^>]+href=["']\\.?/?${path}["'][^>]*>`, 'g'), styleTag);
+        } else if (path.endsWith('.js')) {
+          const scriptTag = `<script data-path="${path}">${content}</script>`;
+          processedHtml = processedHtml.replace(new RegExp(`<script[^>]+src=["']\\.?/?${path}["'][^>]*></script>`, 'g'), scriptTag);
+        }
+      });
+    } else {
+      // Legacy Single HTML mode
+      processedHtml = store.store_html;
+    }
     
     // Simple placeholder replacements
     processedHtml = processedHtml
@@ -561,9 +602,19 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
       const parts = processedHtml.split('{{PRODUCTS_GRID}}');
       return (
         <div className="min-h-screen font-sans" style={{ ...themeStyles, backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)' }}>
-          <div dangerouslySetInnerHTML={{ __html: parts[0] }} />
-          {renderProductsGrid()}
-          <div dangerouslySetInnerHTML={{ __html: parts[1] }} />
+          {isPreview ? (
+            <ShadowRoot>
+              <div dangerouslySetInnerHTML={{ __html: parts[0] }} />
+              {renderProductsGrid()}
+              <div dangerouslySetInnerHTML={{ __html: parts[1] }} />
+            </ShadowRoot>
+          ) : (
+            <>
+              <div dangerouslySetInnerHTML={{ __html: parts[0] }} />
+              {renderProductsGrid()}
+              <div dangerouslySetInnerHTML={{ __html: parts[1] }} />
+            </>
+          )}
         </div>
       );
     }
@@ -576,15 +627,22 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
           backgroundColor: 'var(--bg-main)',
           color: 'var(--text-primary)'
         }}
-        dangerouslySetInnerHTML={{ __html: processedHtml }} 
-      />
+      >
+        {isPreview ? (
+          <ShadowRoot>
+            <div dangerouslySetInnerHTML={{ __html: processedHtml }} />
+          </ShadowRoot>
+        ) : (
+          <div dangerouslySetInnerHTML={{ __html: processedHtml }} />
+        )}
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] font-sans selection:bg-[var(--primary)]/30 flex flex-col" style={themeStyles}>
+    <div className={`min-h-screen ${isPreview ? 'bg-transparent' : 'bg-[var(--bg-main)]'} text-[var(--text-primary)] font-sans selection:bg-[var(--primary)]/30 flex flex-col`} style={themeStyles}>
       {/* Dynamic Background Gradient - Full Page Mesh */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0" style={{ order: -1 }}>
+      <div className={`${isPreview ? 'absolute' : 'fixed'} inset-0 overflow-hidden pointer-events-none z-0`} style={{ order: -1 }}>
         <div
           className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] blur-[120px] rounded-full opacity-30 animate-pulse-slow"
           style={{ background: `radial-gradient(circle, var(--primary-toq) 0%, transparent 70%)` }}
