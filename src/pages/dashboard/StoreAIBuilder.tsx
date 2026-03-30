@@ -97,17 +97,26 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
         setSchemaCode(JSON.stringify(res.data.ui_schema || [], null, 2));
         setSchemaError('');
         
-        const files = res.data.store_files || {};
+        let files = res.data.store_files || {};
+        let needsSave = false;
+        
         // Auto-migration for legacy store_html
         if (Object.keys(files).length === 0 && res.data.store_html) {
           files['index.html'] = res.data.store_html;
+          needsSave = true;
         } else if (Object.keys(files).length === 0) {
           files['index.html'] = DEFAULT_STORE_HTML;
+          needsSave = true;
         }
         
         setStoreFiles(files);
         setHtmlCode(files[activeFile] || files['index.html'] || '');
         setHtmlError('');
+        
+        // Persist the migration to backend immediately if needed to avoid "revert" on refresh
+        if (needsSave) {
+          builderApi.saveFiles(storeId, files).catch(err => console.error("Initial migration save failed", err));
+        }
       }).catch(err => console.error("Could not fetch store data", err));
     }
   }, [activeTab, storeId, previewKey]);
