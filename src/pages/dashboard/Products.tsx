@@ -145,8 +145,14 @@ export function Products({ storeId }: ProductsProps) {
         productData.append('name', formData.name);
         productData.append('name_uz', formData.name_uz || '');
         productData.append('name_ru', formData.name_ru || '');
-        productData.append('slug', formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'));
-        productData.append('category', formData.category_id || '');
+        // Only send slug if it's not empty, otherwise backend will generate it
+        if (formData.slug) productData.append('slug', formData.slug);
+        
+        // Handle optional category: don't send empty string, send null if empty
+        if (formData.category_id) {
+            productData.append('category', formData.category_id);
+        }
+        
         productData.append('price', formData.price || '0');
         productData.append('stock', formData.stock || '0');
         productData.append('sku', formData.sku || '');
@@ -159,7 +165,6 @@ export function Products({ storeId }: ProductsProps) {
         productData.append('active', String(formData.active));
         productData.append('image', imageFile);
         if (formData.has_variants) {
-          // We might need to send variants differently, but let's stick to base fields first for MVP. JSON stringify if required.
           productData.append('variants', JSON.stringify(formData.variants));
         }
       } else {
@@ -168,7 +173,7 @@ export function Products({ storeId }: ProductsProps) {
           name: formData.name,
           name_uz: formData.name_uz,
           name_ru: formData.name_ru,
-          slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+          slug: formData.slug || undefined, // undefined to let backend handle it
           category: formData.category_id ? parseInt(formData.category_id) : null,
           price: parseFloat(formData.price) || 0,
           stock: parseInt(formData.stock) || 0,
