@@ -87,14 +87,18 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
   const [activeFile, setActiveFile] = useState<string>('index.html');
   const [isSavingHtml, setIsSavingHtml] = useState(false);
   const [htmlError, setHtmlError] = useState('');
-  
+  const [hasDraft, setHasDraft] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Key for individual store drafts
+  const DRAFT_KEY = `savdoon_builder_draft_${storeId}`;
 
   // Fetch store data when switching tabs
   useEffect(() => {
     if (activeTab === 'schema' || activeTab === 'html') {
       api.get(`/stores/${storeId}/`).then(res => {
-        setSchemaCode(JSON.stringify(res.data.ui_schema || [], null, 2));
+        const dbSchema = JSON.stringify(res.data.ui_schema || [], null, 2);
+        setSchemaCode(dbSchema);
         setSchemaError('');
         
         let files = res.data.store_files || {};
@@ -113,13 +117,63 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
         setHtmlCode(files[activeFile] || files['index.html'] || '');
         setHtmlError('');
         
-        // Persist the migration to backend immediately if needed to avoid "revert" on refresh
+        // Persist the migration to backend immediately if needed
         if (needsSave) {
           builderApi.saveFiles(storeId, files).catch(err => console.error("Initial migration save failed", err));
+        }
+
+        // Check for local drafts after fetching DB data
+        const savedDraft = localStorage.getItem(DRAFT_KEY);
+        if (savedDraft) {
+          try {
+            const draft = JSON.parse(savedDraft);
+            // Only show restore prompt if draft differs from current DB data
+            const draftFilesJson = JSON.stringify(draft.files || {});
+            const currentFilesJson = JSON.stringify(files);
+            if (draftFilesJson !== currentFilesJson || draft.schema !== dbSchema) {
+              setHasDraft(true);
+            }
+          } catch (e) {
+            console.error("Draft error", e);
+          }
         }
       }).catch(err => console.error("Could not fetch store data", err));
     }
   }, [activeTab, storeId, previewKey]);
+
+  // Auto-save drafts to localStorage
+  useEffect(() => {
+    if (Object.keys(storeFiles).length > 0) {
+      const draft = {
+        files: storeFiles,
+        schema: schemaCode,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    }
+  }, [storeFiles, schemaCode]);
+
+  const restoreDraft = () => {
+    const savedDraft = localStorage.getItem(DRAFT_KEY);
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        if (draft.files) {
+          setStoreFiles(draft.files);
+          if (draft.files[activeFile]) setHtmlCode(draft.files[activeFile]);
+        }
+        if (draft.schema) setSchemaCode(draft.schema);
+        setHasDraft(false);
+      } catch (e) {
+        console.error("Restore failed", e);
+      }
+    }
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setHasDraft(false);
+  };
 
   useEffect(() => {
     // Keep htmlCode in sync with storeFiles[activeFile]
@@ -164,6 +218,8 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
       setHtmlError(e.response?.data?.error || e.message || "Failed to save files");
     } finally {
       setIsSavingHtml(false);
+      // Clear draft on successful save
+      localStorage.removeItem(DRAFT_KEY);
     }
   };
 
@@ -374,6 +430,33 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
               <Code className="w-3.5 h-3.5 text-orange-400" />
               <span className="text-[10px] font-black uppercase tracking-widest text-[#cccccc]">{activeFile}</span>
             </div>
+            
+            {hasDraft && (
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-3 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full"
+              >
+                <span className="text-[9px] font-black uppercase tracking-widest text-amber-500">
+                  {language === 'uz' ? 'Saqlanmagan o\'zgarishlar bor!' : 'Unsaved Changes Found!'}
+                </span>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={restoreDraft}
+                    className="text-[9px] font-black uppercase text-emerald-400 hover:text-emerald-300 underline underline-offset-2"
+                  >
+                    {language === 'uz' ? 'Tiklash' : 'Restore'}
+                  </button>
+                  <button 
+                    onClick={discardDraft}
+                    className="text-[9px] font-black uppercase text-red-400 hover:text-red-300 underline underline-offset-2"
+                  >
+                    {language === 'uz' ? 'O\'chirish' : 'Discard'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
             <div className="flex items-center gap-4">
               <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400 animate-pulse">Editor Mode</span>
               <button 
