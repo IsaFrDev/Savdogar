@@ -1608,6 +1608,31 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
         )}
       </AnimatePresence>
       </div>
+
+      {/* Navigation Bridge (Back to Dashboard for Owners/Admins) */}
+      {store && user && (user.id === store.owner || user.role === 'superadmin') && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.5, y: 50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="fixed bottom-6 left-6 z-50 px-4 md:px-0"
+        >
+          <button
+            onClick={() => onBack()}
+            className="flex items-center gap-3 px-6 py-4 bg-slate-900 border border-white/20 rounded-2xl shadow-2xl hover:bg-slate-800 transition-all group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+              <ShieldCheck className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex flex-col items-start leading-tight text-left">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tizim</span>
+              <span className="text-sm font-black text-white uppercase tracking-tight">Boshqaruv Paneli</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </motion.div>
+      )}
     </div>
   );
 }
