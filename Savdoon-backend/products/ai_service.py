@@ -304,34 +304,48 @@ class AIService:
                 response_text = self._safe_generate_content(model_names, user_prompt, system_instruction=system_instruction)
             except Exception as e:
                 log_ai_error(f"AI content generation failed: {e}")
-                raise Exception(f"AI bilan bog'lanishda xatolik: {str(e)[:100]}")
+                # Don't throw, just use fallback logic below
+                response_text = ""
             
             import json
             import re
             
             # Robust JSON extraction
             try:
-                # Find the first { and the last }
-                start = response_text.find('{')
-                end = response_text.rfind('}')
-                if start != -1 and end != -1:
-                    json_str = response_text[start:end+1]
-                    # Strip out any // comments just in case the AI hallucinations
-                    json_str = re.sub(r'//.*?\n', '\n', json_str)
-                    return json.loads(json_str)
-            except:
-                pass
+                if response_text:
+                    # Find the first { and the last }
+                    start = response_text.find('{')
+                    end = response_text.rfind('}')
+                    if start != -1 and end != -1:
+                        json_str = response_text[start:end+1]
+                        # Strip out any // comments just in case the AI hallucinations
+                        json_str = re.sub(r'//.*?\n', '\n', json_str)
+                        return json.loads(json_str)
+                    
+                    # Fallback to markdown block cleaning if direct search fails
+                    cleaned = response_text
+                    if '```json' in cleaned:
+                        cleaned = cleaned.split('```json')[1].split('```')[0].strip()
+                    elif '```' in cleaned:
+                        cleaned = cleaned.split('```')[1].split('```')[0].strip()
+                    
+                    cleaned = re.sub(r'//.*?\n', '\n', cleaned)
+                    return json.loads(cleaned)
+            except Exception as parse_error:
+                log_ai_error(f"UI Config parsing error: {parse_error}\nResponse was: {response_text[:200]}...")
 
-            # Fallback to older regex cleaning if block search fails
-            if '```json' in response_text:
-                response_text = response_text.split('```json')[1].split('```')[0].strip()
-            elif '```' in response_text:
-                response_text = response_text.split('```')[1].split('```')[0].strip()
-            
-            response_text = re.sub(r'//.*?\n', '\n', response_text)
-            return json.loads(response_text)
-        except Exception as e:
-            log_ai_error(f"UI Config generation error: {e}\nResponse was: {response_text[:200]}...")
-            raise Exception(f"AI javobini o'qishda xatolik: {str(e)[:50]}. Iltimos qaytadan urinib ko'ring yoki boshqacharoq buyruq bering.")
+            # --- GRACEFUL FALLBACK (Prevent 500 Error) ---
+            return {
+                "primary_color": current_config.get('primary_color') if current_config else "#000000",
+                "secondary_color": current_config.get('secondary_color') if current_config else "#ffffff",
+                "accent_color": current_config.get('accent_color') if current_config else "#3b82f6",
+                "ai_logic_summary": "Kechirasiz, hozirda AI xizmati band. Mavjud dizayn saqlab qolindi. Iltimos, birozdan so'ng qaytadan urinib ko'ring.",
+                "ui_schema": active_schema,
+                "store_files": current_files or {},
+                "is_fallback": True
+            }
+        except Exception as critical_error:
+            log_ai_error(f"CRITICAL UI Config error: {critical_error}")
+            return {"error": "Internal service error", "ai_logic_summary": "Tizimda xatolik yuz berdi."}
 
 ai_service = AIService()
