@@ -1,6 +1,7 @@
 import os
 import random
 from google import genai
+from google.genai import types
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -52,7 +53,7 @@ class AIService:
             return ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro']
         return self._model_names
 
-    def _safe_generate_content(self, model_names, prompt, contents=None):
+    def _safe_generate_content(self, model_names, prompt, contents=None, system_instruction=None):
         """Try multiple clients (API keys) and multiple models until one works."""
         if not self.clients:
             raise Exception("No AI Clients available. Check your GEMINI_API_KEY.")
@@ -64,19 +65,27 @@ class AIService:
         for _ in range(num_clients):
             client = self.clients[self.current_client_index]
             
+            # Configure generation
+            config = None
+            if system_instruction:
+                config = types.GenerateContentConfig(system_instruction=system_instruction)
+            
             # Inner loop: Try each model for the current client
             for name in model_names:
                 try:
                     if contents:
+                        # Combine prompt and contents into a single list of parts
                         actual_contents = [prompt] + (contents if isinstance(contents, list) else [contents])
                         response = client.models.generate_content(
                             model=name,
-                            contents=actual_contents
+                            contents=actual_contents,
+                            config=config
                         )
                     else:
                         response = client.models.generate_content(
                             model=name,
-                            contents=prompt
+                            contents=prompt,
+                            config=config
                         )
                     return response.text.strip()
                 except Exception as e:
@@ -105,9 +114,10 @@ class AIService:
         """
         if self.clients:
             try:
-                prompt = f"Create a professional, short, and engaging product description for: {name} in category: {category_name}. Language: {language}. Return only the description."
+                system_instruction = "You are a professional e-commerce copywriter. Your goal is to create short, engaging, and professional product descriptions."
+                user_prompt = f"Create a description for: {name} in category: {category_name}. Language: {language}. Return only the description text."
                 model_names = self._get_model_names('text')
-                return self._safe_generate_content(model_names, prompt)
+                return self._safe_generate_content(model_names, user_prompt, system_instruction=system_instruction)
             except Exception as e:
                 log_ai_error(f"Description error: {e}")
 
@@ -127,16 +137,10 @@ class AIService:
         """
         if self.clients:
             try:
-                prompt = f"""
-                Create a viral marketing post for {platform} in {language}.
-                Product: {name}
-                Description: {description}
-                
-                The post should be engaging, include emojis, and 3-5 relevant hashtags.
-                Return only the post content.
-                """
+                system_instruction = f"You are a social media marketing expert. Create a viral post for {platform} in {language}."
+                user_prompt = f"Product: {name}\nDescription: {description}\nInclude emojis and 3-5 tags. Return only the post content."
                 model_names = self._get_model_names('text')
-                return self._safe_generate_content(model_names, prompt)
+                return self._safe_generate_content(model_names, user_prompt, system_instruction=system_instruction)
             except Exception as e:
                 log_ai_error(f"Marketing error: {e}")
         
@@ -164,9 +168,10 @@ class AIService:
         """
         if self.clients:
             try:
-                prompt = f"Generate 5-10 SEO keywords (comma-separated tags) for the following product in {language}.\nProduct: {name}\nDescription: {description}\nReturn ONLY the comma-separated words without quotes."
+                system_instruction = f"You are an SEO specialist. Generate keywords for search engine optimization in {language}."
+                user_prompt = f"Product: {name}\nDescription: {description}\nGenerate 5-10 comma-separated keywords. Return ONLY the tags."
                 model_names = self._get_model_names('text')
-                return self._safe_generate_content(model_names, prompt)
+                return self._safe_generate_content(model_names, user_prompt, system_instruction=system_instruction)
             except Exception as e:
                 log_ai_error(f"SEO error: {e}")
         return f"{name}, e-commerce, shop"
@@ -180,9 +185,10 @@ class AIService:
             
         if self.clients:
             try:
-                prompt = f"Translate the following text into {target_lang}. Return ONLY the translated text without any quotes, explanations, or original text:\n\n{text}"
+                system_instruction = f"You are a professional translator. Translate text into {target_lang}."
+                user_prompt = f"Translate accurately and return ONLY the translated text:\n\n{text}"
                 model_names = self._get_model_names('text')
-                return self._safe_generate_content(model_names, prompt)
+                return self._safe_generate_content(model_names, user_prompt, system_instruction=system_instruction)
             except Exception as e:
                 log_ai_error(f"Translation error: {e}")
         return ""
@@ -193,7 +199,7 @@ class AIService:
         """
         if self.clients:
             try:
-                system_prompt = f"""
+                system_instruction = f"""
                 You are a professional and friendly AI shopping assistant for the store "{store_info.get('name', 'Savdoon')}".
                 Business type: {store_info.get('business_type', 'Retail')}
                 
@@ -211,9 +217,9 @@ class AIService:
                 3. CONCISE: Keep your response short and helpful (1-3 sentences).
                 """
                 
-                full_prompt = f"{system_prompt}\n\nUser: {message}\nAssistant:"
+                user_prompt = f"User: {message}\nAssistant:"
                 model_names = self._get_model_names('text')
-                return self._safe_generate_content(model_names, full_prompt)
+                return self._safe_generate_content(model_names, user_prompt, system_instruction=system_instruction)
             except Exception as e:
                 log_ai_error(f"Chat error: {e}")
         
@@ -243,7 +249,7 @@ class AIService:
             ]
             active_schema = current_schema if current_schema else default_schema
 
-            system_prompt = f"""
+            system_instruction = f"""
             You are a senior UI/UX Designer and Frontend Architect specializing in E-commerce.
             Your task is to manage a structured storefront project (Explorer Mode).
             A project consists of multiple files (HTML, CSS, JS) and organized folders.
@@ -290,14 +296,12 @@ class AIService:
             2. Never use comments like // inside JSON.
             3. Ensure the 'store_files' map contains the FULL project if changes are significant.
             4. If only one file changes, you can return just that file in the map, AND the existing ones to keep the state.
-            
-            USER REQUEST: "{user_prompt}"
             """
             
             response_text = ""
             try:
                 model_names = self._get_model_names('text')
-                response_text = self._safe_generate_content(model_names, system_prompt)
+                response_text = self._safe_generate_content(model_names, user_prompt, system_instruction=system_instruction)
             except Exception as e:
                 log_ai_error(f"AI content generation failed: {e}")
                 raise Exception(f"AI bilan bog'lanishda xatolik: {str(e)[:100]}")
