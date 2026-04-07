@@ -26,12 +26,28 @@ type Page = 'login' | 'register' | 'wizard' | 'dashboard' | 'storefront' | 'admi
 function AppContent() {
   const { isLoading, isAuthenticated, isSuperAdmin, user, logout } = useAuth();
   const { maintenanceMode, t } = useApp();
-  const [page, setPage] = useState<Page>('marketplace');
-  const [storeId, setStoreId] = useState<number | undefined>(undefined);
+  const [page, setPage] = useState<Page>(() => {
+    const saved = sessionStorage.getItem('last_page');
+    return (saved as Page) || 'marketplace';
+  });
+  const [storeId, setStoreId] = useState<number | undefined>(() => {
+    const saved = sessionStorage.getItem('last_store_id');
+    return saved ? parseInt(saved) : undefined;
+  });
   const [isPendingStore, setIsPendingStore] = useState(false);
   const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
   const [pendingStoreName, setPendingStoreName] = useState('');
   const [dashboardTab, setDashboardTab] = useState<string | undefined>(undefined);
+
+  // Sync page and storeId to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('last_page', page);
+    if (storeId) {
+      sessionStorage.setItem('last_store_id', storeId.toString());
+    } else {
+      sessionStorage.removeItem('last_store_id');
+    }
+  }, [page, storeId]);
 
   // Register Service Worker for PWA
   useEffect(() => {
@@ -69,24 +85,32 @@ function AppContent() {
       // 1. Check for explicit store slug in query params (useful for dev/testing)
       const queryParams = new URLSearchParams(window.location.search);
       const forcedSlug = queryParams.get('store');
+      const isHardRefresh = window.performance?.getEntriesByType("navigation")[0]?.type === "reload";
 
       let storeSlug = forcedSlug;
 
       if (!storeSlug) {
         // 2. Detect IP addresses (e.g., 192.168.x.x) and ignore them
         const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname);
-        if (isIP || hostname === 'localhost') return;
+        if (isIP || hostname === 'localhost') {
+           // On main domain, if page is marketplace, ensure storeState is clean
+           if (page === 'marketplace' || !page) {
+             setStoreId(undefined);
+             sessionStorage.removeItem('last_store_id');
+           }
+           return;
+        }
 
         // 3. Normal subdomain logic
         const parts = hostname.split('.');
-        // Check if it's a real subdomain (e.g., store.domain.com or store.local)
-        // For ngrok free tier, the first part is a random ID, so we skip it if it's ngrok
+        // For subdomains (e.g., shop.savdoon.local or shop.savdoon.uz)
         if (parts.length >= 3 && !hostname.includes('ngrok-free.app')) {
           storeSlug = parts[0];
+          if (storeSlug === 'www' || storeSlug === 'admin') storeSlug = null;
         }
       }
 
-      if (storeSlug && storeSlug !== 'www' && storeSlug !== 'admin') {
+      if (storeSlug) {
         try {
           const response = await storeApi.getBySlug(storeSlug);
           if (response.data.is_pending_or_rejected) {
@@ -104,11 +128,22 @@ function AppContent() {
             setIsMaintenanceMode(false);
           }
         } catch (error: any) {
-          if (error.response?.status !== 404) {
-             console.error('Failed to load store by slug:', error);
-          }
-          // If forced slug fails, just show marketplace
+          console.error('Subdomain check failed:', error);
           if (forcedSlug) setPage('marketplace');
+        }
+      } else {
+        // No store slug - ensure we are not "stuck" in storefront page by saved state
+        if (page === 'storefront') {
+          setPage('marketplace');
+          setStoreId(undefined);
+          sessionStorage.removeItem('last_store_id');
+        }
+        
+        // Force SW update check on refresh if we are on main domain
+        if (isHardRefresh && 'serviceWorker' in navigator) {
+           navigator.serviceWorker.getRegistrations().then(regs => {
+             for(let reg of regs) reg.update();
+           });
         }
       }
     };

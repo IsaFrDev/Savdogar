@@ -88,8 +88,10 @@ function AppContent() {
             setIsPendingStore(false);
             setIsMaintenanceMode(false);
           }
-        } catch (error) {
-          console.error('Failed to load store by slug:', error);
+        } catch (error: any) {
+          if (error.response?.status !== 404) {
+             console.error('Failed to load store by slug:', error);
+          }
           // If forced slug fails, just show marketplace
           if (forcedSlug) setPage('marketplace');
         }
@@ -311,7 +313,11 @@ function AppContent() {
       case 'wizard':
         return (
           <StoreWizard
-            onComplete={() => setPage('dashboard')}
+            onComplete={() => {
+              setStoreId(undefined); // Clear any stale managed store
+              setDashboardTab(undefined); // Reset to default tab (overview)
+              setPage('dashboard');
+            }}
           />
         );
       case 'ai-intel':
@@ -326,6 +332,7 @@ function AppContent() {
               setStoreId(id);
               setPage('storefront');
             }}
+            managedStoreId={storeId}
             initialTab={dashboardTab}
           />
         );
@@ -354,6 +361,10 @@ function AppContent() {
         return (
           <SuperAdminDashboard
             onLogout={handleLogout}
+            onCreateStore={() => {
+              setStoreId(undefined); // Clear store context just in case
+              setPage('wizard');
+            }}
             onSwitchToUserView={() => {
               setDashboardTab('discover');
               setPage('dashboard');

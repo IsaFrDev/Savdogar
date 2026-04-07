@@ -366,7 +366,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                         value={storeSlug}
                                         onChange={setStoreSlug}
                                         placeholder="my-awesome-store"
-                                        helper={`${storeSlug || 'your-store'}.savdoon.local`}
+                                        helper={`${storeSlug || 'your-store'}.savdoon.uz`}
                                         className="font-mono text-sm"
                                     />
                                     <div className="space-y-1.5 text-left">
@@ -773,9 +773,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                         disabled={
                                             isSubmitting || isAnalyzingBusiness ||
                                             (step === 1 && (!storeName || !businessType)) ||
-                                            (step === 4 && (!pickupAddress || !latitude || !longitude)) ||
-                                            (step === 5 && (!botToken || !chatId)) ||
-                                            (step === 6 && (!agreeToTerms || !signatureData || !telegramUsername))
+                                            (step === 6 && (!agreeToTerms || !signatureData))
                                         }
                                         icon={isAnalyzingBusiness ? <Loader2 className="w-4 h-4 animate-spin" /> : (step === 6 ? <Check className="w-5 h-5" /> : <ChevronRight className="w-4 h-4" />)}
                                     >

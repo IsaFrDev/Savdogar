@@ -60,13 +60,15 @@ self.addEventListener('fetch', (event) => {
     // Strategy for Assets (JS, CSS, Images): Cache-first (stale-while-revalidate)
     event.respondWith(
         caches.match(event.request).then((cached) => {
-            const fetched = fetch(event.request).then((response) => {
-                if (response.ok) {
-                    const clone = response.clone();
-                    caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-                }
-                return response;
-            });
+            const fetched = fetch(event.request)
+                .then((response) => {
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+                    }
+                    return response;
+                })
+                .catch(() => cached); // Gracefully handle network errors
             return cached || fetched;
         })
     );

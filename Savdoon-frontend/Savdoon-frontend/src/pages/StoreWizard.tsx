@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Store, Settings, MapPin, MessageCircle, FileSignature, Check, ChevronRight, ChevronLeft, Upload, AlertCircle, Sparkles, Loader2, Download } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { storeApi } from '../services/api';
 import { Button } from '../components/Button';
 import { Input, TextArea } from '../components/Input';
@@ -20,6 +21,7 @@ const businessTypes = ['grocery', 'clothing', 'electronics', 'services', 'restau
 
 export function StoreWizard({ onComplete }: StoreWizardProps) {
     const { t, language, addStore } = useApp();
+    const { refreshUser } = useAuth();
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -179,31 +181,15 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
             }
 
             const response = await storeApi.create(data);
+            
+            // Refresh user role (from customer to store_admin)
+            await refreshUser();
 
             // Save store ID for contract download
             setCreatedStoreId(response.data.id);
 
-            // Add to local context
-            addStore({
-                id: response.data.id.toString(),
-                name: storeName,
-                slug: slug,
-                businessType,
-                description,
-                catalogMode,
-                pickupAddress,
-                latitude,
-                longitude,
-                telegramBot: botToken,
-                chatId,
-                defaultLanguage: defaultLang,
-                telegram_username: telegramUsername,
-                base_currency: 'UZS',
-                use_auto_rates: true,
-                manual_exchange_rates: {},
-                primaryColor,
-                secondaryColor,
-            } as any);
+            // Add to local context using the actual data from server
+            addStore(response.data);
 
             setStep(7); // Success step (pushed from 6 to 7)
         } catch (err: any) {

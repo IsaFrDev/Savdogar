@@ -682,4 +682,46 @@ export const loyaltyApi = {
     getTransactions: (storeId?: number) => api.get('/auth/loyalty/transactions/', { params: { store: storeId } }),
 };
 
+// ========== NEW FEATURES APIs ==========
+
+// Branches API
+export const branchApi = {
+    list: (storeId: number) => api.get(`/stores/${storeId}/branches/`),
+    create: (storeId: number, data: any) => api.post(`/stores/${storeId}/branches/`, data),
+    update: (storeId: number, id: number, data: any) => api.patch(`/stores/${storeId}/branches/${id}/`, data),
+    delete: (storeId: number, id: number) => api.delete(`/stores/${storeId}/branches/${id}/`),
+};
+
+// Store Banners API
+export const bannerApi = {
+    list: (storeId: number) => api.get(`/stores/${storeId}/banners/`),
+    create: (storeId: number, data: FormData) => api.post(`/stores/${storeId}/banners/`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+    update: (storeId: number, id: number, data: any) => api.patch(`/stores/${storeId}/banners/${id}/`, data),
+    delete: (storeId: number, id: number) => api.delete(`/stores/${storeId}/banners/${id}/`),
+};
+
+// Staff Roles API
+export const staffRoleApi = {
+    list: (storeId: number) => api.get(`/stores/${storeId}/staff-roles/`),
+    create: (storeId: number, data: any) => api.post(`/stores/${storeId}/staff-roles/`, data),
+    update: (storeId: number, id: number, data: any) => api.patch(`/stores/${storeId}/staff-roles/${id}/`, data),
+    delete: (storeId: number, id: number) => api.delete(`/stores/${storeId}/staff-roles/${id}/`),
+};
+
+// Staff Members API
+export const staffApi = {
+    list: (storeId: number, type?: string) => api.get(`/stores/${storeId}/staff/`, { params: type ? { type } : {} }),
+    create: (storeId: number, data: any) => api.post(`/stores/${storeId}/staff/`, data),
+    update: (storeId: number, id: number, data: any) => api.patch(`/stores/${storeId}/staff/${id}/`, data),
+    delete: (storeId: number, id: number) => api.delete(`/stores/${storeId}/staff/${id}/`),
+};
+
+// IKPU API
+export const ikpuApi = {
+    list: (storeId: number) => api.get(`/stores/${storeId}/ikpu/`),
+    create: (storeId: number, data: any) => api.post(`/stores/${storeId}/ikpu/`, data),
+    update: (storeId: number, id: number, data: any) => api.patch(`/stores/${storeId}/ikpu/${id}/`, data),
+    delete: (storeId: number, id: number) => api.delete(`/stores/${storeId}/ikpu/${id}/`),
+};
+
 export default api;

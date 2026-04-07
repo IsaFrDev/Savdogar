@@ -79,6 +79,9 @@ class Store(models.Model):
     secondary_color = models.CharField(max_length=7, default='#8B5CF6')
     accent_color = models.CharField(max_length=7, default='#F43F5E')
     theme_config = models.JSONField(default=dict, blank=True)
+    ui_schema = models.JSONField(default=list, blank=True)
+    store_html = models.TextField(default='', blank=True, help_text='Custom HTML template for storefront rendering')
+    store_files = models.JSONField(default=dict, blank=True, help_text='Structured file tree for the storefront (Explorer mode)')
     
     # Social media links
     instagram_url = models.URLField(blank=True)
@@ -134,6 +137,16 @@ class Store(models.Model):
         db_table = 'stores'
         ordering = ['-created_at']
     
+    def save(self, *args, **kwargs):
+        # Auto-migration for legacy store_html to store_files
+        # Only migrate if store_files is truly empty AND we have legacy html
+        has_files = isinstance(self.store_files, dict) and len(self.store_files) > 0
+        
+        if not has_files and self.store_html:
+            self.store_files = {"index.html": self.store_html}
+            
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.name} ({self.status})"
     

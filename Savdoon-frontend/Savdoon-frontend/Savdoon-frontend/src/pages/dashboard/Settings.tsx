@@ -13,7 +13,7 @@ import { useAuth } from '../../context/AuthContext';
 import { PWAInstallBanner } from '../../components/PWAInstallBanner';
 import { LocationPicker } from '../../components/LocationPicker';
 
-type SettingsTab = 'general' | 'location' | 'telegram' | 'localization' | 'currency' | 'roles' | 'security';
+type SettingsTab = 'general' | 'location' | 'social' | 'working_hours' | 'telegram' | 'sms' | 'localization' | 'currency' | 'billing' | 'roles' | 'security';
 
 interface SettingsPageProps {
   storeId?: number;
@@ -60,6 +60,22 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [rotatingKey, setRotatingKey] = useState(false);
+  
+  // New operational states
+  const [instagramUrl, setInstagramUrl] = useState('');
+  const [telegramChannel, setTelegramChannel] = useState('');
+  const [facebookUrl, setFacebookUrl] = useState('');
+  const [websiteUrl, setWebsiteUrl] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [tiktokUrl, setTiktokUrl] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [eskizEmail, setEskizEmail] = useState('');
+  const [eskizToken, setEskizToken] = useState('');
+  const [workingHours, setWorkingHours] = useState<any>({});
+  const [balance, setBalance] = useState(0);
+  const [plan, setPlan] = useState('free_trial');
 
   const loadStore = async () => {
     setLoading(true);
@@ -81,11 +97,26 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
       setTelegramWelcomeRu(store.telegram_welcome_ru || '');
       setTwaEnabled(store.twa_enabled || false);
       setMaintenanceMode(store.maintenance_mode || false);
-      setDefaultLang(store.default_language || 'uz');
       setBaseCurrency(store.base_currency || 'UZS');
       setUseAutoRates(store.use_auto_rates ?? true);
       setManualRates(store.manual_exchange_rates || { USD: 12800, RUB: 140 });
       setApiKey(store.api_key || '');
+      
+      // Load new fields
+      setInstagramUrl(store.instagram_url || '');
+      setTelegramChannel(store.telegram_channel || '');
+      setFacebookUrl(store.facebook_url || '');
+      setWebsiteUrl(store.website_url || '');
+      setYoutubeUrl(store.youtube_url || '');
+      setTiktokUrl(store.tiktok_url || '');
+      setWhatsappNumber(store.whatsapp_number || '');
+      setPhone(store.phone || '');
+      setEmail(store.email || '');
+      setEskizEmail(store.eskiz_email || '');
+      setEskizToken(store.eskiz_token || '');
+      setWorkingHours(store.working_hours || {});
+      setBalance(store.balance || 0);
+      setPlan(store.plan || 'free_trial');
     } catch (error) {
       console.error('Failed to load store settings:', error);
     }
@@ -217,6 +248,18 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
         base_currency: baseCurrency,
         use_auto_rates: useAutoRates,
         manual_exchange_rates: manualRates,
+        instagram_url: instagramUrl,
+        telegram_channel: telegramChannel,
+        facebook_url: facebookUrl,
+        website_url: websiteUrl,
+        youtube_url: youtubeUrl,
+        tiktok_url: tiktokUrl,
+        whatsapp_number: whatsappNumber,
+        phone,
+        email,
+        eskiz_email: eskizEmail,
+        eskiz_token: eskizToken,
+        working_hours: workingHours,
       });
       if (onUpdate) onUpdate();
     } catch (error) {
@@ -260,9 +303,13 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
   const tabs = [
     { id: 'general' as SettingsTab, label: t('general'), icon: Store },
     { id: 'location' as SettingsTab, label: t('location'), icon: MapPin },
+    { id: 'social' as SettingsTab, label: language === 'uz' ? 'Ijtimoiy tarmoqlar' : 'Social Media', icon: Globe },
+    { id: 'working_hours' as SettingsTab, label: language === 'uz' ? 'Ish vaqti' : 'Working Hours', icon: RefreshCw },
     { id: 'telegram' as SettingsTab, label: t('telegram'), icon: MessageCircle },
+    { id: 'sms' as SettingsTab, label: 'SMS Gateway', icon: Smartphone },
     { id: 'localization' as SettingsTab, label: t('localization'), icon: Globe },
     { id: 'currency' as SettingsTab, label: language === 'uz' ? 'Valyuta' : 'Currency', icon: DollarSign },
+    { id: 'billing' as SettingsTab, label: language === 'uz' ? 'To\'lov va balans' : 'Billing & Balance', icon: DollarSign },
     { id: 'roles' as SettingsTab, label: t('roles'), icon: Users },
     { id: 'security' as SettingsTab, label: t('security'), icon: Shield },
   ];
@@ -461,6 +508,178 @@ export function SettingsPage({ storeId, onUpdate }: SettingsPageProps) {
                         if (addr) setAddress(addr);
                       }}
                     />
+                  </div>
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={handleSave} disabled={isSaving} className="min-w-[200px] rounded-[1.25rem] h-14 font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-[var(--brand-primary-glow)] bg-[var(--brand-primary)] text-[var(--primary-foreground)] hover:brightness-110 active:scale-[0.98] transition-all">
+                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4 mr-3" /> {t('save')}</>}
+                    </Button>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
+
+            {activeTab === 'working_hours' && (
+              <GlassCard className="p-8 sm:p-10 border-[var(--glass-border)] bg-[var(--color-surface)] shadow-2xl">
+                <div className="mb-10 border-b border-[var(--glass-border)] pb-8">
+                  <h2 className="text-2xl font-black text-[var(--text-main)] tracking-tight">{language === 'uz' ? 'Ish vaqti' : 'Working Hours'}</h2>
+                  <p className="text-[10px] text-[var(--text-dim)] uppercase tracking-[0.3em] font-black mt-2">{language === 'uz' ? 'Haftalik ish tartibini belgilang' : 'Set your weekly business schedule'}</p>
+                </div>
+                <div className="space-y-4">
+                  {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map((day) => (
+                    <div key={day} className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-2xl bg-[var(--bg-surface)] border border-[var(--glass-border)] hover:bg-[var(--brand-primary)]/[0.02] transition-colors">
+                      <div className="w-full sm:w-32 font-black uppercase tracking-widest text-[10px] text-[var(--brand-primary)]">
+                        {language === 'uz' ? 
+                          (day === 'monday' ? 'Dushanba' : day === 'tuesday' ? 'Seshanba' : day === 'wednesday' ? 'Chorshanba' : day === 'thursday' ? 'Payshanba' : day === 'friday' ? 'Juma' : day === 'saturday' ? 'Shanba' : 'Yakshanba') 
+                          : day.toUpperCase()}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div 
+                          onClick={() => setWorkingHours({...workingHours, [day]: {...(workingHours[day] || {from: '09:00', to: '18:00'}), enabled: !(workingHours[day]?.enabled)}})}
+                          className={`w-12 h-6 rounded-full relative cursor-pointer transition-all duration-300 ${workingHours[day]?.enabled ? 'bg-[var(--brand-primary)]' : 'bg-slate-300'}`}
+                        >
+                          <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all shadow-md ${workingHours[day]?.enabled ? 'left-[26px]' : 'left-[2px]'}`} />
+                        </div>
+                        <span className="text-[10px] font-black uppercase text-[var(--text-dim)]">{workingHours[day]?.enabled ? (language === 'uz' ? 'Ochiq' : 'Open') : (language === 'uz' ? 'Yopiq' : 'Closed')}</span>
+                      </div>
+                      {workingHours[day]?.enabled && (
+                        <div className="flex items-center gap-4 ml-auto">
+                          <input 
+                            type="time" 
+                            value={workingHours[day]?.from || '09:00'} 
+                            onChange={(e) => setWorkingHours({...workingHours, [day]: {...workingHours[day], from: e.target.value}})}
+                            className="bg-[var(--color-surface)] border border-[var(--glass-border)] rounded-lg px-3 py-2 font-bold text-sm text-[var(--text-main)]"
+                          />
+                          <span className="text-[10px] font-black text-[var(--text-dim)]">—</span>
+                          <input 
+                            type="time" 
+                            value={workingHours[day]?.to || '18:00'} 
+                            onChange={(e) => setWorkingHours({...workingHours, [day]: {...workingHours[day], to: e.target.value}})}
+                            className="bg-[var(--color-surface)] border border-[var(--glass-border)] rounded-lg px-3 py-2 font-bold text-sm text-[var(--text-main)]"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={handleSave} disabled={isSaving} className="min-w-[200px] rounded-[1.25rem] h-14 font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-[var(--brand-primary-glow)] bg-[var(--brand-primary)] text-[var(--primary-foreground)] hover:brightness-110 active:scale-[0.98] transition-all">
+                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4 mr-3" /> {t('save')}</>}
+                    </Button>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
+
+            {activeTab === 'sms' && (
+              <GlassCard className="p-8 sm:p-10 border-[var(--glass-border)] bg-[var(--color-surface)] shadow-2xl">
+                <div className="mb-10 border-b border-[var(--glass-border)] pb-8">
+                  <h2 className="text-2xl font-black text-[var(--text-main)] tracking-tight">SMS Gateway</h2>
+                  <p className="text-[10px] text-[var(--text-dim)] uppercase tracking-[0.3em] font-black mt-2">{language === 'uz' ? 'SMS xabarnomalar uchun Eskiz.uz sozlamalari' : 'Eskiz.uz settings for SMS notifications'}</p>
+                </div>
+                <div className="space-y-8">
+                  <div className="p-6 rounded-2xl bg-sky-500/5 border border-sky-500/10 mb-6">
+                    <p className="text-xs font-bold text-sky-400 leading-relaxed">
+                      {language === 'uz' ? "SMS yuborish uchun Eskiz.uz platformasidan ro'yxatdan o'ting va API ma'lumotlarini kiriting." : "Register on Eskiz.uz platform and enter API credentials to enable SMS notifications."}
+                    </p>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em] ml-1">Eskiz.uz Email</label>
+                      <Input value={eskizEmail} onChange={setEskizEmail} placeholder="email@example.com" className="!rounded-[1.25rem] font-bold" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em] ml-1">Eskiz.uz Token</label>
+                      <TextArea value={eskizToken} onChange={setEskizToken} placeholder="Your long API token..." rows={4} className="!rounded-[1.25rem] font-mono text-sm font-bold" />
+                    </div>
+                  </div>
+                  <div className="flex justify-end pt-4">
+                    <Button onClick={handleSave} disabled={isSaving} className="min-w-[200px] rounded-[1.25rem] h-14 font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-[var(--brand-primary-glow)] bg-[var(--brand-primary)] text-[var(--primary-foreground)] hover:brightness-110 active:scale-[0.98] transition-all">
+                      {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4 mr-3" /> {t('save')}</>}
+                    </Button>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
+
+            {activeTab === 'billing' && (
+              <GlassCard className="p-8 sm:p-10 border-[var(--glass-border)] bg-[var(--color-surface)] shadow-2xl">
+                <div className="mb-10 border-b border-[var(--glass-border)] pb-8">
+                  <h2 className="text-2xl font-black text-[var(--text-main)] tracking-tight">{language === 'uz' ? 'To\'lov va balans' : 'Billing & Balance'}</h2>
+                  <p className="text-[10px] text-[var(--text-dim)] uppercase tracking-[0.3em] font-black mt-2">{language === 'uz' ? 'Balans va obuna ma\'lumotlari' : 'Manage your balance and subscription'}</p>
+                </div>
+                <div className="space-y-10">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="p-8 rounded-[2.5rem] bg-[var(--brand-primary)]/5 border border-[var(--brand-primary)]/10">
+                      <p className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-widest">{language === 'uz' ? 'Hozirgi balans' : 'Current Balance'}</p>
+                      <h3 className="text-4xl font-black text-[var(--brand-primary)] mt-4 tabular-nums">
+                        {balance.toLocaleString()} <span className="text-xl">UZS</span>
+                      </h3>
+                      <Button className="mt-8 w-full rounded-2xl h-12 bg-[var(--brand-primary)] hover:brightness-110 text-white font-black uppercase tracking-widest text-[10px]">
+                        {language === 'uz' ? 'Balansni to\'ldirish' : 'Top Up Balance'}
+                      </Button>
+                    </div>
+
+                    <div className="p-8 rounded-[2.5rem] bg-indigo-500/5 border border-indigo-500/10">
+                      <p className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-widest">{language === 'uz' ? 'Tarif rejasi' : 'Current Plan'}</p>
+                      <div className="flex items-center gap-3 mt-4">
+                        <span className="text-2xl font-black text-indigo-400 tracking-tight uppercase">{plan.replace('_', ' ')}</span>
+                        <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-widest">Active</div>
+                      </div>
+                      <p className="text-xs text-[var(--text-dim)] font-bold mt-4">
+                        {language === 'uz' ? "Keyingi hisob-kitob sanasi: No'malum" : "Next billing date: Unknown"}
+                      </p>
+                      <Button variant="outline" className="mt-8 w-full rounded-2xl h-12 border-indigo-500/20 text-indigo-400 font-black uppercase tracking-widest text-[10px] hover:bg-indigo-500/5">
+                        {language === 'uz' ? 'Tarifni o\'zgartirish' : 'Upgrade Plan'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="p-8 rounded-[2rem] bg-[var(--bg-surface)] border border-[var(--glass-border)]">
+                    <h4 className="font-black text-[var(--text-main)] uppercase tracking-wider text-[10px] mb-6">{language === 'uz' ? 'So\'nggi to\'lovlar' : 'Recent Transactions'}</h4>
+                    <div className="flex flex-col items-center justify-center p-10 text-[var(--text-dim)]">
+                      <RefreshCw className="w-10 h-10 mb-4 opacity-20" />
+                      <p className="text-xs font-bold uppercase tracking-widest opacity-50">{language === 'uz' ? 'To\'lovlar tarixi bo\'sh' : 'No recent transactions'}</p>
+                    </div>
+                  </div>
+                </div>
+              </GlassCard>
+            )}
+
+            {activeTab === 'social' && (
+              <GlassCard className="p-8 sm:p-10 border-[var(--glass-border)] bg-[var(--color-surface)] shadow-2xl">
+                <div className="mb-10 border-b border-[var(--glass-border)] pb-8">
+                  <h2 className="text-2xl font-black text-[var(--text-main)] tracking-tight">{language === 'uz' ? 'Ijtimoiy tarmoqlar' : 'Social Media'}</h2>
+                  <p className="text-[10px] text-[var(--text-dim)] uppercase tracking-[0.3em] font-black mt-2">{language === 'uz' ? 'Mijozlar bilan bog\'lanish uchun havolalar' : 'Links to connect with your customers'}</p>
+                </div>
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em] ml-1">Instagram URL</label>
+                      <Input value={instagramUrl} onChange={setInstagramUrl} placeholder="https://instagram.com/yourstore" className="!rounded-[1.25rem] font-bold" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em] ml-1">Telegram Channel/Group</label>
+                      <Input value={telegramChannel} onChange={setTelegramChannel} placeholder="your_channel" className="!rounded-[1.25rem] font-bold" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em] ml-1">Facebook URL</label>
+                      <Input value={facebookUrl} onChange={setFacebookUrl} placeholder="https://facebook.com/yourstore" className="!rounded-[1.25rem] font-bold" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em] ml-1">TikTok URL</label>
+                      <Input value={tiktokUrl} onChange={setTiktokUrl} placeholder="https://tiktok.com/@yourstore" className="!rounded-[1.25rem] font-bold" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em] ml-1">YouTube URL</label>
+                      <Input value={youtubeUrl} onChange={setYoutubeUrl} placeholder="https://youtube.com/@yourstore" className="!rounded-[1.25rem] font-bold" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em] ml-1">Website URL</label>
+                      <Input value={websiteUrl} onChange={setWebsiteUrl} placeholder="https://yourstore.com" className="!rounded-[1.25rem] font-bold" />
+                    </div>
+                    <div className="space-y-3">
+                      <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-[0.2em] ml-1">WhatsApp Number</label>
+                      <Input value={whatsappNumber} onChange={setWhatsappNumber} placeholder="+998..." className="!rounded-[1.25rem] font-bold" />
+                    </div>
                   </div>
                   <div className="flex justify-end pt-4">
                     <Button onClick={handleSave} disabled={isSaving} className="min-w-[200px] rounded-[1.25rem] h-14 font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-[var(--brand-primary-glow)] bg-[var(--brand-primary)] text-[var(--primary-foreground)] hover:brightness-110 active:scale-[0.98] transition-all">

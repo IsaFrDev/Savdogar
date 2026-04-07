@@ -3231,3 +3231,10 @@ violations {
 ]
 Attempt with gemini-1.5-pro-latest failed: 404 models/gemini-1.5-pro-latest is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
 Attempt with gemini-1.5-pro failed: 404 models/gemini-1.5-pro is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.
+Failed to initialize Gemini Client for key KEY2...: 
+Failed to initialize Gemini Client for key KEY1...: 
+Failed to initialize Gemini Client for key KEY2...: 
+CRITICAL: No valid GEMINI_API_KEYS were initialized.
+Failed to initialize Gemini Client for key KEY1...: 
+Failed to initialize Gemini Client for key KEY2...: 
+CRITICAL: No valid GEMINI_API_KEYS were initialized.

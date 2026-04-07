@@ -92,22 +92,28 @@ class StoreViewSet(viewsets.ModelViewSet):
         business_description = data.get('business_description', '')
         default_lang = data.get('default_language', 'uz')
         
-        if default_lang == 'uz':
-            # Translate to Russian
-            if description and not data.get('description_ru'):
-                data['description_ru'] = ai_service.translate_text(description, 'ru')
-                data['description_uz'] = description
-            if business_description and not data.get('business_description_ru'):
-                data['business_description_ru'] = ai_service.translate_text(business_description, 'ru')
-                data['business_description_uz'] = business_description
-        elif default_lang == 'ru':
-            # Translate to Uzbek
-            if description and not data.get('description_uz'):
-                data['description_uz'] = ai_service.translate_text(description, 'uz')
-                data['description_ru'] = description
-            if business_description and not data.get('business_description_uz'):
-                data['business_description_uz'] = ai_service.translate_text(business_description, 'uz')
-                data['business_description_ru'] = business_description
+        # Graceful AI translation - don't fail store creation if AI fails
+        try:
+            if default_lang == 'uz':
+                # Translate to Russian
+                if description and not data.get('description_ru'):
+                    data['description_ru'] = ai_service.translate_text(description, 'ru')
+                    data['description_uz'] = description
+                if business_description and not data.get('business_description_ru'):
+                    data['business_description_ru'] = ai_service.translate_text(business_description, 'ru')
+                    data['business_description_uz'] = business_description
+            elif default_lang == 'ru':
+                # Translate to Uzbek
+                if description and not data.get('description_uz'):
+                    data['description_uz'] = ai_service.translate_text(description, 'uz')
+                    data['description_ru'] = description
+                if business_description and not data.get('business_description_uz'):
+                    data['business_description_uz'] = ai_service.translate_text(business_description, 'uz')
+                    data['business_description_ru'] = business_description
+        except Exception as ai_err:
+            import logging
+            logger = logging.getLogger('savdoon')
+            logger.warning(f"AI translation failed during store creation: {ai_err}")
 
         try:
             serializer = self.get_serializer(data=data)
@@ -140,19 +146,23 @@ class StoreViewSet(viewsets.ModelViewSet):
         # Use .dict() instead of .copy() to avoid pickle error with files
         data = request.data.dict() if hasattr(request.data, 'dict') else request.data.copy()
         
-        # Parse theme_config if it's a string (happens with FormData)
-        if 'theme_config' in data and isinstance(data['theme_config'], str):
-            try:
-                import json
-                data['theme_config'] = json.loads(data['theme_config'])
-            except json.JSONDecodeError:
-                pass
+        # Robust JSON parsing for all config fields (important for FormData)
+        import json
+        json_fields = ['theme_config', 'ui_schema', 'store_files', 'working_hours', 'delivery_settings', 'payment_methods']
+        for field in json_fields:
+            if field in data and isinstance(data[field], str):
+                try:
+                    data[field] = json.loads(data[field])
+                except json.JSONDecodeError:
+                    # If it's already a string but not valid JSON, leave it or log it
+                    pass
         
         # Fix for 400 error: Truncate colors to 7 chars (e.g. #RRGGBBAA -> #RRGGBB)
-        # The model fields primary_color/secondary_color have max_length=7
         for color_field in ['primary_color', 'secondary_color', 'accent_color']:
-            if color_field in data and isinstance(data[color_field], str) and len(data[color_field]) > 7:
-                data[color_field] = data[color_field][:7]
+            if color_field in data and isinstance(data[color_field], str):
+                color_val = data[color_field].strip()
+                if len(color_val) > 7:
+                    data[color_field] = color_val[:7]
 
         partial = kwargs.get('partial', True)
         instance = self.get_object()

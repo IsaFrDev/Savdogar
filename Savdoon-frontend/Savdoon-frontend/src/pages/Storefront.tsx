@@ -22,14 +22,21 @@ import { ReelsFeed } from '../components/ReelsFeed';
 import { GroupBuyCard } from '../components/GroupBuyCard';
 import { FlashSaleTimer } from '../components/FlashSaleTimer';
 import { NearbyStores } from '../components/NearbyStores';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay, Pagination, EffectFade, Navigation } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
+import 'swiper/css/effect-fade';
 
 interface StorefrontProps {
   onBack: () => void;
   onBackToAdmin?: () => void;
   storeId?: number;
+  isPreview?: boolean;
 }
 
-export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) {
+export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: StorefrontProps) {
   const { t, language, currency, user, formatPrice, ln } = useApp();
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
@@ -432,20 +439,24 @@ export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) 
 
     const isPrimaryLight = getBrightness(p) > 180;
 
+    const config = store?.theme_config || {};
+
     return {
-      '--primary': p,
-      '--primary-och': adjust(p, 40),
-      '--primary-toq': adjust(p, -40),
-      '--secondary': s,
-      '--secondary-och': adjust(s, 40),
-      '--secondary-toq': adjust(s, -40),
-      '--accent': a,
-      '--accent-toq': adjust(a, -40),
+      '--primary': config.primary_color || p,
+      '--primary-och': adjust(config.primary_color || p, 40),
+      '--primary-toq': adjust(config.primary_color || p, -40),
+      '--secondary': config.secondary_color || s,
+      '--secondary-och': adjust(config.secondary_color || s, 40),
+      '--secondary-toq': adjust(config.secondary_color || s, -40),
+      '--accent': config.accent_color || a,
+      '--accent-toq': adjust(config.accent_color || a, -40),
       '--primary-foreground': isPrimaryLight ? '#0f172a' : '#ffffff',
       '--text-main': 'var(--text-primary)',
       '--text-dim': 'var(--text-secondary)',
-      '--border-radius': store?.theme_config?.borderRadius || '2rem',
-      '--font-family': store?.theme_config?.fontFamily || "'Inter', sans-serif",
+      '--border-radius': config.border_radius || '2rem',
+      '--font-family': config.font_family || "'Inter', sans-serif",
+      '--card-shadow': config.card_style === 'elevated' ? '0 20px 40px rgba(0,0,0,0.1)' : 'none',
+      '--banner-radius': config.banner_style === 'rounded' ? '3rem' : config.banner_style === 'glass' ? '2rem' : '0',
     } as React.CSSProperties;
   })();
 
@@ -488,14 +499,14 @@ export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) 
                     <span className="text-[var(--primary-foreground)] font-black text-xl">{store.name?.[0]}</span>
                   )}
                 </div>
-                <div className="hidden sm:block">
+                <div className={`${isPreview ? 'hidden' : 'hidden sm:block'}`}>
                   <h1 className="font-black text-[var(--text-primary)] uppercase tracking-tight text-lg leading-none">{store.name}</h1>
                   <p className="text-[10px] text-[var(--primary)] font-black uppercase tracking-widest mt-1">{store.business_type}</p>
                 </div>
               </div>
             </div>
 
-            <nav className="hidden lg:flex items-center gap-2">
+            <nav className={`${isPreview ? 'hidden' : 'hidden lg:flex'} items-center gap-2`}>
               <button
                 onClick={() => setCategoryFilter('all')}
                 className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${categoryFilter === 'all' ? 'bg-[var(--primary)] text-[var(--primary-foreground)] shadow-lg shadow-[var(--primary-glow)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--color-surface-raised)]'}`}
@@ -514,11 +525,11 @@ export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) 
             </nav>
 
             <div className="flex items-center gap-3">
-              <LanguageSwitcher />
-              <div className="hidden sm:block"><NotificationCenter /></div>
+              {!isPreview && <LanguageSwitcher />}
+              <div className={isPreview ? 'hidden' : 'hidden sm:block'}><NotificationCenter /></div>
               <button
                 onClick={() => setReelsOpen(true)}
-                className="hidden sm:block p-2.5 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 text-violet-400 border border-violet-500/20 hover:from-violet-500 hover:to-fuchsia-500 hover:text-white transition-all group"
+                className={`${isPreview ? 'hidden' : 'hidden sm:block'} p-2.5 rounded-xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 text-violet-400 border border-violet-500/20 hover:from-violet-500 hover:to-fuchsia-500 hover:text-white transition-all group`}
                 title="Reels"
               >
                 <Play className="w-5 h-5 group-hover:fill-current" />
@@ -533,8 +544,10 @@ export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) 
                   )}
                 </button>
               )}
-              <Button variant="ghost" size="sm" onClick={onBack} className="hidden sm:inline-flex text-[10px] font-black uppercase tracking-widest border border-[var(--color-border)] hover:bg-[var(--color-surface-raised)] shadow-sm">Dashboard</Button>
-              {onBackToAdmin && user?.role === 'superadmin' && (
+              {!isPreview && (
+                <Button variant="ghost" size="sm" onClick={onBack} className="hidden sm:inline-flex text-[10px] font-black uppercase tracking-widest border border-[var(--color-border)] hover:bg-[var(--color-surface-raised)] shadow-sm">Dashboard</Button>
+              )}
+              {!isPreview && onBackToAdmin && user?.role === 'superadmin' && (
                 <button
                   onClick={onBackToAdmin}
                   className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 group border-none"
@@ -548,12 +561,54 @@ export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) 
         </div>
       </header>
 
-      <section className="relative overflow-hidden py-16 lg:py-24 text-center">
+      <section className="relative overflow-hidden pt-12 pb-16 lg:py-24 text-center">
+        {/* Banner Swiper */}
+        {store.banners && store.banners.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 mb-16 overflow-hidden" style={{ borderRadius: 'var(--banner-radius)' }}>
+            <Swiper
+              modules={[Autoplay, Pagination, EffectFade, Navigation]}
+              effect="fade"
+              autoplay={{ delay: 5000 }}
+              pagination={{ clickable: true }}
+              navigation={!isPreview}
+              className={`mySwiper ${isPreview ? 'h-[250px]' : 'h-[300px] md:h-[500px]'}`}
+            >
+              {store.banners.map((banner: any) => (
+                <SwiperSlide key={banner.id}>
+                  <div className="w-full h-full relative group">
+                    <img
+                      src={getMediaUrl(isPreview ? banner.mobile_image : (banner.desktop_image || banner.mobile_image))}
+                      alt={banner.title}
+                      className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent flex flex-col justify-end p-8 md:p-16 text-left">
+                      <motion.h3
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        className={`font-black text-white uppercase tracking-tighter mb-4 ${isPreview ? 'text-2xl' : 'text-2xl md:text-5xl'}`}
+                      >
+                        {banner.title}
+                      </motion.h3>
+                      {banner.link_type !== 'none' && (
+                        <button className="w-max px-6 py-3 bg-[var(--primary)] text-white text-xs font-black uppercase tracking-widest rounded-xl">
+                          {t('shopNow') || 'View More'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+        )}
+
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-            <h2 className="text-4xl sm:text-5xl lg:text-7xl font-black text-[var(--text-primary)] mb-6 uppercase tracking-tighter">
-              {store.name}
-            </h2>
+            {(!store.banners || store.banners.length === 0) && (
+              <h2 className="text-4xl sm:text-5xl lg:text-7xl font-black text-[var(--text-primary)] mb-6 uppercase tracking-tighter">
+                {store.name}
+              </h2>
+            )}
             <p className="text-xl text-[var(--text-secondary)] max-w-2xl mx-auto font-medium leading-relaxed mb-10">
               {store.description}
             </p>
@@ -576,14 +631,16 @@ export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) 
                   onAction={handleVoiceAction}
                   language={language}
                 />
-                <VisualSearch
-                  storeSlug={store?.slug}
-                  onResultClick={(id) => {
-                    const p = products.find((p: any) => p.id === id);
-                    if (p) setSelectedProduct(p);
-                  }}
-                  language={language}
-                />
+                {!isPreview && (
+                  <VisualSearch
+                    storeSlug={store?.slug}
+                    onResultClick={(id) => {
+                      const p = products.find((p: any) => p.id === id);
+                      if (p) setSelectedProduct(p);
+                    }}
+                    language={language}
+                  />
+                )}
                 <button
                   onClick={() => setReelsOpen(true)}
                   className="p-2.5 rounded-xl bg-[var(--primary)]/20 text-[var(--primary)] border border-[var(--primary)]/20 hover:bg-[var(--primary)]/30 transition-all"
@@ -718,7 +775,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId }: StorefrontProps) 
               <p className="text-slate-400 font-bold uppercase tracking-widest">{t('noProductsFound') || 'Mahsulotlar topilmadi'}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8">
+            <div className={`grid grid-cols-1 ${isPreview ? 'gap-4 px-2' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8'}`}>
               {filteredProducts.map((product, index) => (
                 <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
                   <GlassCard className="overflow-hidden group cursor-pointer h-full flex flex-col border-white/5 hover:border-[var(--primary)]/30 hover:bg-white/5 duration-500">

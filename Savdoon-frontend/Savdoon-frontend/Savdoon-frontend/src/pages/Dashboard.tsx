@@ -49,6 +49,16 @@ import { Marketing } from './dashboard/Marketing';
 import AiCreativeSuite from './dashboard/AiCreativeSuite';
 import AiImageStudio from './dashboard/AiImageStudio';
 import AiFittingRoom from './dashboard/AiFittingRoom';
+import { Banners } from './dashboard/Banners';
+import { Branches } from './dashboard/Branches';
+import { Staff } from './dashboard/Staff';
+import { IKPU } from './dashboard/IKPU';
+import { Warehouse } from './dashboard/Warehouse';
+import { PlatformSettings } from './dashboard/PlatformSettings';
+import { PaymentSettings } from './dashboard/PaymentSettings';
+import { DeliverySettings } from './dashboard/DeliverySettings';
+import { TariffPlan } from './dashboard/TariffPlan';
+import { Customers } from './dashboard/Customers';
 import { useStoreWebSocket } from '../hooks/useStoreWebSocket';
 
 interface DashboardProps {
@@ -56,11 +66,12 @@ interface DashboardProps {
   onCreateStore: () => void;
   onBackToAdmin?: () => void;
   onViewStore?: (id: number) => void;
+  managedStoreId?: number;
   initialTab?: string;
 }
 
 
-export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore, initialTab }: DashboardProps) {
+export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore, managedStoreId, initialTab }: DashboardProps) {
   const { t, language, setStores: setGlobalStores, currentStore: globalStore, setCurrentStore: setGlobalStore, ln } = useApp();
   const { user, logout } = useAuth();
   const isCustomer = user?.role === 'customer';
@@ -131,10 +142,13 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
     if (initialTab) {
       setActiveTab(initialTab);
     }
+  }, [initialTab]);
+
+  useEffect(() => {
     if (activeTab === 'support') {
       setUnreadMessages(0);
     }
-  }, [initialTab, activeTab]);
+  }, [activeTab]);
 
   const loadMarketplace = async () => {
     try {
@@ -177,19 +191,30 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
   const loadStores = async () => {
     setLoading(true);
     try {
-      const response = await storeApi.list();
-      setStores(response.data);
-      if (typeof setGlobalStores === 'function') {
-        setGlobalStores(response.data);
-      }
-      if (response.data.length > 0) {
-        if (!currentStore) {
-          setCurrentStore(response.data[0]);
-        } else {
-          // Refresh the current store data if it's already selected
-          const updated = response.data.find((s: any) => s.id === currentStore.id);
-          if (updated) {
-            setCurrentStore(updated);
+      if (managedStoreId && isSuperAdmin) {
+        // Superadmin impersonating a specific store
+        const response = await storeApi.get(managedStoreId);
+        const storeData = response.data;
+        setStores([storeData]);
+        setCurrentStore(storeData);
+        if (typeof setGlobalStores === 'function') {
+           setGlobalStores([storeData]);
+        }
+      } else {
+        const response = await storeApi.list();
+        setStores(response.data);
+        if (typeof setGlobalStores === 'function') {
+          setGlobalStores(response.data);
+        }
+        if (response.data.length > 0) {
+          if (!currentStore) {
+            setCurrentStore(response.data[0]);
+          } else {
+            // Refresh the current store data if it's already selected
+            const updated = response.data.find((s: any) => s.id === currentStore.id);
+            if (updated) {
+              setCurrentStore(updated);
+            }
           }
         }
       }
@@ -199,27 +224,61 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
     setLoading(false);
   };
 
-  const adminTabs = [
-    { id: 'overview', label: t('overview'), icon: LayoutDashboard },
-    { id: 'products', label: t('products'), icon: Package },
-    { id: 'orders', label: t('orders'), icon: ShoppingCart },
-    { id: 'support', label: t('support') || 'Support & Chat', icon: MessageSquare, badge: unreadMessages > 0 ? unreadMessages : undefined },
-    { id: 'categories', label: t('categories') || 'Categories', icon: FolderOpen },
-    { id: 'qr', label: t('qrOrder') || 'QR-Order', icon: QrCode },
-    { id: 'discounts', label: t('discounts'), icon: Tag },
-    { id: 'marketing', label: t('marketing') || 'Marketing', icon: Send },
-    { id: 'ai-stylist', label: t('aiStylist') || 'AI Stylist', icon: Wand2 },
-    { id: 'ai-studio', label: t('aiStudio') || 'AI Studio', icon: Sparkles },
-    { id: 'ai-creative', label: t('aiCreative') || 'AI Creative', icon: Wand2 },
-    { id: 'ai-image-studio', label: t('aiImageStudio') || 'AI Image Studio', icon: Image },
+  const adminGroups = [
     {
-      id: 'ai-fitting-room',
-      label: t('aiFittingRoom') || 'Virtual Fitting Room',
-      icon: Layers,
-      hidden: currentStore?.business_type !== 'clothing'
+      title: t('sales') || 'Savdo',
+      tabs: [
+        { id: 'overview', label: t('overview'), icon: LayoutDashboard },
+        { id: 'orders', label: t('orders'), icon: ShoppingCart },
+        { id: 'products', label: t('products'), icon: Package },
+        { id: 'categories', label: t('categories') || 'Kategoriyalar', icon: FolderOpen },
+        { id: 'customers', label: t('customers') || 'Mijozlar', icon: Star },
+        { id: 'support', label: t('support') || 'Chat', icon: MessageSquare, badge: unreadMessages > 0 ? unreadMessages : undefined },
+      ]
     },
-    { id: 'settings', label: t('settings'), icon: Settings },
-  ].filter(tab => !tab.hidden);
+    {
+      title: t('inventory') || 'Omborxona',
+      tabs: [
+        { id: 'warehouse', label: t('warehouse') || 'Ombor', icon: Store },
+        { id: 'ikpu', label: 'IKPU', icon: QrCode },
+      ]
+    },
+    {
+      title: t('marketing') || 'Marketing',
+      tabs: [
+        { id: 'marketing', label: t('marketing'), icon: Send },
+        { id: 'discounts', label: t('discounts'), icon: Tag },
+        { id: 'banners', label: t('banners') || 'Bannerlar', icon: Image },
+      ]
+    },
+    {
+      title: t('aiTools') || 'AI Imkoniyatlar',
+      tabs: [
+        { id: 'ai-studio', label: t('aiStudio') || 'AI Studio', icon: Sparkles },
+        { id: 'ai-creative', label: t('aiCreative') || 'AI Creative', icon: Wand2 },
+        { id: 'ai-stylist', label: t('aiStylist') || 'AI Stylist', icon: Wand2 },
+        { id: 'ai-image-studio', label: t('aiImageStudio') || 'AI Image Studio', icon: Image },
+        {
+          id: 'ai-fitting-room',
+          label: t('aiFittingRoom') || 'Virtual Fitting Room',
+          icon: Layers,
+          hidden: currentStore?.business_type !== 'clothing'
+        },
+      ]
+    },
+    {
+      title: t('settings') || 'Sozlamalar',
+      tabs: [
+        { id: 'settings', label: t('settings'), icon: Settings },
+        { id: 'branches', label: t('branches') || 'Filiallar', icon: MapPin },
+        { id: 'staff', label: t('staff') || 'Xodimlar', icon: ShieldCheck },
+        { id: 'payments', label: t('payments') || 'To\'lovlar', icon: ShoppingCart },
+        { id: 'delivery', label: t('delivery') || 'Yetkazib berish', icon: Package },
+        { id: 'platforms', label: t('platforms') || 'Platformalar', icon: Send },
+        { id: 'tariff', label: t('tariff') || 'Tarif', icon: Star },
+      ]
+    }
+  ] as { title: string; tabs: { id: string; label: string; icon: any; badge?: any; hidden?: boolean }[] }[];
 
   const customerTabs = [
     { id: 'discover', label: t('discoverStores') || 'Discover', icon: Store },
@@ -228,7 +287,21 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
     { id: 'profile', label: t('profileTitle') || 'Profile', icon: Settings },
   ];
 
-  const tabs = isCustomer ? customerTabs : (isSuperAdmin ? [...customerTabs, { id: 'divider', label: '', icon: () => null, disabled: true }, ...adminTabs] : adminTabs);
+  const showAdminTabs = !isCustomer && (!isSuperAdmin || stores.length > 0);
+  
+  const getTabs = () => {
+    if (isCustomer) return customerTabs;
+    if (isSuperAdmin && !showAdminTabs) return customerTabs;
+    
+    // For admin, we flatten the groups for the tab selection logic
+    const allAdminTabs = adminGroups.flatMap(group => group.tabs);
+    if (isSuperAdmin && showAdminTabs) {
+        return [...customerTabs, { id: 'divider', label: '', icon: () => null, disabled: true }, ...allAdminTabs];
+    }
+    return allAdminTabs;
+  };
+
+  const tabs = getTabs();
 
   const handleLogout = () => {
     logout();
@@ -473,6 +546,16 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
         <SettingsPage storeId={currentStore?.id} onUpdate={loadStores} />
       );
       case 'discounts': return <Discounts storeId={currentStore?.id} />;
+      case 'banners': return <Banners />;
+      case 'branches': return <Branches />;
+      case 'staff': return <Staff />;
+      case 'ikpu': return <IKPU />;
+      case 'warehouse': return <Warehouse />;
+      case 'platforms': return <PlatformSettings />;
+      case 'payments': return <PaymentSettings />;
+      case 'delivery': return <DeliverySettings />;
+      case 'tariff': return <TariffPlan />;
+      case 'customers': return <Customers />;
       default: return <Overview storeId={currentStore?.id} />;
     }
   };
@@ -634,44 +717,69 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
             )}
 
             {/* Navigation Sections */}
-            <nav className="space-y-2">
-              {tabs.map((tab: any, index) => tab.id === 'divider' ? (
-                <div key={`div-${index}`} className="my-6 border-t border-[var(--color-border)] mx-4 opacity-50" />
+            <nav className="flex-1 py-4 overflow-y-auto no-scrollbar space-y-4">
+              {(isCustomer || (isSuperAdmin && !showAdminTabs)) ? (
+                customerTabs.map((tab: any) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                        setActiveTab(tab.id);
+                        if (window.innerWidth < 1024) setSidebarOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative ${activeTab === tab.id
+                        ? 'bg-[var(--brand-primary-glow)] text-[var(--brand-primary)] shadow-sm'
+                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--color-border)]'
+                        }`}
+                  >
+                    <tab.icon className={`w-6 h-6 flex-shrink-0 transition-all ${activeTab === tab.id ? 'text-[var(--brand-primary)] scale-110' : 'group-hover:text-[var(--brand-primary)]'}`} />
+                    {sidebarOpen && (
+                        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px] font-bold tracking-tight">
+                            {tab.label}
+                        </motion.span>
+                    )}
+                  </button>
+                ))
               ) : (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    if (window.innerWidth < 1024) setSidebarOpen(false);
-                  }}
-                  className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative ${activeTab === tab.id
-                    ? 'bg-[var(--brand-primary-glow)] text-[var(--brand-primary)] shadow-sm'
-                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--color-border)]'
-                    }`}
-                >
-                  <tab.icon className={`w-6 h-6 flex-shrink-0 transition-all ${activeTab === tab.id ? 'text-[var(--brand-primary)] scale-110' : 'group-hover:text-[var(--brand-primary)]'}`} />
-                  {sidebarOpen && (
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-[12px] font-bold tracking-tight"
-                    >
-                      {tab.label}
-                    </motion.span>
-                  )}
-                  {tab.badge !== undefined && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 min-w-[18px] h-[18px] bg-rose-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 animate-bounce">
-                      {tab.badge}
-                    </span>
-                  )}
-                  {activeTab === tab.id && (
-                    <motion.div
-                      layoutId="activeTabGlow"
-                      className="absolute left-0 w-1.5 h-8 bg-[var(--brand-primary)] rounded-r-full shadow-[0_0_15px_var(--brand-primary-glow)]"
-                    />
-                  )}
-                </button>
-              ))}
+                adminGroups.map((group, groupIdx) => (
+                    <div key={groupIdx} className="space-y-1">
+                        {sidebarOpen && (
+                            <div className="px-6 py-2">
+                                <h3 className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.3em] opacity-60">
+                                    {group.title}
+                                </h3>
+                            </div>
+                        )}
+                        {group.tabs.filter(tab => !tab.hidden).map((tab: any) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => {
+                                    setActiveTab(tab.id);
+                                    if (window.innerWidth < 1024) setSidebarOpen(false);
+                                }}
+                                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative ${activeTab === tab.id
+                                    ? 'bg-[var(--brand-primary-glow)] text-[var(--brand-primary)] shadow-sm'
+                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--color-border)]'
+                                    }`}
+                            >
+                                <tab.icon className={`w-6 h-6 flex-shrink-0 transition-all ${activeTab === tab.id ? 'text-[var(--brand-primary)] scale-110' : 'group-hover:text-[var(--brand-primary)]'}`} />
+                                {sidebarOpen && (
+                                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px] font-bold tracking-tight">
+                                        {tab.label}
+                                    </motion.span>
+                                )}
+                                {tab.badge !== undefined && sidebarOpen && (
+                                    <span className="absolute right-4 bg-rose-500 text-white text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                                        {tab.badge}
+                                    </span>
+                                )}
+                                {activeTab === tab.id && (
+                                    <motion.div layoutId="activeTabGlow" className="absolute left-0 w-1.5 h-8 bg-[var(--brand-primary)] rounded-r-full shadow-[0_0_15px_var(--brand-primary-glow)]" />
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                ))
+              )}
             </nav>
 
             {onBackToAdmin && (

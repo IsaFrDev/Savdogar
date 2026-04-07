@@ -78,6 +78,8 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         required=False
     )
     variants = ProductVariantSerializer(many=True, required=False)
+    slug = serializers.SlugField(required=False, allow_blank=True)
+    sku = serializers.CharField(required=False, allow_blank=True)
     
     class Meta:
         model = Product

@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Sparkles, Wand2, RefreshCw, Smartphone, Palette, Layout, MessageSquare, ArrowLeft, Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Send, Sparkles, RefreshCw, Smartphone, MessageSquare, Loader2, Code, Save, FileCode, FolderPlus, FilePlus, Trash2 } from 'lucide-react';
 import { IPhone16Frame } from '../../components/IPhone16Frame';
 import { Storefront } from '../Storefront';
-import { builderApi } from '../../services/api';
+import api, { builderApi } from '../../services/api';
 import { useApp } from '../../context/AppContext';
-import { GlassCard } from '../../components/GlassCard';
 
 interface Message {
   id: string;
@@ -14,8 +13,54 @@ interface Message {
   timestamp: Date;
 }
 
+const DEFAULT_STORE_HTML = `<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg-main, #0a0a0f); color: var(--text-primary, #fff); }
+    .header { padding: 16px 24px; background: var(--color-surface, #12121a); border-bottom: 1px solid var(--color-border, #1e1e2e); display: flex; align-items: center; justify-content: space-between; }
+    .header h1 { font-size: 18px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; }
+    .banner { width: 100%; height: 300px; background: linear-gradient(135deg, var(--primary, #6366f1), var(--secondary, #8b5cf6)); display: flex; align-items: center; justify-content: center; }
+    .banner h2 { font-size: 32px; font-weight: 900; color: white; text-transform: uppercase; }
+    .search-bar { padding: 20px 24px; }
+    .search-bar input { width: 100%; padding: 14px 20px; border-radius: 16px; border: 1px solid var(--color-border, #1e1e2e); background: var(--color-surface, #12121a); color: var(--text-primary, #fff); font-size: 14px; outline: none; }
+    .products { padding: 20px 24px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .product-card { background: var(--color-surface, #12121a); border: 1px solid var(--color-border, #1e1e2e); border-radius: 20px; overflow: hidden; transition: transform 0.3s; }
+    .product-card:hover { transform: translateY(-4px); }
+    .product-card .img { height: 160px; background: var(--color-surface-raised, #1a1a2e); display: flex; align-items: center; justify-content: center; color: var(--text-muted, #666); }
+    .product-card .info { padding: 16px; }
+    .product-card .name { font-weight: 800; font-size: 14px; text-transform: uppercase; margin-bottom: 8px; }
+    .product-card .price { font-weight: 900; font-size: 18px; color: var(--primary, #6366f1); }
+    .footer { padding: 24px; text-align: center; border-top: 1px solid var(--color-border, #1e1e2e); margin-top: 40px; }
+    .footer p { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--text-muted, #666); }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>{{STORE_NAME}}</h1>
+    <span style="font-size:10px; color: var(--primary); font-weight:900; text-transform:uppercase; letter-spacing:2px;">{{BUSINESS_TYPE}}</span>
+  </div>
+  
+  <div class="banner">
+    <h2>{{STORE_NAME}}</h2>
+  </div>
+  
+  <div class="search-bar">
+    <input type="text" placeholder="Qidirish..." />
+  </div>
+  
+  {{PRODUCTS_GRID}}
+  
+  <div class="footer">
+    <p>© {{STORE_NAME}} — Barcha huquqlar himoyalangan</p>
+  </div>
+</body>
+</html>`;
+
 export function StoreAIBuilder({ storeId }: { storeId: number }) {
-  const { language, t } = useApp();
+  const { language } = useApp();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -26,14 +71,170 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [previewKey, setPreviewKey] = useState(0); // Used to force-refresh the preview iframe/component
+  const [previewKey, setPreviewKey] = useState(0);
+  
+  // Tab state: chat | schema | html
+  const [activeTab, setActiveTab] = useState<'chat' | 'schema' | 'html'>('chat');
+  
+  // Schema Editor State
+  const [schemaCode, setSchemaCode] = useState('[]');
+  const [isSavingSchema, setIsSavingSchema] = useState(false);
+  const [schemaError, setSchemaError] = useState('');
+  
+  // HTML/Files Editor State
+  const [htmlCode, setHtmlCode] = useState('');
+  const [storeFiles, setStoreFiles] = useState<Record<string, string>>({});
+  const [activeFile, setActiveFile] = useState<string>('index.html');
+  const [isSavingHtml, setIsSavingHtml] = useState(false);
+  const [htmlError, setHtmlError] = useState('');
+  const [hasDraft, setHasDraft] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  // Key for individual store drafts
+  const DRAFT_KEY = `savdoon_builder_draft_${storeId}`;
+
+  // Fetch store data when switching tabs
   useEffect(() => {
-    if (scrollRef.current) {
+    if (activeTab === 'schema' || activeTab === 'html') {
+      api.get(`/stores/${storeId}/`).then(res => {
+        const dbSchema = JSON.stringify(res.data.ui_schema || [], null, 2);
+        setSchemaCode(dbSchema);
+        setSchemaError('');
+        
+        let files = res.data.store_files || {};
+        let needsSave = false;
+        
+        // Auto-migration for legacy store_html
+        if (Object.keys(files).length === 0 && res.data.store_html) {
+          files['index.html'] = res.data.store_html;
+          needsSave = true;
+        } else if (Object.keys(files).length === 0) {
+          files['index.html'] = DEFAULT_STORE_HTML;
+          needsSave = true;
+        }
+        
+        setStoreFiles(files);
+        setHtmlCode(files[activeFile] || files['index.html'] || '');
+        setHtmlError('');
+        
+        // Persist the migration to backend immediately if needed
+        if (needsSave) {
+          builderApi.saveFiles(storeId, files).catch(err => console.error("Initial migration save failed", err));
+        }
+
+        // Check for local drafts after fetching DB data
+        const savedDraft = localStorage.getItem(DRAFT_KEY);
+        if (savedDraft) {
+          try {
+            const draft = JSON.parse(savedDraft);
+            // Only show restore prompt if draft differs from current DB data
+            const draftFilesJson = JSON.stringify(draft.files || {});
+            const currentFilesJson = JSON.stringify(files);
+            if (draftFilesJson !== currentFilesJson || draft.schema !== dbSchema) {
+              setHasDraft(true);
+            }
+          } catch (e) {
+            console.error("Draft error", e);
+          }
+        }
+      }).catch(err => console.error("Could not fetch store data", err));
+    }
+  }, [activeTab, storeId, previewKey]);
+
+  // Auto-save drafts to localStorage
+  useEffect(() => {
+    if (Object.keys(storeFiles).length > 0) {
+      const draft = {
+        files: storeFiles,
+        schema: schemaCode,
+        timestamp: Date.now()
+      };
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    }
+  }, [storeFiles, schemaCode]);
+
+  const restoreDraft = () => {
+    const savedDraft = localStorage.getItem(DRAFT_KEY);
+    if (savedDraft) {
+      try {
+        const draft = JSON.parse(savedDraft);
+        if (draft.files) {
+          setStoreFiles(draft.files);
+          if (draft.files[activeFile]) setHtmlCode(draft.files[activeFile]);
+        }
+        if (draft.schema) setSchemaCode(draft.schema);
+        setHasDraft(false);
+      } catch (e) {
+        console.error("Restore failed", e);
+      }
+    }
+  };
+
+  const discardDraft = () => {
+    localStorage.removeItem(DRAFT_KEY);
+    setHasDraft(false);
+  };
+
+  useEffect(() => {
+    // Keep htmlCode in sync with storeFiles[activeFile]
+    if (storeFiles[activeFile] !== undefined) {
+      setHtmlCode(storeFiles[activeFile]);
+    }
+  }, [activeFile, storeFiles]);
+
+  useEffect(() => {
+    if (scrollRef.current && activeTab === 'chat') {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages, isTyping]);
+  }, [messages, isTyping, activeTab]);
+
+  const handleSaveSchema = async () => {
+    try {
+      setIsSavingSchema(true);
+      setSchemaError('');
+      const parsed = JSON.parse(schemaCode);
+      if (!Array.isArray(parsed)) throw new Error("Schema must be a JSON array.");
+      await builderApi.saveSchema(storeId, parsed);
+      setPreviewKey(k => k + 1);
+    } catch (e: any) {
+      setSchemaError(e.message || "Invalid JSON array");
+    } finally {
+      setIsSavingSchema(false);
+    }
+  };
+
+  const handleSaveHtml = async () => {
+    try {
+      setIsSavingHtml(true);
+      setHtmlError('');
+      
+      // Update the current file in the tree before saving
+      const updatedFiles = { ...storeFiles, [activeFile]: htmlCode };
+      setStoreFiles(updatedFiles);
+      
+      await builderApi.saveFiles(storeId, updatedFiles);
+      setPreviewKey(k => k + 1);
+    } catch (e: any) {
+      setHtmlError(e.response?.data?.error || e.message || "Failed to save files");
+    } finally {
+      setIsSavingHtml(false);
+      // Clear draft on successful save
+      localStorage.removeItem(DRAFT_KEY);
+    }
+  };
+
+  const createFile = (path: string) => {
+    if (storeFiles[path]) return;
+    setStoreFiles(prev => ({ ...prev, [path]: '' }));
+    setActiveFile(path);
+  };
+
+  const deleteFile = (path: string) => {
+    const newFiles = { ...storeFiles };
+    delete newFiles[path];
+    setStoreFiles(newFiles);
+    if (activeFile === path) setActiveFile('index.html');
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
@@ -50,24 +251,32 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
     setIsTyping(true);
 
     try {
-      const response = await builderApi.chat(storeId, input);
+      const response = await api.post('/stores/builder/chat/', { 
+        store_id: storeId, 
+        message: input,
+        store_files: storeFiles // Pass the whole project tree to AI
+      });
+      
+      const aiData = response.data;
+      if (aiData.store_files) {
+        setStoreFiles(aiData.store_files);
+      }
       
       const aiMsg: Message = {
         id: (Date.now() + 1).toString(),
-        text: response.data.ai_reply,
+        text: aiData.ai_reply,
         sender: 'ai',
         timestamp: new Date()
       };
       
       setMessages(prev => [...prev, aiMsg]);
-      // Increment previewKey to trigger a re-fetch of store data in the preview component
       setPreviewKey(prev => prev + 1);
     } catch (error: any) {
       console.error('AI Builder error:', error);
       const errMsg = error.response?.data?.error || "Xatolik yuz berdi. Iltimos qayta urinib ko'ring.";
       const errorMsg: Message = {
         id: (Date.now() + 1).toString(),
-        text: language === 'uz' ? errMsg : errMsg,
+        text: errMsg,
         sender: 'ai',
         timestamp: new Date()
       };
@@ -77,12 +286,215 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
     }
   };
 
+  const renderTabContent = () => {
+    if (activeTab === 'chat') {
+      return (
+        <>
+          {/* Chat Messages */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
+            {messages.map((msg) => (
+              <motion.div
+                key={msg.id}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[85%] p-4 rounded-3xl text-sm font-medium shadow-sm transition-all ${
+                    msg.sender === 'user'
+                      ? 'bg-[var(--brand-primary)] text-white rounded-tr-none'
+                      : 'bg-[var(--color-surface-raised)] text-[var(--text-main)] border border-[var(--color-border)] rounded-tl-none'
+                  }`}
+                >
+                  {msg.text}
+                </div>
+              </motion.div>
+            ))}
+            {isTyping && (
+              <div className="flex justify-start">
+                <div className="bg-[var(--color-surface-raised)] p-4 rounded-3xl rounded-tl-none border border-[var(--color-border)]">
+                  <Loader2 className="w-5 h-5 animate-spin text-[var(--brand-primary)]" />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Chat Input */}
+          <div className="p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-raised)] rounded-b-[2.5rem]">
+            <div className="flex items-center gap-3 p-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-inner focus-within:ring-2 ring-[var(--brand-primary)]/20 transition-all">
+              <input
+                type="text"
+                placeholder={language === 'uz' ? "Dizaynni o'zgartirish haqida yozing..." : "Describe your design changes..."}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                className="flex-1 bg-transparent border-none outline-none px-4 py-2 text-[var(--text-main)] font-medium"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim() || isTyping}
+                className="p-3 bg-[var(--brand-primary)] text-white rounded-xl shadow-lg hover:shadow-[var(--brand-primary-glow)] transition-all disabled:opacity-50 disabled:grayscale"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    if (activeTab === 'schema') {
+      return (
+        <div className="flex-1 flex flex-col p-6 space-y-4 overflow-hidden">
+          <div className="flex-1 relative flex flex-col rounded-2xl border border-[var(--color-border)] overflow-hidden">
+            <div className="bg-[var(--color-surface-raised)] px-4 py-2 border-b border-[var(--color-border)] flex items-center justify-between">
+              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)]">ui_schema.json</span>
+            </div>
+            <textarea 
+              value={schemaCode} 
+              onChange={e => setSchemaCode(e.target.value)}
+              spellCheck={false}
+              className="flex-1 w-full bg-[#1e1e1e] text-[#d4d4d4] p-4 font-mono text-xs focus:outline-none resize-none leading-relaxed"
+              style={{ tabSize: 2 }}
+            />
+          </div>
+          {schemaError && (
+            <p className="text-red-500 text-[10px] font-bold uppercase tracking-widest px-2">{schemaError}</p>
+          )}
+          <button 
+            onClick={handleSaveSchema}
+            disabled={isSavingSchema}
+            className="w-full py-3.5 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[var(--brand-primary)]/20 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+          >
+            {isSavingSchema ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {language === 'uz' ? 'Schemani Saqlash' : 'Save Schema'}
+          </button>
+        </div>
+      );
+    }
+
+    // HTML Tab (Explorer Mode)
+    return (
+      <div className="flex-1 flex overflow-hidden">
+        {/* Explorer Sidebar */}
+        <div className="w-64 border-r border-[var(--color-border)] bg-[var(--color-surface-raised)]/50 flex flex-col">
+          <div className="p-4 border-b border-[var(--color-border)] flex items-center justify-between">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)]">Explorer</h3>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => {
+                  const name = prompt(language === 'uz' ? "Fayl nomi (masalan: style.css):" : "File name (e.g. style.css):");
+                  if (name) createFile(name);
+                }}
+                className="p-1 hover:bg-[var(--color-surface)] rounded transition-colors" title="New File"
+              >
+                <FilePlus className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
+              </button>
+              <button className="p-1 hover:bg-[var(--color-surface)] rounded transition-colors" title="New Folder">
+                <FolderPlus className="w-3.5 h-3.5 text-[var(--text-dim)]" />
+              </button>
+            </div>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+            {Object.keys(storeFiles).sort().map(path => (
+              <div 
+                key={path}
+                onClick={() => setActiveFile(path)}
+                className={`group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all ${activeFile === path ? 'bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20' : 'hover:bg-[var(--color-surface)] border border-transparent'}`}
+              >
+                <div className="flex items-center gap-2 overflow-hidden">
+                  {path.endsWith('.html') ? <Code className={`w-3.5 h-3.5 ${activeFile === path ? 'text-[var(--brand-primary)]' : 'text-orange-400'}`} /> : 
+                   path.endsWith('.css') ? <FileCode className={`w-3.5 h-3.5 ${activeFile === path ? 'text-[var(--brand-primary)]' : 'text-blue-400'}`} /> :
+                   <FileCode className={`w-3.5 h-3.5 ${activeFile === path ? 'text-[var(--brand-primary)]' : 'text-emerald-400'}`} />}
+                  <span className={`text-[11px] font-bold truncate ${activeFile === path ? 'text-[var(--text-main)]' : 'text-[var(--text-dim)]'}`}>{path}</span>
+                </div>
+                {path !== 'index.html' && (
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); deleteFile(path); }}
+                    className="opacity-0 group-hover:opacity-100 p-1 hover:text-red-500 transition-all"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Editor Area */}
+        <div className="flex-1 flex flex-col min-w-0 bg-[#1e1e1e]">
+          {/* File Name Header */}
+          <div className="bg-[#252526] px-4 py-2 border-b border-black/20 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Code className="w-3.5 h-3.5 text-orange-400" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#cccccc]">{activeFile}</span>
+            </div>
+            
+            {hasDraft && (
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="flex items-center gap-3 px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full"
+              >
+                <span className="text-[9px] font-black uppercase tracking-widest text-amber-500">
+                  {language === 'uz' ? 'Saqlanmagan o\'zgarishlar bor!' : 'Unsaved Changes Found!'}
+                </span>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={restoreDraft}
+                    className="text-[9px] font-black uppercase text-emerald-400 hover:text-emerald-300 underline underline-offset-2"
+                  >
+                    {language === 'uz' ? 'Tiklash' : 'Restore'}
+                  </button>
+                  <button 
+                    onClick={discardDraft}
+                    className="text-[9px] font-black uppercase text-red-400 hover:text-red-300 underline underline-offset-2"
+                  >
+                    {language === 'uz' ? 'O\'chirish' : 'Discard'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            <div className="flex items-center gap-4">
+              <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400 animate-pulse">Editor Mode</span>
+              <button 
+                onClick={handleSaveHtml}
+                disabled={isSavingHtml}
+                className="flex items-center gap-1.5 px-3 py-1 bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-dark)] text-white rounded text-[9px] font-black uppercase tracking-widest transition-all disabled:opacity-50"
+              >
+                {isSavingHtml ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                Save
+              </button>
+            </div>
+          </div>
+          
+          <textarea 
+            value={htmlCode} 
+            onChange={e => setHtmlCode(e.target.value)}
+            spellCheck={false}
+            className="flex-1 w-full bg-[#1e1e1e] text-[#d4d4d4] p-6 font-mono text-xs focus:outline-none resize-none leading-relaxed selection:bg-[var(--brand-primary)]/30"
+            style={{ tabSize: 2 }}
+          />
+
+          {htmlError && (
+            <div className="p-2 bg-red-500/10 border-t border-red-500/20">
+               <p className="text-red-500 text-[9px] font-bold uppercase tracking-widest px-2">{htmlError}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-120px)] gap-6 p-4 overflow-hidden">
-      {/* Left Chat Panel */}
+      {/* Left Panel */}
       <div className="flex-1 flex flex-col min-w-0 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-[2.5rem] shadow-2xl relative">
-        <div className="p-6 border-b border-[var(--color-border)] flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        {/* Header with Tabs */}
+        <div className="p-6 border-b border-[var(--color-border)] flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-secondary)] flex items-center justify-center shadow-lg">
               <Sparkles className="w-5 h-5 text-white animate-pulse" />
             </div>
@@ -91,60 +503,36 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
               <p className="text-[10px] text-[var(--brand-primary)] font-black uppercase tracking-widest mt-1">Real-time Customization</p>
             </div>
           </div>
+          
+          {/* 3-Tab Switcher */}
+          <div className="flex bg-[var(--color-surface-raised)] border border-[var(--color-border)] p-1 rounded-xl">
+            <button 
+              onClick={() => setActiveTab('chat')} 
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'chat' ? 'bg-[var(--brand-primary)] text-white shadow-md' : 'text-[var(--text-dim)] hover:text-[var(--text-main)]'}`}
+            >
+              <MessageSquare className="w-3 h-3" /> Chat
+            </button>
+            <button 
+              onClick={() => setActiveTab('schema')} 
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'schema' ? 'bg-[var(--brand-primary)] text-white shadow-md' : 'text-[var(--text-dim)] hover:text-[var(--text-main)]'}`}
+            >
+              <Code className="w-3 h-3" /> Schema
+            </button>
+            <button 
+              onClick={() => setActiveTab('html')} 
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'html' ? 'bg-emerald-500 text-white shadow-md' : 'text-[var(--text-dim)] hover:text-[var(--text-main)]'}`}
+            >
+              <FileCode className="w-3 h-3" /> HTML
+            </button>
+          </div>
+
           <button onClick={() => setPreviewKey(k => k + 1)} className="p-2.5 rounded-xl hover:bg-[var(--color-surface-raised)] transition-all text-[var(--text-dim)]" title="Refresh Preview">
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Chat Area */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
-          {messages.map((msg) => (
-            <motion.div
-              key={msg.id}
-              initial={{ opacity: 0, y: 10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[85%] p-4 rounded-3xl text-sm font-medium shadow-sm transition-all ${
-                  msg.sender === 'user'
-                    ? 'bg-[var(--brand-primary)] text-white rounded-tr-none'
-                    : 'bg-[var(--color-surface-raised)] text-[var(--text-main)] border border-[var(--color-border)] rounded-tl-none'
-                }`}
-              >
-                {msg.text}
-              </div>
-            </motion.div>
-          ))}
-          {isTyping && (
-            <div className="flex justify-start">
-              <div className="bg-[var(--color-surface-raised)] p-4 rounded-3xl rounded-tl-none border border-[var(--color-border)]">
-                <Loader2 className="w-5 h-5 animate-spin text-[var(--brand-primary)]" />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Input Area */}
-        <div className="p-6 border-t border-[var(--color-border)] bg-[var(--color-surface-raised)] rounded-b-[2.5rem]">
-          <div className="flex items-center gap-3 p-1.5 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-inner focus-within:ring-2 ring-[var(--brand-primary)]/20 transition-all">
-            <input
-              type="text"
-              placeholder={language === 'uz' ? "Dizaynni o'zgartirish haqida yozing..." : "Describe your design changes..."}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-              className="flex-1 bg-transparent border-none outline-none px-4 py-2 text-[var(--text-main)] font-medium"
-            />
-            <button
-              onClick={handleSend}
-              disabled={!input.trim() || isTyping}
-              className="p-3 bg-[var(--brand-primary)] text-white rounded-xl shadow-lg hover:shadow-[var(--brand-primary-glow)] transition-all disabled:opacity-50 disabled:grayscale"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+        {/* Dynamic Tab Content */}
+        {renderTabContent()}
       </div>
 
       {/* Right Preview Panel */}
@@ -154,7 +542,6 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-main)] drop-shadow-md">iPhone 16 Pro Max Preview</span>
         </div>
         
-        {/* Dynamic scale to prevent scrolling on 100% zoom */}
         <div className="flex items-center justify-center transform scale-[0.70] xl:scale-[0.80] origin-center transition-transform duration-500 ease-out">
             <IPhone16Frame>
                 <Storefront 

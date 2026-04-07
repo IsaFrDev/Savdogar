@@ -61,14 +61,26 @@ const DEFAULT_STORE_HTML = `<!DOCTYPE html>
 
 export function StoreAIBuilder({ storeId }: { storeId: number }) {
   const { language } = useApp();
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      text: language === 'uz' ? "Assalomu alaykum! Men do'koningizning AI dizayneriman. Qanday dizayn o'zgarishlarini xohlaysiz? Masalan: 'Ko'k rangli Korzinka uslubida dizayn ber' yoki 'Barcha tugmalarni yumaloq qil'." : "Hello! I am your store's AI designer. What design changes would you like? For example: 'Create a blue Korzinka-style design' or 'Make all buttons rounded'.", 
-      sender: 'ai',
-      timestamp: new Date()
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const saved = localStorage.getItem(`ai_builder_msgs_${storeId}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed.map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+      } catch (e) {
+        // Fallback to initial message
+      }
     }
-  ]);
+    return [
+      {
+        id: '1',
+        text: language === 'uz' ? "Assalomu alaykum! Men do'koningizning AI dizayneriman. Qanday dizayn o'zgarishlarini xohlaysiz? Masalan: 'Ko'k rangli Korzinka uslubida dizayn ber' yoki 'Barcha tugmalarni yumaloq qil'." : "Hello! I am your store's AI designer. What design changes would you like? For example: 'Create a blue Korzinka-style design' or 'Make all buttons rounded'.", 
+        sender: 'ai',
+        timestamp: new Date()
+      }
+    ];
+  });
+  
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [previewKey, setPreviewKey] = useState(0);
@@ -93,7 +105,10 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
   // Key for individual store drafts
   const DRAFT_KEY = `savdoon_builder_draft_${storeId}`;
 
-  // Fetch store data when switching tabs
+  // Persistence
+  useEffect(() => {
+    localStorage.setItem(`ai_builder_msgs_${storeId}`, JSON.stringify(messages));
+  }, [messages, storeId]);
   useEffect(() => {
     if (activeTab === 'schema' || activeTab === 'html') {
       api.get(`/stores/${storeId}/`).then(res => {
@@ -236,24 +251,25 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
     if (activeFile === path) setActiveFile('index.html');
   };
 
-  const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
+  const handleSend = async (forcedInput?: string) => {
+    const textToSend = forcedInput || input;
+    if (!textToSend.trim() || isTyping) return;
 
     const userMsg: Message = {
       id: Date.now().toString(),
-      text: input,
+      text: textToSend,
       sender: 'user',
       timestamp: new Date()
     };
 
     setMessages(prev => [...prev, userMsg]);
-    setInput('');
+    if (!forcedInput) setInput('');
     setIsTyping(true);
 
     try {
       const response = await api.post('/stores/builder/chat/', { 
         store_id: storeId, 
-        message: input,
+        message: textToSend,
         store_files: storeFiles // Pass the whole project tree to AI
       });
       
@@ -555,13 +571,13 @@ export function StoreAIBuilder({ storeId }: { storeId: number }) {
         
         {/* Suggestion Bubbles */}
         <div className="absolute bottom-10 flex flex-wrap justify-center gap-2 px-6">
-            <button onClick={() => setInput("Korzinka uslubida qizil rangli dizayn")} className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full text-[10px] font-black uppercase tracking-widest hover:border-[var(--brand-primary)] transition-all text-[var(--text-dim)] hover:text-[var(--brand-primary)] shadow-sm">
+            <button onClick={() => handleSend("Korzinka uslubida qizil rangli dizayn")} className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full text-[10px] font-black uppercase tracking-widest hover:border-[var(--brand-primary)] transition-all text-[var(--text-dim)] hover:text-[var(--brand-primary)] shadow-sm">
                 🍓 Korzinka Style
             </button>
-            <button onClick={() => setInput("Minimalist dark mode dizayn")} className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full text-[10px] font-black uppercase tracking-widest hover:border-[var(--brand-primary)] transition-all text-[var(--text-dim)] hover:text-[var(--brand-primary)] shadow-sm">
+            <button onClick={() => handleSend("Minimalist dark mode dizayn")} className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full text-[10px] font-black uppercase tracking-widest hover:border-[var(--brand-primary)] transition-all text-[var(--text-dim)] hover:text-[var(--brand-primary)] shadow-sm">
                 🌙 Dark Minimalist
             </button>
-             <button onClick={() => setInput("Pushti rangli premium dizayn")} className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full text-[10px] font-black uppercase tracking-widest hover:border-[var(--brand-primary)] transition-all text-[var(--text-dim)] hover:text-[var(--brand-primary)] shadow-sm">
+             <button onClick={() => handleSend("Pushti rangli premium dizayn")} className="px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-full text-[10px] font-black uppercase tracking-widest hover:border-[var(--brand-primary)] transition-all text-[var(--text-dim)] hover:text-[var(--brand-primary)] shadow-sm">
                 ✨ Luxury Pink
             </button>
         </div>

@@ -10,6 +10,29 @@ class AIConcierge:
         Processes a user message for a specific store using AI.
         Gathers context and returns a structured response.
         """
+        # --- GREETING HEURISTIC ---
+        # Instant response for common greetings in UZ/RU/EN to bypass AI quota/latency
+        greetings = {
+            'uz': ['salom', 'assalom', 'qandaysiz', 'hayrli kun', 'qalaysiz'],
+            'ru': ['привет', 'здравствуйте', 'салoм', 'добрый день', 'как дела'],
+            'en': ['hi', 'hello', 'hey', 'good morning', 'how are you']
+        }
+        
+        msg_lower = message.lower().strip()
+        is_greeting = any(g in msg_lower for lang in greetings.values() for g in lang)
+        
+        if is_greeting:
+            responses = {
+                'uz': f"Assalomu alaykum! Men {store_name or 'Savdoon'} do'konining AI yordamchisiman. Sizga qanday yordam bera olaman?",
+                'ru': f"Здравствуйте! Я ИИ-помощник магазина {store_name or 'Savdoon'}. Чем я могу вам помочь?",
+                'en': f"Hello! I am the AI assistant for {store_name or 'Savdoon'}. How can I help you today?"
+            }
+            return {
+                "reply": responses.get(language, responses['en']),
+                "products": []
+            }
+        # --------------------------
+
         try:
             # 1. Get Store Info
             store = Store.objects.filter(id=store_id).first()

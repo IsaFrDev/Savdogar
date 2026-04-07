@@ -16,7 +16,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 # Configure Gemini
-GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+# GEMINI_API_KEY is now loaded dynamically in AIService.__init__
 
 class AIService:
     _model_names = [
@@ -26,14 +26,26 @@ class AIService:
     ]
 
     def __init__(self):
-        self.client = None
-        if GEMINI_API_KEY:
-            try:
-                self.client = genai.Client(api_key=GEMINI_API_KEY)
-            except Exception as e:
-                log_ai_error(f"CRITICAL: Failed to initialize Gemini Client: {e}")
-        else:
-            log_ai_error("CRITICAL: GEMINI_API_KEY is not set.")
+        self.clients = []
+        self.current_client_index = 0
+        
+        # Load keys dynamically from environment
+        gemini_api_key = os.getenv('GEMINI_API_KEY', '')
+        
+        # Support comma-separated keys or single key
+        raw_keys = gemini_api_key.split(',') if gemini_api_key else []
+        api_keys = [k.strip() for k in raw_keys if k.strip()]
+        
+        if api_keys:
+            for key in api_keys:
+                try:
+                    client = genai.Client(api_key=key)
+                    self.clients.append(client)
+                except Exception as e:
+                    log_ai_error(f"Failed to initialize Gemini Client for key {key[:8]}...: {e}")
+        
+        if not self.clients:
+            log_ai_error("CRITICAL: No valid GEMINI_API_KEYS were initialized.")
 
     def _get_model_names(self, model_type='text'):
         if model_type == 'vision':
@@ -41,36 +53,57 @@ class AIService:
         return self._model_names
 
     def _safe_generate_content(self, model_names, prompt, contents=None):
-        """Try multiple models until one works."""
-        if not self.client:
-            raise Exception("AI Client not initialized")
+        """Try multiple clients (API keys) and multiple models until one works."""
+        if not self.clients:
+            raise Exception("No AI Clients available. Check your GEMINI_API_KEY.")
 
         last_error = None
-        for name in model_names:
-            try:
-                if contents:
-                    actual_contents = [prompt] + (contents if isinstance(contents, list) else [contents])
-                    response = self.client.models.generate_content(
-                        model=name,
-                        contents=actual_contents
-                    )
-                else:
-                    response = self.client.models.generate_content(
-                        model=name,
-                        contents=prompt
-                    )
-                return response.text.strip()
-            except Exception as e:
-                last_error = e
-                log_ai_error(f"Attempt with {name} failed: {e}")
-                continue
-        raise last_error if last_error else Exception("No models available")
+        num_clients = len(self.clients)
+        
+        # Outer loop: Try each available API key (client)
+        for _ in range(num_clients):
+            client = self.clients[self.current_client_index]
+            
+            # Inner loop: Try each model for the current client
+            for name in model_names:
+                try:
+                    if contents:
+                        actual_contents = [prompt] + (contents if isinstance(contents, list) else [contents])
+                        response = client.models.generate_content(
+                            model=name,
+                            contents=actual_contents
+                        )
+                    else:
+                        response = client.models.generate_content(
+                            model=name,
+                            contents=prompt
+                        )
+                    return response.text.strip()
+                except Exception as e:
+                    last_error = e
+                    error_str = str(e).lower()
+                    
+                    # Log detail to help debugging
+                    log_ai_error(f"Error for key {self.current_client_index}, model {name}: {error_str[:100]}...")
+                    
+                    # If it's a rate limit or quota error, rotate this key immediately
+                    if any(x in error_str for x in ["429", "quota", "exhausted", "limit"]):
+                        log_ai_error(f"Key {self.current_client_index} exhausted (429/Quota). Rotating...")
+                        break # Break model loop to switch client
+                        
+                    continue # Try next model with same client
+            
+            # If we reach here, either the model loop finished (all models failed for this key) 
+            # or we broke out due to a quota error. In both cases, try next client for next request.
+            self.current_client_index = (self.current_client_index + 1) % num_clients
+            
+        raise last_error if last_error else Exception("All AI clients and models exhausted")
 
     def generate_description(self, name, category_name=None, language='uz'):
         """
         Generates a professional product description using Gemini or templates.
         """
-        if self.client:
+        if self.clients:
             try:
                 prompt = f"Create a professional, short, and engaging product description for: {name} in category: {category_name}. Language: {language}. Return only the description."
                 model_names = self._get_model_names('text')
@@ -92,7 +125,7 @@ class AIService:
         """
         Generates a viral marketing post for social media using Gemini.
         """
-        if self.client:
+        if self.clients:
             try:
                 prompt = f"""
                 Create a viral marketing post for {platform} in {language}.
@@ -113,7 +146,7 @@ class AIService:
         """
         Simplified content moderation using Gemini if available.
         """
-        if self.client:
+        if self.clients:
             try:
                 prompt = f"Moderate the following product content: '{content}'. Is it appropriate for an e-commerce store? Respond with 'SAFE' or 'UNSAFE: Reason'."
                 model_names = self._get_model_names('text')
@@ -129,7 +162,7 @@ class AIService:
         """
         Generates SEO keywords/tags for a product.
         """
-        if self.client:
+        if self.clients:
             try:
                 prompt = f"Generate 5-10 SEO keywords (comma-separated tags) for the following product in {language}.\nProduct: {name}\nDescription: {description}\nReturn ONLY the comma-separated words without quotes."
                 model_names = self._get_model_names('text')
@@ -145,7 +178,7 @@ class AIService:
         if not text:
             return ""
             
-        if self.client:
+        if self.clients:
             try:
                 prompt = f"Translate the following text into {target_lang}. Return ONLY the translated text without any quotes, explanations, or original text:\n\n{text}"
                 model_names = self._get_model_names('text')
@@ -158,7 +191,7 @@ class AIService:
         """
         Robust AI Chat using the best available Gemini model.
         """
-        if self.client:
+        if self.clients:
             try:
                 system_prompt = f"""
                 You are a professional and friendly AI shopping assistant for the store "{store_info.get('name', 'Savdoon')}".
@@ -192,62 +225,109 @@ class AIService:
         }
         return fallback_msg.get(language, fallback_msg['en'])
 
-    def generate_ui_config(self, user_prompt, business_type, current_config=None):
+    def generate_ui_config(self, user_prompt, business_type, current_config=None, current_schema=None, current_html=None, current_files=None):
         """
         Generates a new theme_config JSON based on user natural language.
-        Inspired by real-world examples like Korzinka/Makro for relevant industries.
+        Now supports full HTML template modification for deep customization.
         """
-        if not self.client:
+        if not self.clients:
             return current_config or {}
 
         try:
+            # Default schema representing the basic current storefront if none exists
+            default_schema = [
+                {"type": "Header", "props": {"style": "minimalist"}},
+                {"type": "HeroBanner", "props": {"visible": True}},
+                {"type": "SearchArea", "props": {"glassmorphism": False}},
+                {"type": "ProductsArea", "props": {"columns": 2, "card_style": "default"}}
+            ]
+            active_schema = current_schema if current_schema else default_schema
+
             system_prompt = f"""
-            You are a senior UI/UX Designer specializing in E-commerce Web Apps.
-            Your task is to generate a 'theme_config' JSON object for an online store.
+            You are a senior UI/UX Designer and Frontend Architect specializing in E-commerce.
+            Your task is to manage a structured storefront project (Explorer Mode).
+            A project consists of multiple files (HTML, CSS, JS) and organized folders.
             
             BUSINESS CONTEXT:
             - Store Type: {business_type}
-            - Current Design: {current_config or "Default"}
+            - Current Design Config: {current_config or "Default"}
+            - Current UI Schema (Layout Array): {active_schema}
+            - Current File Tree (JSON Map Path -> Content): {current_files or "None (Empty)"}
             
-            INSPIRATION RULES:
-            - If Grocery: Think 'Korzinka' or 'Makro' (Red/Green colors, clean grids, large banners, rounded corners).
-            - If Electronics: Think 'Apple' or 'Samsung' (Minimalist, dark/light modes, high contrast, sharp imagery).
-            - If Fashion: Think 'Zara' or 'H&M' (Large typography, white space, elegant transitions).
+            PROJECT STRUCTURE RULES:
+            - Entry Point: You MUST have an 'index.html'.
+            - Modular Design: Encourage separate files like 'css/style.css' and 'js/app.js'.
+            - Relative Path Resolution: When linking CSS/JS in 'index.html', use relative paths like '<link href="css/style.css">'.
+            - Dynamic Placeholders: 
+              - MUST include {{PRODUCTS_GRID}} in 'index.html' where the dynamic store content should go.
+              - Use {{STORE_NAME}}, {{PRIMARY_COLOR}}, {{SECONDARY_COLOR}}, {{ACCENT_COLOR}} as placeholders.
+              - NAVIGATION: For store owners to return to the dashboard from the preview, use `onclick="window.backToAdmin()"` on any back/exit buttons.
             
-            JSON SCHEMA REQUIREMENTS (Return ONLY valid JSON):
+            AI ACTION GUIDELINES:
+            - If the user asks for a simple style change (e.g., "make it dark and red"), update the relevant CSS files or 'theme_config'.
+            - If the user asks for structural changes (e.g., "add a new banner section"), update 'index.html' or add a new component file.
+            - If no files exist yet, GENERATE a complete professional starter project including:
+               1. 'index.html' (using {{PRODUCTS_GRID}})
+               2. 'css/style.css' (premium modern designs, mesh gradients, glassmorphism)
+               3. 'js/main.js' (subtle animations or interactions)
+            
+            JSON RESPONSE FORMAT (Strict JSON):
             {{
-              "primary_color": "hex code",
-              "secondary_color": "hex code",
-              "accent_color": "hex code",
-              "layout_type": "grid_compact | list_wide | masonry",
-              "banner_style": "rounded | sharp | glass",
-              "card_style": "minimal | elevated | glassmorphic",
-              "border_radius": "px or rem unit",
-              "font_family": "Google Font name",
-              "animations_enabled": true/false,
-              "swiper_speed": 300,
-              "header_style": "transparent | solid | floating",
-              "ai_logic_summary": "Short explanation in Uzbek of what was changed and why."
+              "primary_color": "hex",
+              "secondary_color": "hex",
+              "accent_color": "hex",
+              "ai_logic_summary": "Uzbek explanation of architectural changes.",
+              "ui_schema": [...],
+              "store_files": {{
+                 "index.html": "...",
+                 "css/style.css": "...",
+                 "js/main.js": "..."
+              }}
             }}
             
-            USER REQUEST: "{user_prompt}"
+            CRITICAL RULES:
+            1. Return ONLY valid JSON. No markdown. No triple backticks.
+            2. Never use comments like // inside JSON.
+            3. Ensure the 'store_files' map contains the FULL project if changes are significant.
+            4. If only one file changes, you can return just that file in the map, AND the existing ones to keep the state.
             
-            IMPORTANT: Return ONLY the JSON object. No markdown, no triple backticks, no text before or after.
+            USER REQUEST: "{user_prompt}"
             """
             
-            model_names = self._get_model_names('text')
-            response_text = self._safe_generate_content(model_names, system_prompt)
+            response_text = ""
+            try:
+                model_names = self._get_model_names('text')
+                response_text = self._safe_generate_content(model_names, system_prompt)
+            except Exception as e:
+                log_ai_error(f"AI content generation failed: {e}")
+                raise Exception(f"AI bilan bog'lanishda xatolik: {str(e)[:100]}")
             
-            # Basic JSON cleanup in case AI adds backticks
+            import json
+            import re
+            
+            # Robust JSON extraction
+            try:
+                # Find the first { and the last }
+                start = response_text.find('{')
+                end = response_text.rfind('}')
+                if start != -1 and end != -1:
+                    json_str = response_text[start:end+1]
+                    # Strip out any // comments just in case the AI hallucinations
+                    json_str = re.sub(r'//.*?\n', '\n', json_str)
+                    return json.loads(json_str)
+            except:
+                pass
+
+            # Fallback to older regex cleaning if block search fails
             if '```json' in response_text:
                 response_text = response_text.split('```json')[1].split('```')[0].strip()
             elif '```' in response_text:
                 response_text = response_text.split('```')[1].split('```')[0].strip()
             
-            import json
+            response_text = re.sub(r'//.*?\n', '\n', response_text)
             return json.loads(response_text)
         except Exception as e:
-            log_ai_error(f"UI Config generation error: {e}")
-            raise Exception("Sun'iy intellekt APIdan javob olishda xatolik yuz berdi. Iltimos keyinroq qayta urinib ko'ring (API byudjeti tugagan bo'lishi mumkin).")
+            log_ai_error(f"UI Config generation error: {e}\nResponse was: {response_text[:200]}...")
+            raise Exception(f"AI javobini o'qishda xatolik: {str(e)[:50]}. Iltimos qaytadan urinib ko'ring yoki boshqacharoq buyruq bering.")
 
 ai_service = AIService()

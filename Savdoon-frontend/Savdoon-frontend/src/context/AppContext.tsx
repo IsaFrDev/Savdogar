@@ -52,6 +52,10 @@ export interface Store {
   eskiz_email?: string;
   eskiz_token?: string;
   is_phone_verified?: boolean;
+  twa_enabled?: boolean;
+  telegram_welcome?: string;
+  telegram_welcome_uz?: string;
+  telegram_welcome_ru?: string;
   theme_config?: {
     fontFamily?: string;
     borderRadius?: string;

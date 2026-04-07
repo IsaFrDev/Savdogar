@@ -70,6 +70,9 @@ self.addEventListener('fetch', (event) => {
                 })
                 .catch(() => cached); // Gracefully handle network errors
             return cached || fetched;
+        }).catch(() => {
+            // Last resort fallback
+            return null;
         })
     );
 });

@@ -734,6 +734,12 @@ export const systemApi = {
 export const builderApi = {
     chat: (storeId: number, message: string) => 
         api.post('/stores/builder/chat/', { store_id: storeId, message }),
+    saveSchema: (storeId: number, ui_schema: any) =>
+        api.post('/stores/builder/schema/', { store_id: storeId, ui_schema }),
+    saveHtml: (storeId: number, store_html: string) =>
+        api.post('/stores/builder/html/', { store_id: storeId, store_html }),
+    saveFiles: (storeId: number, store_files: any) =>
+        api.post('/stores/builder/files/', { store_id: storeId, store_files }),
 };
 
 export default api;

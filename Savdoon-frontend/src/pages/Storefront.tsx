@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Menu, X, Plus, Minus, Trash2, ArrowRight, Check, Package, Loader2, Search, Star, Heart, SlidersHorizontal, Sparkles, Play, MapPin, User, Phone, ShieldCheck, ChevronRight, ShieldAlert } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -34,6 +35,25 @@ interface StorefrontProps {
   onBackToAdmin?: () => void;
   storeId?: number;
   isPreview?: boolean;
+}
+
+// Helper to isolate custom CSS
+function ShadowRoot({ children }: { children: React.ReactNode }) {
+  const shadowHostRef = useRef<HTMLDivElement>(null);
+  const [shadowRoot, setShadowRoot] = useState<ShadowRoot | null>(null);
+
+  useEffect(() => {
+    if (shadowHostRef.current && !shadowRoot) {
+      const root = shadowHostRef.current.attachShadow({ mode: 'open' });
+      setShadowRoot(root);
+    }
+  }, [shadowRoot]);
+
+  return (
+    <div ref={shadowHostRef} className="shadow-host w-full h-full">
+      {shadowRoot && ReactDOM.createPortal(children, shadowRoot)}
+    </div>
+  );
 }
 
 export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: StorefrontProps) {
@@ -142,6 +162,15 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
   };
 
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isPreview && onBackToAdmin) {
+      (window as any).backToAdmin = onBackToAdmin;
+    }
+    return () => {
+      delete (window as any).backToAdmin;
+    };
+  }, [isPreview, onBackToAdmin]);
 
   const loadStoreData = async () => {
     setLoading(true);
@@ -460,10 +489,179 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
     } as React.CSSProperties;
   })();
 
+  // UI Schema Engine
+  const defaultSchema = [
+    { type: 'Header' },
+    { type: 'HeroBanner' },
+    { type: 'SearchArea' },
+    { type: 'ProductsArea' }
+  ];
+  const activeSchema = (store?.ui_schema && store.ui_schema.length > 0) ? store.ui_schema : defaultSchema;
+
+  const getStyle = (type: string) => {
+    const section = activeSchema.find((b: any) => b.type === type);
+    if (!section) return { display: 'none' };
+    const index = activeSchema.indexOf(section);
+    return { order: index, ...(section.props || {}) };
+  };
+
+  const renderProductsGrid = () => (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32">
+      {isSearching ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-12 h-12 text-[var(--primary)] animate-spin mb-4" />
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">{t('searching') || 'Qidirilmoqda...'}</p>
+        </div>
+      ) : filteredProducts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <Search className="w-16 h-16 text-slate-800 mb-6 opacity-20" />
+          <p className="text-slate-400 font-bold uppercase tracking-widest">{t('noProductsFound') || 'Mahsulotlar topilmadi'}</p>
+        </div>
+      ) : (
+        <div className={`grid grid-cols-1 ${isPreview ? 'gap-4 px-2' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8'}`}>
+          {filteredProducts.map((product, index) => (
+            <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
+              <GlassCard className="overflow-hidden group cursor-pointer h-full flex flex-col border-white/5 hover:border-[var(--primary)]/30 hover:bg-white/5 duration-500">
+                <div className="aspect-square relative overflow-hidden bg-white/5 border-b border-[var(--color-border)]" onClick={() => setSelectedProduct(product)}>
+                  {product.images?.[0] ? (
+                    <img src={getMediaUrl(product.images[0].image) || undefined} alt={ln(product, 'name')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]"><Package className="w-16 h-16 opacity-10" /></div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--text-primary)]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <div className="p-6 flex flex-col flex-1">
+                  <p className="text-[10px] text-[var(--primary)] font-black uppercase tracking-widest mb-2">{ln(product.category_obj || { name: product.category_name }, 'name')}</p>
+                  <h4 className="font-black text-[var(--text-primary)] text-lg mb-4 truncate uppercase tracking-tight">
+                    {ln(product, 'name')}
+                  </h4>
+                  <div className="flex items-center justify-between mt-auto gap-4">
+                    <span className="text-xl font-black text-[var(--text-primary)] tabular-nums">{product.price.toLocaleString()} <span className="text-xs text-[var(--text-muted)]">{currency}</span></span>
+                    {!store.catalog_mode ? (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                        disabled={product.stock === 0}
+                        className="p-3 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-toq)] text-[var(--primary-foreground)] transition-all shadow-lg shadow-[var(--primary-glow)] disabled:opacity-50 active:scale-95"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setSelectedProduct(product)}
+                        className="px-4 py-2 rounded-xl bg-[var(--color-surface-raised)] hover:bg-[var(--color-border)] text-[var(--text-primary)] text-[10px] font-black uppercase tracking-widest border border-[var(--color-border)] transition-all"
+                      >
+                        {t('viewDetails')}
+                      </button>
+                    )}
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
+                    className="absolute top-4 left-4 p-2.5 rounded-xl bg-[var(--color-surface-raised)] border border-[var(--color-border-bright)] opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent)] hover:text-white shadow-xl z-10"
+                  >
+                    <Heart className={`w-4 h-4 ${wishlist.includes(product.id) ? 'fill-current text-[var(--accent)]' : 'text-[var(--text-muted)]'}`} />
+                  </button>
+                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all">
+                    <ShareButton url={`${window.location.origin}/store/${store?.slug}/product/${product.id}`} title={product.name} language={language} />
+                  </div>
+                </div>
+              </GlassCard>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+
+  // HTML Template Engine
+  if ((store?.store_files && Object.keys(store.store_files).length > 0) || store?.store_html) {
+    let processedHtml = "";
+    
+    if (store?.store_files && Object.keys(store.store_files).length > 0) {
+      // Explorer Mode: Use index.html or main.html as entry point
+      processedHtml = store.store_files['index.html'] || store.store_files['main.html'] || '';
+      
+      // Virtual Asset Resolution: Replace <link> and <script> tags with actual content from store_files
+      Object.keys(store.store_files).forEach(path => {
+        const content = store.store_files[path];
+        if (path.endsWith('.css')) {
+          const styleTag = `<style data-path="${path}">${content}</style>`;
+          // Support both absolute-looking and relative-looking paths
+          processedHtml = processedHtml.replace(new RegExp(`<link[^>]+href=["']\\.?/?${path}["'][^>]*>`, 'g'), styleTag);
+        } else if (path.endsWith('.js')) {
+          const scriptTag = `<script data-path="${path}">${content}</script>`;
+          processedHtml = processedHtml.replace(new RegExp(`<script[^>]+src=["']\\.?/?${path}["'][^>]*></script>`, 'g'), scriptTag);
+        }
+      });
+    } else {
+      // Legacy Single HTML mode
+      processedHtml = store.store_html;
+    }
+    
+    // Simple placeholder replacements
+    processedHtml = processedHtml
+      .replace(/{{STORE_NAME}}/g, store.name || '')
+      .replace(/{{BUSINESS_TYPE}}/g, store.business_type_display || '')
+      .replace(/{{DESCRIPTION}}/g, store.description || '')
+      .replace(/{{PRIMARY_COLOR}}/g, store.primary_color || '#6366F1')
+      .replace(/{{SECONDARY_COLOR}}/g, store.secondary_color || '#8B5CF6')
+      .replace(/{{ACCENT_COLOR}}/g, store.accent_color || '#F43F5E');
+
+    // Rendering dynamic sections inside HTML placeholders
+    if (processedHtml.includes('{{PRODUCTS_GRID}}')) {
+      const parts = processedHtml.split('{{PRODUCTS_GRID}}');
+      return (
+        <div className="min-h-screen font-sans" style={{ ...themeStyles, backgroundColor: 'var(--bg-main)', color: 'var(--text-primary)' }}>
+          {isPreview ? (
+            <ShadowRoot>
+              <div dangerouslySetInnerHTML={{ __html: parts[0] }} />
+              {renderProductsGrid()}
+              <div dangerouslySetInnerHTML={{ __html: parts[1] }} />
+            </ShadowRoot>
+          ) : (
+            <>
+              <div dangerouslySetInnerHTML={{ __html: parts[0] }} />
+              {renderProductsGrid()}
+              <div dangerouslySetInnerHTML={{ __html: parts[1] }} />
+            </>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div 
+        className="min-h-screen font-sans" 
+        style={{ 
+          ...themeStyles,
+          backgroundColor: 'var(--bg-main)',
+          color: 'var(--text-primary)'
+        }}
+      >
+        {isPreview ? (
+          <ShadowRoot>
+            <div dangerouslySetInnerHTML={{ __html: processedHtml }} />
+          </ShadowRoot>
+        ) : (
+          <div dangerouslySetInnerHTML={{ __html: processedHtml }} />
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-[var(--bg-main)] text-[var(--text-primary)] font-sans selection:bg-[var(--primary)]/30" style={themeStyles}>
+    <div className={`min-h-screen ${isPreview ? 'bg-transparent' : 'bg-[var(--bg-main)]'} text-[var(--text-primary)] font-sans selection:bg-[var(--primary)]/30 flex flex-col`} style={themeStyles}>
+      {isPreview && onBackToAdmin && (
+        <button 
+          onClick={onBackToAdmin}
+          className="fixed top-24 left-6 z-[100] p-4 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl text-white hover:bg-white/20 transition-all flex items-center gap-3 shadow-2xl group overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-[var(--primary)]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ArrowRight className="w-5 h-5 -rotate-180" />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Dashbordga qaytish</span>
+        </button>
+      )}
       {/* Dynamic Background Gradient - Full Page Mesh */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+      <div className={`${isPreview ? 'absolute' : 'fixed'} inset-0 overflow-hidden pointer-events-none z-0`} style={{ order: -1 }}>
         <div
           className="absolute top-[-10%] left-[-10%] w-[70%] h-[70%] blur-[120px] rounded-full opacity-30 animate-pulse-slow"
           style={{ background: `radial-gradient(circle, var(--primary-toq) 0%, transparent 70%)` }}
@@ -476,7 +674,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
       </div >
 
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-[var(--color-surface)] backdrop-blur-xl border-b border-[var(--color-border)] shadow-sm">
+      <header className="sticky top-0 z-40 bg-[var(--color-surface)] backdrop-blur-xl border-b border-[var(--color-border)] shadow-sm" style={getStyle('Header')}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16 lg:h-20">
             <div className="flex items-center gap-4">
@@ -601,7 +799,10 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
             </Swiper>
           </div>
         )}
+      </section>
 
+      {/* Search & Intro Area */}
+      <section className="relative w-full z-10 pt-4 pb-12" style={getStyle('SearchArea')}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {(!store.banners || store.banners.length === 0) && (
@@ -666,9 +867,10 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
             </div>
           </motion.div>
         </div>
-      </section >
+      </section>
 
-      {/* Nearby Stores Discovery */}
+      {/* Main Products Area */}
+      <section className="relative w-full z-10 flex-1" style={getStyle('ProductsArea')}>
       {showNearby && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
@@ -762,74 +964,11 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
       </div>
 
       {/* Products Grid */}
-      < section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-32" >
-        {
-          isSearching ? (
-            <div className="flex flex-col items-center justify-center py-20" >
-              <Loader2 className="w-12 h-12 text-[var(--primary)] animate-spin mb-4" />
-              <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">{t('searching') || 'Qidirilmoqda...'}</p>
-            </div>
-          ) : filteredProducts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-              <Search className="w-16 h-16 text-slate-800 mb-6 opacity-20" />
-              <p className="text-slate-400 font-bold uppercase tracking-widest">{t('noProductsFound') || 'Mahsulotlar topilmadi'}</p>
-            </div>
-          ) : (
-            <div className={`grid grid-cols-1 ${isPreview ? 'gap-4 px-2' : 'sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 lg:gap-8'}`}>
-              {filteredProducts.map((product, index) => (
-                <motion.div key={product.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}>
-                  <GlassCard className="overflow-hidden group cursor-pointer h-full flex flex-col border-white/5 hover:border-[var(--primary)]/30 hover:bg-white/5 duration-500">
-                    <div className="aspect-square relative overflow-hidden bg-white/5 border-b border-[var(--color-border)]" onClick={() => setSelectedProduct(product)}>
-                      {product.images?.[0] ? (
-                        <img src={getMediaUrl(product.images[0].image) || undefined} alt={ln(product, 'name')} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-[var(--text-muted)]"><Package className="w-16 h-16 opacity-10" /></div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-[var(--text-primary)]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </div>
-                    <div className="p-6 flex flex-col flex-1">
-                      <p className="text-[10px] text-[var(--primary)] font-black uppercase tracking-widest mb-2">{ln(product.category_obj || { name: product.category_name }, 'name')}</p>
-                      <h4 className="font-black text-[var(--text-primary)] text-lg mb-4 truncate uppercase tracking-tight">
-                        {ln(product, 'name')}
-                      </h4>
-                      <div className="flex items-center justify-between mt-auto gap-4">
-                        <span className="text-xl font-black text-[var(--text-primary)] tabular-nums">{product.price.toLocaleString()} <span className="text-xs text-[var(--text-muted)]">{currency}</span></span>
-                        {!store.catalog_mode ? (
-                          <button
-                            onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                            disabled={product.stock === 0}
-                            className="p-3 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-toq)] text-[var(--primary-foreground)] transition-all shadow-lg shadow-[var(--primary-glow)] disabled:opacity-50 active:scale-95"
-                          >
-                            <Plus className="w-5 h-5" />
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => setSelectedProduct(product)}
-                            className="px-4 py-2 rounded-xl bg-[var(--color-surface-raised)] hover:bg-[var(--color-border)] text-[var(--text-primary)] text-[10px] font-black uppercase tracking-widest border border-[var(--color-border)] transition-all"
-                          >
-                            {t('viewDetails')}
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
-                        className="absolute top-4 left-4 p-2.5 rounded-xl bg-[var(--color-surface-raised)] border border-[var(--color-border-bright)] opacity-0 group-hover:opacity-100 transition-all hover:bg-[var(--accent)] hover:text-white shadow-xl z-10"
-                      >
-                        <Heart className={`w-4 h-4 ${wishlist.includes(product.id) ? 'fill-current text-[var(--accent)]' : 'text-[var(--text-muted)]'}`} />
-                      </button>
-                      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all">
-                        <ShareButton url={`${window.location.origin}/store/${store?.slug}/product/${product.id}`} title={product.name} language={language} />
-                      </div>
-                    </div>
-                  </GlassCard>
-                </motion.div>
-              ))}
-            </div>
-          )
-        }
-      </section >
+      {renderProductsGrid()}
+      </section>
 
-      {/* Cart Drawer - Dark Refresh */}
+      {/* Overlays and Modals */}
+      <div style={{ order: 999 }}>
       <AnimatePresence>
         {
           cartOpen && (
@@ -1468,6 +1607,32 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview }: Storef
           />
         )}
       </AnimatePresence>
-    </div >
+      </div>
+
+      {/* Navigation Bridge (Back to Dashboard for Owners/Admins) */}
+      {store && user && (user.id === store.owner || user.role === 'superadmin') && (
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.5, y: 50 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          className="fixed bottom-6 left-6 z-50 px-4 md:px-0"
+        >
+          <button
+            onClick={() => onBack()}
+            className="flex items-center gap-3 px-6 py-4 bg-slate-900 border border-white/20 rounded-2xl shadow-2xl hover:bg-slate-800 transition-all group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg group-hover:rotate-12 transition-transform">
+              <ShieldCheck className="w-4 h-4 text-white" />
+            </div>
+            <div className="flex flex-col items-start leading-tight text-left">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tizim</span>
+              <span className="text-sm font-black text-white uppercase tracking-tight">Boshqaruv Paneli</span>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-1 transition-transform" />
+          </button>
+        </motion.div>
+      )}
+    </div>
   );
 }

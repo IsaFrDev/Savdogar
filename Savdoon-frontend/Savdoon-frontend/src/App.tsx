@@ -33,6 +33,21 @@ function AppContent() {
   const [pendingStoreName, setPendingStoreName] = useState('');
   const [dashboardTab, setDashboardTab] = useState<string | undefined>(undefined);
 
+  // Register Service Worker for PWA
+  useEffect(() => {
+    if ('serviceWorker' in navigator && window.location.protocol === 'https:') {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('SW registered: ', registration);
+          })
+          .catch(error => {
+            console.log('SW registration failed: ', error);
+          });
+      });
+    }
+  }, []);
+
   // Check URL for subdomain or special paths
   useEffect(() => {
     const pathname = window.location.pathname;
@@ -103,16 +118,18 @@ function AppContent() {
 
   // Redirect based on auth state
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
-        if (isSuperAdmin && (page === 'login' || page === 'register' || page === 'admin-login')) {
+    if (!isLoading && isAuthenticated) {
+      // Only redirect if we are on a landing/auth page, not if we are browsing the marketplace
+      const authPages: Page[] = ['login', 'register', 'admin-login'];
+      const onAuthPage = authPages.includes(page);
+
+      if (onAuthPage) {
+        if (isSuperAdmin) {
           setPage('super-admin');
-        } else if (!isSuperAdmin && (page === 'login' || page === 'register')) {
-          if (user?.role === 'courier') {
-            setPage('courier-dashboard');
-          } else {
-            setPage('dashboard');
-          }
+        } else if (user?.role === 'courier') {
+          setPage('courier-dashboard');
+        } else {
+          setPage('dashboard');
         }
       }
     }

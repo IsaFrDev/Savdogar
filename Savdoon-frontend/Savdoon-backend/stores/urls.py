@@ -8,11 +8,13 @@ from .views import (
     BranchViewSet, StoreBannerViewSet, StaffRoleViewSet,
     StaffMemberViewSet, IKPUViewSet,
 )
+from .builder_views import StoreBuilderChatView
 
 router = DefaultRouter()
 router.register(r'', StoreViewSet, basename='store')
 
 urlpatterns = [
+    path('builder/chat/', StoreBuilderChatView.as_view(), name='store-builder-chat'),
     path('acknowledge-rejection/', AcknowledgeRejectionView.as_view(), name='acknowledge-rejection'),
     path('pending/', PendingStoresView.as_view(), name='pending-stores'),
     path('<int:pk>/approve/', StoreApprovalView.as_view(), name='store-approval'),

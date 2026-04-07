@@ -37,7 +37,7 @@ class Product(models.Model):
     name_uz = models.CharField(max_length=200, blank=True)
     name_ru = models.CharField(max_length=200, blank=True)
     
-    slug = models.SlugField(max_length=200)
+    slug = models.SlugField(max_length=200, blank=True)
     sku = models.CharField(max_length=50, blank=True)
     
     image = models.ImageField(upload_to='products/', blank=True, null=True)
@@ -77,6 +77,18 @@ class Product(models.Model):
         db_table = 'products'
         ordering = ['-created_at']
     
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            from django.utils.text import slugify
+            self.slug = slugify(self.name, allow_unicode=True)
+            
+        # Ensure slug is not empty even if slugify results in empty (e.g. non-ascii without allow_unicode)
+        if not self.slug:
+            import uuid
+            self.slug = f"product-{uuid.uuid4().hex[:8]}"
+            
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.name} - {self.store.name}"
     

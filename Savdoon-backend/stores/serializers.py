@@ -25,7 +25,7 @@ class StoreSerializer(serializers.ModelSerializer):
             'base_currency', 'use_auto_rates', 'manual_exchange_rates', 'telegram_username',
             'primary_color', 'secondary_color', 'phone', 'email', 'instagram_url',
             'telegram_channel', 'facebook_url', 'website_url', 'youtube_url', 'tiktok_url',
-            'whatsapp_number', 'theme_config', 'working_hours',
+            'whatsapp_number', 'theme_config', 'ui_schema', 'store_html', 'store_files', 'working_hours',
             'plan', 'trial_started_at', 'trial_days', 'balance',
             'payment_methods', 'delivery_settings',
             'rating', 'rating_count',
