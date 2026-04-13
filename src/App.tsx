@@ -5,6 +5,7 @@ import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { StoreWizard } from './pages/StoreWizard';
 import { Marketplace } from './pages/Marketplace';
+import { StorePendingApproval } from './components/StorePendingApproval';
 
 import { Dashboard } from './pages/Dashboard';
 import { CourierDashboard } from './pages/dashboard/CourierDashboard';
@@ -21,7 +22,7 @@ import { motion } from 'framer-motion';
 import RejectionModal from './components/RejectionModal';
 
 
-type Page = 'login' | 'register' | 'wizard' | 'dashboard' | 'storefront' | 'admin-login' | 'super-admin' | 'courier-dashboard' | 'ai-intel' | 'marketplace';
+type Page = 'login' | 'register' | 'wizard' | 'pending-approval' | 'dashboard' | 'storefront' | 'admin-login' | 'super-admin' | 'courier-dashboard' | 'ai-intel' | 'marketplace';
 
 function AppContent() {
   const { isLoading, isAuthenticated, isSuperAdmin, user, logout } = useAuth();
@@ -85,7 +86,7 @@ function AppContent() {
       // 1. Check for explicit store slug in query params (useful for dev/testing)
       const queryParams = new URLSearchParams(window.location.search);
       const forcedSlug = queryParams.get('store');
-      const isHardRefresh = window.performance?.getEntriesByType("navigation")[0]?.type === "reload";
+      const isHardRefresh = (window.performance?.getEntriesByType("navigation")[0] as PerformanceNavigationTiming)?.type === "reload";
 
       let storeSlug = forcedSlug;
 
@@ -365,11 +366,21 @@ function AppContent() {
       case 'wizard':
         return (
           <StoreWizard
-            onComplete={() => {
-              setStoreId(undefined); // Clear any stale managed store
-              setDashboardTab(undefined); // Reset to default tab (overview)
-              setPage('dashboard');
+            onComplete={(storeId: number, storeName: string) => {
+              setStoreId(storeId);
+              setPendingStoreName(storeName);
+              setIsPendingStore(true);
+              setDashboardTab(undefined);
+              setPage('pending-approval');
             }}
+          />
+        );
+      case 'pending-approval':
+        return (
+          <StorePendingApproval
+            storeName={pendingStoreName}
+            storeStatus="pending"
+            onRetry={() => setPage('wizard')}
           />
         );
       case 'ai-intel':

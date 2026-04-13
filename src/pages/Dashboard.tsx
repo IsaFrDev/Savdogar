@@ -24,7 +24,9 @@ import {
   Send,
   Wand2,
   Image,
-  Layers
+  Layers,
+  CreditCard,
+  DollarSign
 } from 'lucide-react';
 import { useApp, Store as StoreType } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -40,6 +42,8 @@ import { Categories } from './dashboard/Categories';
 import { SettingsPage } from './dashboard/Settings';
 import AIStudio from './dashboard/AiStudio';
 import { Discounts } from './dashboard/Discounts';
+import POSInterface from './dashboard/POSInterface';
+import ERPDashboard from './dashboard/ERPDashboard';
 import { WishlistPage } from './dashboard/Wishlist';
 import { NotificationCenter } from '../components/NotificationCenter';
 import { QRCodeManager } from '../components/QRCodeManager';
@@ -234,6 +238,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       tabs: [
         { id: 'overview', label: t('overview'), icon: LayoutDashboard },
         { id: 'orders', label: t('orders'), icon: ShoppingCart },
+        { id: 'pos', label: 'POS Terminal', icon: CreditCard },
         { id: 'products', label: t('products'), icon: Package },
         { id: 'categories', label: t('categories') || 'Kategoriyalar', icon: FolderOpen },
         { id: 'customers', label: t('customers') || 'Mijozlar', icon: Star },
@@ -245,6 +250,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       tabs: [
         { id: 'warehouse', label: t('warehouse') || 'Ombor', icon: Store },
         { id: 'ikpu', label: 'IKPU', icon: QrCode },
+        { id: 'erp', label: 'ERP Boshqaruv', icon: DollarSign },
       ]
     },
     {
@@ -509,6 +515,8 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
     switch (activeTab) {
       case 'products': return <Products storeId={currentStore?.id} />;
       case 'orders': return <Orders storeId={currentStore?.id} />;
+      case 'pos': return <POSInterface />;
+      case 'erp': return <ERPDashboard />;
       case 'categories': return <Categories storeId={currentStore?.id} />;
       case 'qr': return <QRCodeManager storeId={currentStore?.id?.toString() || ''} />;
       case 'ai-studio': return <AIStudio store={currentStore} onTabChange={setActiveTab} />;

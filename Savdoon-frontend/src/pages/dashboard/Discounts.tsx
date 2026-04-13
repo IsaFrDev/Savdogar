@@ -144,7 +144,7 @@ export function Discounts({ storeId }: DiscountsProps) {
         } catch (error: any) {
             console.error('Failed to save:', error);
             const detail = error?.response?.data;
-            const msg = typeof detail === 'object' ? Object.values(detail).flat().join(', ') : (detail || 'Xatolik yuz berdi');
+            const msg = typeof detail === 'object' ? Object.values(detail).flat().join(', ') : (detail || t('errorOccurred'));
             alert(msg);
         } finally {
             setIsSubmitting(false);
@@ -267,7 +267,7 @@ export function Discounts({ storeId }: DiscountsProps) {
                                     </div>
                                     {activeTab === 'promo-codes' && (
                                         <div className="text-right">
-                                            {item.usage_count} / {item.usage_limit || '∞'} uses
+                                            {item.usage_count} / {item.usage_limit || '∞'} {language === 'uz' ? 'ishlatildi' : 'uses'}
                                         </div>
                                     )}
                                 </div>
@@ -384,7 +384,7 @@ export function Discounts({ storeId }: DiscountsProps) {
                                                 type="number"
                                                 value={formData.usage_limit}
                                                 onChange={(v) => setFormData({ ...formData, usage_limit: v })}
-                                                placeholder="Unlimited"
+                                                placeholder={t('unlimited')}
                                             />
                                         </div>
                                     )}

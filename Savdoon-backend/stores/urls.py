@@ -10,6 +10,7 @@ from .views import (
 )
 from .builder_views import StoreBuilderChatView, StoreBuilderSchemaUpdateView, StoreBuilderHtmlUpdateView
 from .builder_views import StoreBuilderChatView, StoreBuilderSchemaUpdateView, StoreBuilderHtmlUpdateView, StoreBuilderFilesUpdateView
+from .telegram_webhook import telegram_webhook
 
 router = DefaultRouter()
 router.register(r'', StoreViewSet, basename='store')
@@ -35,5 +36,7 @@ urlpatterns = [
     path('<int:store_id>/staff/<int:pk>/', StaffMemberViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='store-staff-detail'),
     path('<int:store_id>/ikpu/', IKPUViewSet.as_view({'get': 'list', 'post': 'create'}), name='store-ikpu'),
     path('<int:store_id>/ikpu/<int:pk>/', IKPUViewSet.as_view({'get': 'retrieve', 'put': 'update', 'patch': 'partial_update', 'delete': 'destroy'}), name='store-ikpu-detail'),
+    # Telegram webhook
+    path('telegram/webhook/<int:store_id>/', telegram_webhook, name='telegram-webhook'),
     path('', include(router.urls)),
 ]

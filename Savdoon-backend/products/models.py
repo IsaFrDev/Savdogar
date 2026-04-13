@@ -1,6 +1,31 @@
 from django.db import models
 from django.conf import settings
 
+# Import inventory and product enhancement models
+from .inventory_models import (
+    Warehouse,
+    WarehouseZone,
+    StockLocation,
+    WarehouseProduct,
+    Batch,
+    StockMovement,
+    StockTransfer,
+    StockTransferItem,
+    StockAlert,
+)
+
+from .product_enhancements import (
+    ProductVideo,
+    ProductImage360,
+    SizeGuide,
+    ProductBundle,
+    BundleItem,
+    ProductSubscription,
+    CustomerSubscription,
+    ProductPreOrder,
+    BackInStockNotification,
+)
+
 
 class Category(models.Model):
     """Product category."""

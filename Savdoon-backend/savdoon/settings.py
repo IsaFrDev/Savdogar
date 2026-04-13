@@ -56,7 +56,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # Application definition
 INSTALLED_APPS = [
-    'daphne',
+    # 'daphne', # Temporarily disabled to debug ERR_EMPTY_RESPONSE via standard runserver (WSGI)
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -69,9 +69,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'drf_spectacular',
-    'channels',
-    # 'django_user_agents',
     # Local apps
+    'core',
     'accounts',
     'stores',
     'products',
@@ -80,6 +79,8 @@ INSTALLED_APPS = [
     'delivery',
     'marketing',
     'notifications',
+    'pos',  # Point of Sale
+    'erp',  # Enterprise Resource Planning
     'savdoon.apps.SavdoonConfig',
 ]
 
@@ -159,7 +160,33 @@ else:
         },
     }
 
-# Database - PostgreSQL on Railway, SQLite for local
+# Caching Configuration
+_redis_url = os.environ.get('REDIS_URL')
+if _redis_url:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': _redis_url,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'IGNORE_EXCEPTIONS': True,
+            }
+        }
+    }
+else:
+    # Use DummyCache locally to prevent any connection/async issues during dev
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
+        }
+    }
+
+# Sessions - Use Database for local stability, Cache only if Redis is explicitly configured
+if _redis_url:
+    SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+    SESSION_CACHE_ALIAS = "default"
+else:
+    SESSION_ENGINE = "django.contrib.sessions.backends.db"
 DATABASES = {
     'default': dj_database_url.config(
         default=f'sqlite:///{BASE_DIR / "db_prod_v1.sqlite3"}',

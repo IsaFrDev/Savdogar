@@ -18,6 +18,9 @@ from .serializers import (
 )
 from .permissions import IsStoreOwner, IsSuperAdmin
 
+# Import notification service
+from notifications.models import Notification
+
 
 class StoreViewSet(viewsets.ModelViewSet):
     """ViewSet for Store CRUD operations."""
@@ -32,6 +35,9 @@ class StoreViewSet(viewsets.ModelViewSet):
            (hasattr(self, 'request') and self.request and self.request.method == 'GET'):
             return [AllowAny()]
         if getattr(self, 'action', None) == 'destroy':
+            return [IsAuthenticated(), IsSuperAdmin()]
+        # SuperAdmin only actions
+        if getattr(self, 'action', None) in ['approve', 'reject']:
             return [IsAuthenticated(), IsSuperAdmin()]
         return [IsAuthenticated()]
 
@@ -51,16 +57,92 @@ class StoreViewSet(viewsets.ModelViewSet):
         # Superadmins see everything
         if user.is_superuser or getattr(user, 'role', '') == 'superadmin':
             return Store.objects.all()
-            
-        # Retrieve action allows seeing the specific store if owned or approved/not in maintenance
-        if self.action == 'retrieve':
-            pk = self.kwargs.get('pk')
-            if Store.objects.filter(pk=pk, owner=user).exists():
-                return Store.objects.all()
-            return Store.objects.filter(status='approved', maintenance_mode=False)
-            
-        # Standard list action for owners
+        
+        # Store owners see their own stores (including pending/rejected)
         return Store.objects.filter(owner=user)
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsSuperAdmin])
+    def approve(self, request, pk=None):
+        """Approve a store (SuperAdmin only)"""
+        try:
+            store = self.get_object()
+            
+            # Update store status
+            store.status = 'approved'
+            store.save()
+            
+            # Send notification to store owner
+            Notification.objects.create(
+                user=store.owner,
+                type='store_approval',
+                title='Do\'koningiz tasdiqlandi!',
+                title_uz='Do\'koningiz tasdiqlandi!',
+                title_ru='Ваш магазин одобрен!',
+                message=f'Tabriklaymiz! "{store.name}" do\'koningiz tasdiqlandi va endi ishlayapti.',
+                message_uz=f'Tabriklaymiz! "{store.name}" do\'koningiz tasdiqlandi va endi ishlayapti.',
+                message_ru=f'Поздравляем! Ваш магазин "{store.name}" одобрен и теперь работает.',
+                store=store,
+                read=False
+            )
+            
+            return Response({
+                'message': 'Store approved successfully',
+                'store': StoreSerializer(store).data
+            })
+        except Exception as e:
+            import logging
+            logger = logging.getLogger('savdoon')
+            logger.error(f'Error approving store {pk}: {e}')
+            return Response(
+                {'error': f'Failed to approve store: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsSuperAdmin])
+    def reject(self, request, pk=None):
+        """Reject a store with reason (SuperAdmin only)"""
+        store = self.get_object()
+        reason = request.data.get('reason', '')
+        reason_uz = request.data.get('reason_uz', '')
+        reason_ru = request.data.get('reason_ru', '')
+        
+        if not reason and not reason_uz:
+            return Response(
+                {'error': 'Rejection reason is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update store status
+        store.status = 'rejected'
+        store.save()
+        
+        # Send notification to store owner with rejection reason
+        Notification.objects.create(
+            user=store.owner,
+            type='store_rejected',
+            title='Do\'koningiz rad etildi',
+            title_uz='Do\'koningiz rad etildi',
+            title_ru='Ваш магазин отклонен',
+            message=f'"{store.name}" do\'koningiz quyidagi sabab bilan rad etildi: {reason}',
+            message_uz=f'"{store.name}" do\'koningiz quyidagi sabab bilan rad etildi: {reason_uz or reason}',
+            message_ru=f'Ваш магазин "{store.name}" отклонен по причине: {reason_ru or reason}',
+            store=store,
+            rejection_reason=reason,
+            rejection_reason_uz=reason_uz,
+            rejection_reason_ru=reason_ru,
+            read=False
+        )
+        
+        return Response({
+            'message': 'Store rejected',
+            'store': StoreSerializer(store).data
+        })
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Retrieve a single store"""
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
     
     def get_serializer_class(self):
         if self.action == 'create':
@@ -343,6 +425,44 @@ class StoreViewSet(viewsets.ModelViewSet):
         if success:
             return Response({'message': 'Test message sent successfully'})
         return Response({'error': 'Failed to send test message'}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsStoreOwner])
+    def create_telegram_bot(self, request, pk=None):
+        """Setup Telegram bot for store (auto-configure Mini App)"""
+        store = self.get_object()
+        bot_token = request.data.get('bot_token')
+        
+        if not bot_token:
+            return Response(
+                {'error': 'Bot token is required. Create a bot via @BotFather first.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from stores.bot_service import bot_service
+            
+            # Setup bot
+            bot_info = bot_service.setup_store_bot(store, bot_token)
+            
+            # Update store
+            store.telegram_bot_token = bot_token
+            store.twa_enabled = True
+            store.save()
+            
+            return Response({
+                'message': 'Telegram bot configured successfully',
+                'bot_username': bot_info['username'],
+                'mini_app_url': bot_info['mini_app_url'],
+                'webhook_url': bot_info['webhook_url']
+            })
+        except Exception as e:
+            import logging
+            logger = logging.getLogger('savdoon')
+            logger.error(f'Error setting up Telegram bot for store {pk}: {e}')
+            return Response(
+                {'error': f'Failed to setup bot: {str(e)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
     @action(detail=True, methods=['get'])
     def analytics(self, request, pk=None):

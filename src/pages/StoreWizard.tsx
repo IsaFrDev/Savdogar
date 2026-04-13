@@ -14,7 +14,7 @@ import { Language } from '../i18n/translations';
 import { extractColorsFromImage } from '../utils/colorExtractor';
 
 interface StoreWizardProps {
-    onComplete: () => void;
+    onComplete: (storeId: number, storeName: string) => void;
 }
 
 const businessTypes = ['grocery', 'clothing', 'electronics', 'services', 'restaurant', 'beauty', 'home', 'other'];
@@ -734,9 +734,10 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                             </button>
                                         )}
                                         <Button
-                                            onClick={onComplete}
+                                            onClick={() => onComplete(createdStoreId || 0, storeName)}
                                             size="lg"
                                             className="px-10 py-5 shadow-xl shadow-[var(--brand-primary-glow)]"
+                                            disabled={!createdStoreId}
                                         >
                                             {t('goToDashboard')}
                                         </Button>

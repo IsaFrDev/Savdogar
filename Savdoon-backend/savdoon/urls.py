@@ -22,11 +22,14 @@ urlpatterns = [
     path('api/delivery/', include('delivery.urls')),
     path('api/chat/', include('chat.urls')),
     path('api/marketing/', include('marketing.urls')),
+    path('api/pos/', include('pos.urls')),  # Point of Sale
+    path('api/erp/', include('erp.urls')),  # Enterprise Resource Planning
     path('api/analytics/forecast/', analytics_views.forecast_view, name='forecast'),
     path('api/ai/', include('savdoon.ai_urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     path('api/system/terminal/', TerminalView.as_view(), name='terminal'),
+    path('api/ping/', lambda request: __import__('django.http').http.JsonResponse({'status': 'ok', 'server': 'WSGI'}), name='ping'),
     path('api/', include(router.urls)),
 ]
 

@@ -1,6 +1,18 @@
 from django.db import models
 from django.utils import timezone
 
+# Import loyalty program models
+from .loyalty_models import (
+    LoyaltyProgram,
+    LoyaltyTier,
+    CustomerLoyalty,
+    LoyaltyTransaction,
+    ReferralProgram,
+    Referral,
+    Coupon,
+    CustomerCoupon,
+)
+
 
 class Reel(models.Model):
     store = models.ForeignKey('stores.Store', on_delete=models.CASCADE, related_name='reels')

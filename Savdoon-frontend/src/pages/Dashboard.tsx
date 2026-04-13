@@ -243,8 +243,8 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
     {
       title: t('inventory') || 'Omborxona',
       tabs: [
-        { id: 'warehouse', label: t('warehouse') || 'Ombor', icon: Store },
-        { id: 'ikpu', label: 'IKPU', icon: QrCode },
+        { id: 'warehouse', label: t('warehouse'), icon: Store },
+        { id: 'ikpu', label: t('ikpu') || 'IKPU', icon: QrCode },
       ]
     },
     {
@@ -252,7 +252,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       tabs: [
         { id: 'marketing', label: t('marketing'), icon: Send },
         { id: 'discounts', label: t('discounts'), icon: Tag },
-        { id: 'banners', label: t('banners') || 'Bannerlar', icon: Image },
+        { id: 'banners', label: t('banners'), icon: Image },
       ]
     },
     {
@@ -260,7 +260,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       tabs: [
         { id: 'ai-studio', label: t('aiStudio') || 'AI Studio', icon: Sparkles },
         { id: 'ai-creative', label: t('aiCreative') || 'AI Creative', icon: Wand2 },
-        { id: 'ai-builder', label: 'AI Design Builder', icon: LayoutDashboard },
+        { id: 'ai-builder', label: t('aiStudio') || 'AI Layout Builder', icon: LayoutDashboard },
         { id: 'ai-stylist', label: t('aiStylist') || 'AI Stylist', icon: Wand2 },
         { id: 'ai-image-studio', label: t('aiImageStudio') || 'AI Image Studio', icon: Image },
         {
@@ -275,12 +275,12 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       title: t('settings') || 'Sozlamalar',
       tabs: [
         { id: 'settings', label: t('settings'), icon: Settings },
-        { id: 'branches', label: t('branches') || 'Filiallar', icon: MapPin },
-        { id: 'staff', label: t('staff') || 'Xodimlar', icon: ShieldCheck },
-        { id: 'payments', label: t('payments') || 'To\'lovlar', icon: ShoppingCart },
-        { id: 'delivery', label: t('delivery') || 'Yetkazib berish', icon: Package },
-        { id: 'platforms', label: t('platforms') || 'Platformalar', icon: Send },
-        { id: 'tariff', label: t('tariff') || 'Tarif', icon: Star },
+        { id: 'branches', label: t('branches'), icon: MapPin },
+        { id: 'staff', label: t('staff'), icon: ShieldCheck },
+        { id: 'payments', label: t('payments'), icon: ShoppingCart },
+        { id: 'delivery', label: t('delivery'), icon: Package },
+        { id: 'platforms', label: t('platforms'), icon: Send },
+        { id: 'tariff', label: t('tariff'), icon: Star },
       ]
     }
   ] as { title: string; tabs: { id: string; label: string; icon: any; badge?: any; hidden?: boolean }[] }[];

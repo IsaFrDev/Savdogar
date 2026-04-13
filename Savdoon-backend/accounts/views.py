@@ -50,13 +50,21 @@ class CustomTokenRefreshView(TokenRefreshView):
             import traceback
             logger = logging.getLogger('savdoon')
             
+            error_str = str(e)
+            
             # Special case for users that no longer exist in the DB (e.g. after re-deploy/DB wipe)
-            if "User matching query does not exist" in str(e):
+            if "User matching query does not exist" in error_str:
                 logger.warning(f"Token refresh failed: User does not exist (stale token). IP: {request.META.get('REMOTE_ADDR')}")
                 return Response({'error': 'User session is invalid or stale'}, status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Token expired or invalid
+            if "Token is invalid" in error_str or "Token expired" in error_str or "token" in error_str.lower():
+                logger.warning(f"Token refresh failed: Invalid/expired token. IP: {request.META.get('REMOTE_ADDR')}")
+                return Response({'error': 'Token is invalid or expired'}, status=status.HTTP_401_UNAUTHORIZED)
                 
+            # Any other error - return 401 instead of 500
             logger.error(f"Error in CustomTokenRefreshView: {e}\n{traceback.format_exc()}")
-            return Response({'error': 'Token refresh failed temporarily'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            return Response({'error': 'Token refresh failed. Please login again.'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class RegisterView(generics.CreateAPIView):
@@ -180,7 +188,9 @@ class LoginView(APIView):
             return Response({'error': 'Database is being initialized. Please refresh in 30 seconds.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         
         if not user.check_password(password):
-            log_login_attempt(user, request, success=False, failure_reason='Invalid password')
+            try:
+                log_login_attempt(user, request, success=False, failure_reason='Invalid password')
+            except: pass
             return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
             
         # Ensure superadmin role and email if it's the designated superadmin email
@@ -236,8 +246,11 @@ class LoginView(APIView):
             })
 
         refresh = RefreshToken.for_user(user)
-        log_login_attempt(user, request, success=True)
-        create_user_session(user, request, is_verified_2fa=False)
+        try:
+            log_login_attempt(user, request, success=True)
+            create_user_session(user, request, is_verified_2fa=False)
+        except Exception as e:
+            print(f"Non-critical login log/session error: {e}")
         
         return Response({
             'user': UserSerializer(user).data,
@@ -262,18 +275,20 @@ class SuperAdminLoginView(APIView):
         request=SuperAdminLoginSerializer,
     )
     def post(self, request):
+        print("\n[DEBUG] --- SuperAdminLogin Start ---")
         serializer = SuperAdminLoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
         username_input = serializer.validated_data['username']
         password = serializer.validated_data['password']
         
-        print(f"DEBUG: SuperAdmin Login Attempt: username='{username_input}'")
+        print(f"[DEBUG] Attempt: username='{username_input}'")
         
         # 1. Check for hardcoded fallback
         if username_input == 'admin' and password == 'admin123':
-            print("DEBUG: Using hardcoded fallback")
+            print("[DEBUG] Using hardcoded fallback branch")
             try:
+                print("[DEBUG] Calling get_or_create for admin...")
                 user, created = User.objects.get_or_create(
                     username='admin',
                     defaults={
@@ -283,19 +298,23 @@ class SuperAdminLoginView(APIView):
                         'is_superuser': True,
                     }
                 )
+                print(f"[DEBUG] User {'created' if created else 'found'}. Ready to set permissions.")
                 user.role = 'superadmin'
                 user.is_staff = True
                 user.is_superuser = True
                 if created:
+                    print("[DEBUG] Setting password for new admin...")
                     user.set_password('admin123')
+                print("[DEBUG] Saving user...")
                 user.save()
+                print("[DEBUG] User save complete.")
             except Exception as e:
-                import logging
-                logger = logging.getLogger('savdoon')
-                logger.error(f"Database error in SuperAdminLoginView: {e}")
-                return Response({'error': 'Database initialization error. Please try again soon.'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+                import traceback
+                print(f"[DEBUG] ERROR in get_or_create: {e}")
+                print(traceback.format_exc())
+                return Response({'error': str(e)}, status=500)
         else:
-            # 2. Check for real superadmin user in DB (by username or email)
+            print("[DEBUG] Using DB lookup branch")
             from django.db.models import Q
             user = User.objects.filter(
                 Q(username=username_input) | Q(email=username_input),
@@ -303,32 +322,52 @@ class SuperAdminLoginView(APIView):
             ).first()
             
             if not user:
-                print(f"DEBUG: No superadmin found for '{username_input}'")
+                print(f"[DEBUG] No superadmin found for '{username_input}'")
                 return Response({'error': 'Invalid admin credentials'}, status=status.HTTP_401_UNAUTHORIZED)
             
+            print("[DEBUG] Checking password...")
             if not user.check_password(password):
-                print(f"DEBUG: Password mismatch for user '{user.username}'")
+                print(f"[DEBUG] Password mismatch for user '{user.username}'")
                 return Response({'error': 'Invalid admin credentials'}, status=status.HTTP_401_UNAUTHORIZED)
             
-            print(f"DEBUG: Successful lookup for user '{user.username}'")
+            print(f"[DEBUG] Password valid for '{user.username}'")
         
         # Ensure superadmin permissions are set
+        print("[DEBUG] Final Permission Check...")
         if not user.is_staff or not user.is_superuser:
             user.is_staff = True
             user.is_superuser = True
             user.save()
+            print("[DEBUG] Permissions updated.")
 
-        refresh = RefreshToken.for_user(user)
-        log_login_attempt(user, request, success=True)
-        create_user_session(user, request)
-        
-        return Response({
-            'user': UserSerializer(user).data,
-            'tokens': {
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }
-        })
+        try:
+            print("[DEBUG] GENERATING JWT TOKEN (RefreshToken.for_user)...")
+            refresh = RefreshToken.for_user(user)
+            print("[DEBUG] JWT TOKEN GENERATED.")
+            
+            try:
+                print("[DEBUG] Logging login attempt...")
+                log_login_attempt(user, request, success=True)
+                
+                print("[DEBUG] Creating user session...")
+                create_user_session(user, request)
+                print("[DEBUG] SESSION CREATED.")
+            except Exception as e:
+                print(f"[DEBUG] Session creation failed (ignoring for login): {e}")
+            
+            print("[DEBUG] --- SuperAdminLogin Success! ---")
+            return Response({
+                'user': UserSerializer(user).data,
+                'tokens': {
+                    'refresh': str(refresh),
+                    'access': str(refresh.access_token),
+                }
+            })
+        except Exception as e:
+            import traceback
+            print(f"[DEBUG] CRITICAL ERROR during token/session: {e}")
+            print(traceback.format_exc())
+            return Response({'error': 'Critical initialization error'}, status=500)
 
 
 class MeView(APIView):

@@ -128,8 +128,8 @@ interface AppContextType {
   setCustomColors: (colors: { primary: string; secondary: string; accent: string }) => void;
   exchangeRates: { USD: number; RUB: number };
   setExchangeRates: (rates: { USD: number; RUB: number }) => void;
-  themeMode: 'light' | 'ai';
-  setThemeMode: (mode: 'light' | 'ai') => void;
+  themeMode: 'light' | 'dark' | 'ai';
+  setThemeMode: (mode: 'light' | 'dark' | 'ai') => void;
   formatPrice: (amount: number, currencyOverride?: string) => string;
   ln: (obj: any, field: string) => string;
 }
@@ -162,8 +162,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('savdoon_exchange_rates', JSON.stringify(rates));
   };
 
-  const themeMode: 'light' | 'ai' = 'light';
-  const setThemeMode = () => console.warn('Theme is locked to light mode.');
+  const [themeMode, setThemeModeState] = useState<'light' | 'dark' | 'ai'>(() => {
+    return (localStorage.getItem('savdoon_theme') as any) || 'light';
+  });
+
+  const setThemeMode = (mode: 'light' | 'dark' | 'ai') => {
+    setThemeModeState(mode);
+    localStorage.setItem('savdoon_theme', mode);
+  };
 
   const [customColors, setCustomColorsState] = useState<{ primary: string; secondary: string; accent: string }>(() => {
     const saved = localStorage.getItem('savdoon_custom_colors');
@@ -286,8 +292,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const root = window.document.documentElement;
 
     // Theme switching logic
-    root.classList.remove('light-theme', 'ai-theme');
+    root.classList.remove('light-theme', 'dark-theme', 'ai-theme');
     if (themeMode === 'light') root.classList.add('light-theme');
+    else if (themeMode === 'dark') root.classList.add('dark-theme');
     else root.classList.add('ai-theme');
 
     const p = customColors.primary;

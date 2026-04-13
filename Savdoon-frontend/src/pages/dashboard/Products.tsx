@@ -124,7 +124,7 @@ export function Products({ storeId }: ProductsProps) {
         active: true,
         has_variants: false,
         variants: [],
-        attributes: [{ name: 'O\'lcham', values: ['S', 'M', 'L'] }, { name: 'Rang', values: [] }],
+        attributes: [{ name: language === 'uz' ? 'O\'lcham' : (language === 'ru' ? 'Размер' : 'Size'), values: ['S', 'M', 'L'] }, { name: language === 'uz' ? 'Rang' : (language === 'ru' ? 'Цвет' : 'Color'), values: [] }],
       });
       setImagePreview(null);
     }
@@ -599,9 +599,9 @@ export function Products({ storeId }: ProductsProps) {
                     </div>
                     {stockStatus.days != null && (
                       <div className="text-right space-y-1">
-                        <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-widest">Residue</p>
+                        <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">{language === 'uz' ? 'Qoldiq' : (language === 'ru' ? 'Остаток' : 'Residue')}</p>
                         <p className={`text-sm font-black ${stockStatus.days <= 3 ? 'text-rose-500' : 'text-emerald-500'}`}>
-                          {stockStatus.days} <span className="text-[9px] uppercase">days</span>
+                          {stockStatus.days} <span className="text-[9px] uppercase">{language === 'uz' ? 'kun' : (language === 'ru' ? 'дн' : 'days')}</span>
                         </p>
                       </div>
                     )}
@@ -638,7 +638,7 @@ export function Products({ storeId }: ProductsProps) {
                   </h2>
                   <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-[0.3em] mt-3 font-black flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[var(--brand-primary)] animate-pulse" />
-                    Product Configuration
+                    {t('productConfiguration')}
                   </p>
                 </div>
                 <button
@@ -655,7 +655,7 @@ export function Products({ storeId }: ProductsProps) {
                   <div className="space-y-8">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between mb-2">
-                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.25em] ml-1">Universal Identifier</label>
+                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.25em] ml-1">{t('universalIdentifier')}</label>
                         <button
                           type="button"
                           onClick={handleAutoTranslate}
@@ -666,13 +666,13 @@ export function Products({ storeId }: ProductsProps) {
                             }`}
                         >
                           {isTranslating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                          AI Localize
+                          {t('aiLocalize')}
                         </button>
                       </div>
                       <div className="flex gap-6">
                         <div className="flex-1">
                           <Input
-                            label="Product Name (Main)"
+                            label={t('productNameMain')}
                             value={formData.name}
                             onChange={(v) => setFormData(prev => ({
                               ...prev,
@@ -685,7 +685,7 @@ export function Products({ storeId }: ProductsProps) {
                         </div>
                         {/* Image Upload */}
                         <div className="w-32 flex-shrink-0">
-                          <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest ml-1 mb-2 block text-center">Image Upload</label>
+                          <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest ml-1 mb-2 block text-center">{t('imageUpload')}</label>
                           <div
                             className="h-24 w-full border-2 border-dashed border-[var(--color-border)] rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[var(--brand-primary)]/50 transition-colors overflow-hidden group"
                             onClick={() => document.getElementById('product-image')?.click()}
@@ -713,13 +713,13 @@ export function Products({ storeId }: ProductsProps) {
                       </div>
                       <div className="grid grid-cols-2 gap-6">
                         <Input
-                          label="UZ Name"
+                          label={t('nameUz')}
                           value={formData.name_uz}
                           onChange={(v) => setFormData(prev => ({ ...prev, name_uz: v }))}
                           placeholder="Nomi"
                         />
                         <Input
-                          label="RU Name"
+                          label={t('nameRu')}
                           value={formData.name_ru}
                           onChange={(v) => setFormData(prev => ({ ...prev, name_ru: v }))}
                           placeholder="Название"
@@ -768,8 +768,8 @@ export function Products({ storeId }: ProductsProps) {
                         className="w-6 h-6 rounded-lg text-indigo-600 focus:ring-indigo-500 bg-white border-indigo-200 cursor-pointer"
                       />
                       <div>
-                        <p className="font-black text-indigo-700 text-[11px] uppercase tracking-[0.2em]">Mahsulot variatsiyalari</p>
-                        <p className="text-[10px] text-[var(--text-muted)] mt-1 font-bold leading-relaxed">O'lcham, rang va boshqalar</p>
+                        <p className="font-black text-indigo-700 text-[11px] uppercase tracking-[0.2em]">{t('productVariants')}</p>
+                        <p className="text-[10px] text-[var(--text-muted)] mt-1 font-bold leading-relaxed">{t('sizesColorsEtc')}</p>
                       </div>
                     </div>
 
@@ -778,9 +778,9 @@ export function Products({ storeId }: ProductsProps) {
                         {/* Attributes configuration */}
                         <div className="space-y-6">
                           <div className="flex items-center justify-between">
-                            <h3 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.25em] ml-1">Xususiyatlar (Attributes)</h3>
+                            <h3 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.25em] ml-1">{t('attributes')}</h3>
                             <Button variant="outline" size="sm" onClick={addAttribute} className="h-8 px-4 text-[9px] border-indigo-200 text-indigo-600 hover:bg-indigo-50">
-                              Xususiyat qo'shish
+                              {t('addAttribute')}
                             </Button>
                           </div>
 
@@ -790,10 +790,10 @@ export function Products({ storeId }: ProductsProps) {
                                 <div className="flex items-center justify-between gap-4">
                                   <div className="flex-1">
                                     <Input
-                                      label="Nomi"
+                                      label={t('name')}
                                       value={attr.name}
                                       onChange={(v: string) => handleAttributeChange(idx, 'name', v)}
-                                      placeholder="Masalan: Rang yoki O'lcham"
+                                      placeholder={t('exampleColorSize')}
                                       className="h-10 text-xs"
                                     />
                                   </div>

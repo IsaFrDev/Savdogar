@@ -1,6 +1,16 @@
 from django.db import models
 from django.conf import settings
 
+# Import expanded delivery models
+from .expanded_models import (
+    DeliveryZone,
+    DeliveryProvider,
+    DeliveryTimeSlot,
+    PickupPoint,
+    DeliveryRoute,
+    DeliveryPricing,
+)
+
 
 class Courier(models.Model):
     """Courier model for handling deliveries."""

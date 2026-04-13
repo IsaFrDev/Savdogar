@@ -6,6 +6,8 @@ class Notification(models.Model):
         ('order', 'Order'),
         ('system', 'System'),
         ('promo', 'Promotion'),
+        ('store_approval', 'Store Approval'),
+        ('store_rejected', 'Store Rejected'),
     )
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
@@ -24,6 +26,11 @@ class Notification(models.Model):
     
     order = models.ForeignKey('orders.Order', on_delete=models.SET_NULL, null=True, blank=True)
     store = models.ForeignKey('stores.Store', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # For store rejection
+    rejection_reason = models.TextField(blank=True, help_text="Reason for store rejection")
+    rejection_reason_uz = models.TextField(blank=True)
+    rejection_reason_ru = models.TextField(blank=True)
 
     class Meta:
         db_table = 'notifications'

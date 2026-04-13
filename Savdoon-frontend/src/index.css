@@ -43,18 +43,42 @@
 }
 
 
-.light-theme {
-  --bg-main: #ffffff;
-  --color-surface: rgba(255, 255, 255, 0.9);
-  --color-surface-raised: #ffffff;
-  --brand-primary-glow: rgba(79, 70, 229, 0.08);
-  --glass-opacity: 0.03;
+.dark-theme {
+  --bg-main: #020617;
+  --bg-gradient: radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.15) 0, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(124, 58, 237, 0.1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(244, 63, 94, 0.08) 0, transparent 50%);
+  
+  --color-surface: rgba(15, 23, 42, 0.8);
+  --color-surface-raised: #1e293b;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-border-bright: rgba(255, 255, 255, 0.2);
+  
+  --bg-sidebar: rgba(15, 23, 42, 0.95);
+  --bg-header: rgba(15, 23, 42, 0.9);
+  --bg-surface: rgba(30, 41, 59, 0.8);
+  --bg-surface-hover: rgba(51, 65, 85, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --text-main: #f8fafc;
+  
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  
+  --brand-primary-glow: rgba(79, 70, 229, 0.3);
+  --shadow-premium: 0 10px 40px -8px rgba(0, 0, 0, 0.5);
+  --glass-opacity: 0.15;
 }
 
 .ai-theme {
-  /* Inherits light-theme base but allowed to be overridden by root style props */
-  --bg-main: #f8fafc;
-  --glass-opacity: 0.04;
+  --bg-main: #000000;
+  --bg-gradient: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.2) 0, transparent 40%),
+    radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.15) 0, transparent 40%);
+  --brand-primary: #818cf8;
+  --brand-secondary: #c084fc;
+  --text-main: #ffffff;
+  --color-border: rgba(255, 255, 255, 0.08);
+  --glass-opacity: 0.2;
 }
 
 /* Base Styles */

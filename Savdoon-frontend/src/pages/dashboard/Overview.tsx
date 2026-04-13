@@ -141,7 +141,7 @@ export function Overview({ storeId }: OverviewProps) {
                   <div className="px-2 py-0.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
                     <p className="text-[9px] text-emerald-400 font-black uppercase tracking-widest">{stat.change}</p>
                   </div>
-                  <span className="text-[9px] text-[var(--text-muted)] font-bold uppercase tracking-widest">vs last {period}</span>
+                  <span className="text-[9px] text-[var(--text-muted)] font-bold uppercase tracking-widest">{t('vsLast', { period })}</span>
                 </div>
               </div>
               <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${stat.color} flex items-center justify-center flex-shrink-0 shadow-xl group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 ring-2 ring-[var(--color-border-bright)]/20`}>
@@ -164,7 +164,7 @@ export function Overview({ storeId }: OverviewProps) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-12 gap-6">
             <div>
               <h2 className="text-2xl font-black text-[var(--text-primary)] tracking-tight font-heading uppercase">
-                {language === 'uz' ? 'Savdo ko\'rinishi' : language === 'ru' ? "Обзор продаж" : "Sales Performance"}
+                {t('salesOverview')}
               </h2>
               <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-[0.2em] mt-2">{t('monthlyPerformance')}</p>
             </div>
@@ -268,7 +268,7 @@ export function Overview({ storeId }: OverviewProps) {
             {(!stats?.top_products || stats.top_products.length === 0) && (
               <div className="flex flex-col items-center justify-center py-16 text-[var(--text-muted)] opacity-30">
                 <ShoppingCart className="w-16 h-16 mb-6" />
-                <p className="text-[10px] font-black uppercase tracking-[0.3em]">{language === 'uz' ? 'Ma\'lumotlar yo\'q' : 'No data yet'}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em]">{t('noData')}</p>
               </div>
             )}
           </div>
@@ -315,7 +315,7 @@ export function Overview({ storeId }: OverviewProps) {
                     <td colSpan={4} className="py-24 text-center">
                       <div className="flex flex-col items-center justify-center text-[var(--text-muted)] opacity-30">
                         <ShoppingCart className="w-16 h-16 mb-6" />
-                        <p className="text-[10px] font-black uppercase tracking-[0.3em]">{t('noRecentOrders') || 'Buyurtmalar yo\'q'}</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.3em]">{t('noRecentOrders')}</p>
                       </div>
                     </td>
                   </tr>
@@ -328,7 +328,7 @@ export function Overview({ storeId }: OverviewProps) {
         {/* Orders Chart */}
         <GlassCard delay={0.6} className="p-8 border-[var(--color-border)] bg-[var(--color-surface)] shadow-sm">
           <h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight font-heading uppercase mb-2">
-            {language === 'uz' ? 'Kunlik buyurtmalar' : language === 'ru' ? "Заказы по дням" : "Order Volume"}
+            {t('dailyOrders')}
           </h2>
           <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-[0.2em] mb-10">{t('orderTotalCount')}</p>
           <div className="h-[350px] w-full relative">

@@ -162,17 +162,19 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
     };
 
     const handleReject = async (storeId: number) => {
+        // Multi-language rejection reason
         const reason = prompt(
             language === 'uz' ? "Rad etish sababini kiriting:" :
                 language === 'ru' ? "Введите причину отклонения:" :
                     "Enter rejection reason:"
         );
 
-        if (reason === null) return;
+        if (reason === null || !reason.trim()) return;
 
         setActionLoading(storeId);
         try {
-            await storeApi.rejectStore(storeId, reason);
+            // Send in all languages (for now, same reason)
+            await storeApi.rejectStore(storeId, reason, reason, reason);
             await loadData();
         } catch (error) {
             console.error('Failed to reject store:', error);

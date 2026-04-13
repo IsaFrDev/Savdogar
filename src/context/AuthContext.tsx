@@ -227,8 +227,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(userData);
         } catch (error: unknown) {
             const err = error as { response?: { data?: unknown } };
+            // Graceful error handling - Face ID is optional
             if (err.response) {
-                console.error('Face ID Login Server Error:', err.response.data);
+                console.warn('Face ID Login not available:', err.response.data);
+                throw new Error('Face ID is not registered or not available. Please use email/password login.');
             }
             throw error;
         }

@@ -109,24 +109,20 @@ class ProductViewSet(viewsets.ModelViewSet):
             return Product.objects.none()
 
     def perform_create(self, serializer):
-        # AI Moderation Check
+        # AI Moderation Check via Service layer
+        from core.services import ContentModerationService
         name = serializer.validated_data.get('name')
         if name:
-            is_valid, reason = ai_service.moderate_content(name)
-            if not is_valid:
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied(f"Content Policy Violation: {reason}")
+            ContentModerationService(user=self.request.user).moderate(name)
         
         serializer.save(store=self.request.store if hasattr(self.request, 'store') else serializer.validated_data.get('store'))
 
     def perform_update(self, serializer):
-        # AI Moderation Check
+        # AI Moderation Check via Service layer
+        from core.services import ContentModerationService
         name = serializer.validated_data.get('name')
         if name:
-            is_valid, reason = ai_service.moderate_content(name)
-            if not is_valid:
-                from rest_framework.exceptions import PermissionDenied
-                raise PermissionDenied(f"Content Policy Violation: {reason}")
+            ContentModerationService(user=self.request.user).moderate(name)
         
         serializer.save()
 

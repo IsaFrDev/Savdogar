@@ -163,7 +163,7 @@ export function Orders({ storeId }: OrdersProps) {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={t('searchOrders') || 'Buyurtmalarni izlash...'}
+              placeholder={t('searchOrders')}
               className="w-full pl-14 pr-4 py-4 rounded-xl border-none bg-transparent focus:ring-0 text-[var(--text-primary)] placeholder:text-[var(--text-muted)] font-bold text-sm"
             />
           </div>
@@ -175,7 +175,7 @@ export function Orders({ storeId }: OrdersProps) {
               onChange={(e) => setStatusFilter(e.target.value)}
               className="px-4 py-4 rounded-xl border-none bg-transparent focus:ring-0 text-[var(--text-muted)] text-[10px] font-black uppercase tracking-[0.2em] cursor-pointer hover:text-[var(--text-primary)] transition-all"
             >
-              <option value="all" className="bg-white text-[var(--text-primary)]">{t('allStatuses') || 'Barcha holatlar'}</option>
+              <option value="all" className="bg-white text-[var(--text-primary)]">{t('allStatuses')}</option>
               {statuses.map((status) => (
                 <option key={status} value={status} className="bg-white text-[var(--text-primary)]">{t(status)}</option>
               ))}
@@ -236,7 +236,7 @@ export function Orders({ storeId }: OrdersProps) {
 
                         <div className="flex items-end justify-between mt-auto">
                           <div>
-                            <p className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-0.5">{t('totalAmount') || 'Summa'}</p>
+                            <p className="text-[8px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-0.5">{t('totalAmount')}</p>
                             <span className="text-sm font-black text-[var(--text-primary)] tabular-nums tracking-tight">
                               {order.total?.toLocaleString()} <span className="text-[9px] text-[var(--text-muted)]">{currency}</span>
                             </span>
@@ -296,7 +296,7 @@ export function Orders({ storeId }: OrdersProps) {
                   <button
                     onClick={handlePrint}
                     className="p-4 bg-white hover:bg-[var(--brand-primary)]/5 rounded-2xl transition-all text-[var(--text-muted)] hover:text-[var(--brand-primary)] border border-[var(--color-border)] group shadow-sm"
-                    title={t('printSlip') || 'Print Receipt'}
+                    title={t('printSlip')}
                   >
                     <Printer className="w-5 h-5 group-hover:scale-110 transition-transform" />
                   </button>
@@ -312,7 +312,7 @@ export function Orders({ storeId }: OrdersProps) {
               <div className="p-10 space-y-12 flex-1 custom-scrollbar">
                 {/* Status Timeline */}
                 <div className="bg-slate-50 p-10 rounded-[2.5rem] border border-[var(--color-border)] shadow-sm">
-                  <h3 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.25em] mb-12 opacity-60 italic">{t('orderStatusHistory') || 'Buyurtma tarixi'}</h3>
+                  <h3 className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.25em] mb-12 opacity-60 italic">{t('orderStatusHistory')}</h3>
                   <div className="relative pl-2">
                     <div className="absolute left-6 top-1 bottom-1 w-[2px] bg-[var(--color-border)]" />
                     {statusTimeline.map((step, index) => {
@@ -341,7 +341,7 @@ export function Orders({ storeId }: OrdersProps) {
                               {step.label}
                             </p>
                             {isCurrent && (
-                              <span className="inline-block mt-2 bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest leading-none border border-[var(--brand-primary)]/10">Faol bosqich</span>
+                              <span className="inline-block mt-2 bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest leading-none border border-[var(--brand-primary)]/10">{t('activeStep')}</span>
                             )}
                           </div>
                         </div>
@@ -365,7 +365,7 @@ export function Orders({ storeId }: OrdersProps) {
                       className="w-full mt-8 flex items-center justify-center gap-3 px-8 py-5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[11px] shadow-xl shadow-indigo-600/20 transition-all active:scale-95"
                     >
                       <Navigation className="w-4 h-4" />
-                      {language === 'uz' ? 'Jonli kuzatuv' : 'Live Tracking'}
+                      {t('liveTracking')}
                     </button>
                   )}
                 </div>
@@ -415,7 +415,7 @@ export function Orders({ storeId }: OrdersProps) {
                       ) : (
                         <p className="text-[var(--text-muted)] font-black text-[10px] uppercase tracking-widest italic flex items-center gap-2 opacity-60">
                           <Clock className="w-4 h-4" />
-                          {t('pickupAtStore') || 'Do\'kondan olib ketish'}
+                          {t('pickupAtStore')}
                         </p>
                       )}
                     </div>
@@ -428,7 +428,7 @@ export function Orders({ storeId }: OrdersProps) {
                         <div className="p-3 rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] shadow-sm">
                           <Truck className="w-5 h-5" />
                         </div>
-                        <h3 className="text-[10px] font-black text-[var(--brand-primary)] uppercase tracking-[0.25em]">{t('courier') || 'Kuryer'}</h3>
+                        <h3 className="text-[10px] font-black text-[var(--brand-primary)] uppercase tracking-[0.25em]">{t('courier')}</h3>
                       </div>
 
                       {selectedOrder.courier_details ? (
@@ -444,7 +444,7 @@ export function Orders({ storeId }: OrdersProps) {
                         </div>
                       ) : (
                         <div className="space-y-6">
-                          <p className="text-xs text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60">Kuryer biriktirilmagan</p>
+                          <p className="text-xs text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60">{t('courierNotAssigned')}</p>
                           <div className="grid grid-cols-1 gap-4">
                             {couriers.length > 0 ? (
                               <div className="flex flex-col gap-4">
@@ -454,7 +454,7 @@ export function Orders({ storeId }: OrdersProps) {
                                   className="w-full bg-white border border-[var(--color-border)] rounded-2xl px-6 py-4 text-xs font-black uppercase tracking-[0.2em] text-[var(--text-primary)] outline-none focus:border-[var(--brand-primary)] shadow-sm appearance-none"
                                   defaultValue=""
                                 >
-                                  <option value="" disabled>Kuryerni tanlang...</option>
+                                  <option value="" disabled>{t('selectCourier')}</option>
                                   {couriers.map(c => (
                                     <option key={c.id} value={c.id}>
                                       {c.user_details?.first_name} {c.user_details?.last_name} ({c.vehicle_type})
@@ -465,7 +465,7 @@ export function Orders({ storeId }: OrdersProps) {
                               </div>
                             ) : (
                               <p className="text-[10px] text-rose-500 font-black uppercase bg-rose-50 p-5 rounded-2xl border border-rose-100 shadow-sm leading-relaxed">
-                                Bo'sh kuryerlar topilmadi. Avval kuryer qo'shing.
+                                {t('noCouriersFound')}
                               </p>
                             )}
                           </div>
@@ -519,7 +519,7 @@ export function Orders({ storeId }: OrdersProps) {
                 <div className="flex items-center justify-between bg-slate-950 p-10 rounded-[2.5rem] border border-slate-800 shadow-2xl relative overflow-hidden group">
                   <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--brand-primary)]/20 -mr-32 -mt-32 rounded-full blur-[80px] pointer-events-none group-hover:bg-[var(--brand-primary)]/30 transition-all duration-1000" />
                   <div className="relative z-10">
-                    <span className="text-[10px] font-black text-[var(--brand-primary)] uppercase tracking-[0.4em] mb-3 inline-block">{t('totalAmount') || 'Umumiy summa'}</span>
+                    <span className="text-[10px] font-black text-[var(--brand-primary)] uppercase tracking-[0.4em] mb-3 inline-block">{t('totalAmount')}</span>
                     <p className="text-5xl font-black text-white mt-2 tabular-nums tracking-tighter shadow-sm">
                       {selectedOrder.total?.toLocaleString()} <span className="text-sm font-black text-[var(--brand-primary)]/80 ml-1.5 uppercase font-heading">{currency}</span>
                     </p>
@@ -570,9 +570,9 @@ export function Orders({ storeId }: OrdersProps) {
             <table className="w-full mb-4">
               <thead>
                 <tr className="border-b border-black border-dashed">
-                  <th className="text-left py-1 font-bold">{t('item') || 'Mahsulot'}</th>
-                  <th className="text-right py-1 font-bold">{t('qty') || 'Soni'}</th>
-                  <th className="text-right py-1 font-bold">{t('total') || 'Summa'}</th>
+                  <th className="text-left py-1 font-bold">{t('item')}</th>
+                  <th className="text-right py-1 font-bold">{t('qty')}</th>
+                  <th className="text-right py-1 font-bold">{t('total')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -598,7 +598,7 @@ export function Orders({ storeId }: OrdersProps) {
             </div>
 
             <div className="text-center mt-10 border-t border-black border-dashed pt-6">
-              <p className="font-bold">Xaridingiz uchun rahmat!</p>
+              <p className="font-bold">{t('thankYouForPurchase')}</p>
               <p className="text-[10px] mt-1 italic">Powered by Savdoon.asia</p>
             </div>
           </div>

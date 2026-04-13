@@ -87,7 +87,7 @@ export function Staff() {
       loadStaffData();
       setEmail('');
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Xatolik yuz berdi');
+      alert(error.response?.data?.error || t('errorOccurred'));
     }
     setIsSaving(false);
   };
@@ -116,7 +116,7 @@ export function Staff() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-black text-[var(--text-main)] tracking-tight uppercase">
-            {language === 'uz' ? 'Xodimlar va Rollar' : 'Staff & Roles'}
+            {t('staffAndRoles')}
           </h1>
           <p className="text-[var(--text-dim)] mt-1 uppercase tracking-[0.2em] text-[10px] font-bold">
             {language === 'uz' ? "Do'koningiz boshqaruvini jamoangiz bilan ulashing" : "Share your store management with your team"}
@@ -134,13 +134,13 @@ export function Staff() {
           onClick={() => setActiveSubTab('members')}
           className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeSubTab === 'members' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
         >
-          {language === 'uz' ? 'Xodimlar' : 'Members'}
+          {t('members')}
         </button>
         <button 
           onClick={() => setActiveSubTab('roles')}
           className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeSubTab === 'roles' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
         >
-          {language === 'uz' ? 'Rollar' : 'Roles'}
+          {t('roles')}
         </button>
       </div>
 
@@ -149,7 +149,7 @@ export function Staff() {
           {staff.length === 0 ? (
             <div className="col-span-full py-20 text-center bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-200">
                <User className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Hali xodimlar qo'shilmagan</p>
+               <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">{t('noStaffAdded')}</p>
             </div>
           ) : (
             staff.map(member => (
@@ -205,7 +205,7 @@ export function Staff() {
           ))}
           <button className="h-full min-h-[200px] border-2 border-dashed border-slate-200 rounded-[2.5rem] flex flex-col items-center justify-center hover:bg-slate-50 transition-colors group">
             <Plus className="w-8 h-8 text-slate-300 group-hover:text-indigo-500 transition-colors mb-2" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Yangi rol yaratish</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('createRole')}</span>
           </button>
         </div>
       )}
@@ -229,7 +229,7 @@ export function Staff() {
               className="w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden"
             >
               <div className="p-10 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">Xodim qo'shish</h2>
+                <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tight">{t('addMember')}</h2>
                 <button onClick={() => setIsModalOpen(false)} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
                   <X className="w-5 h-5" />
                 </button>
@@ -279,13 +279,13 @@ export function Staff() {
               </div>
 
               <div className="p-10 bg-slate-50 flex items-center gap-4">
-                <Button variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1 rounded-2xl h-14 font-black uppercase tracking-widest text-[10px]">Bekor qilish</Button>
+                <Button variant="outline" onClick={() => setIsModalOpen(false)} className="flex-1 rounded-2xl h-14 font-black uppercase tracking-widest text-[10px]">{t('cancel')}</Button>
                 <Button 
                   onClick={handleAddMember} 
                   disabled={isSaving || !email}
                   className="flex-1 rounded-2xl h-14 font-black uppercase tracking-widest text-[10px] bg-indigo-500 text-white shadow-xl shadow-indigo-500/20"
                 >
-                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : "Qo'shish"}
+                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : t('addMember')}
                 </Button>
               </div>
             </motion.div>

@@ -273,6 +273,7 @@ export const storeApi = {
     approveStore: (id: number) => api.post(`/stores/${id}/approve/`, { action: 'approve' }),
     rejectStore: (id: number, reason?: string) => api.post(`/stores/${id}/approve/`, { action: 'reject', reason }),
     testTelegram: (id: number, data: { bot_token: string; chat_id: string }) => api.post(`/stores/${id}/test_telegram/`, data),
+    createTelegramBot: (id: number, data: { bot_token: string }) => api.post(`/stores/${id}/create_telegram_bot/`, data),
     generateApiKey: (id: number) => api.post(`/stores/${id}/generate-api-key/`),
     sendNewsletter: (id: number, data: { title: string; message: string; title_uz?: string; message_uz?: string; title_ru?: string; message_ru?: string }) =>
         api.post(`/stores/${id}/send_newsletter/`, data),
