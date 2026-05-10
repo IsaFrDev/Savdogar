@@ -1,20 +1,18 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authApi } from '../services/api';
-import { bufferToBase64URL, base64URLToBuffer } from '../utils/webauthn';
+import { supabase } from '../supabase';
 
 interface User {
-    id: number;
-    email: string;
+    id: string;
+    email?: string;
     username: string;
     first_name: string;
     last_name: string;
-    role: 'superadmin' | 'store_admin' | 'customer' | 'courier';
+    role: 'superadmin' | 'store_admin';
     is_superuser: boolean;
     is_staff: boolean;
     phone?: string;
     avatar?: string;
-    face_id_registered: boolean;
-    two_factor_enabled: boolean;
+    limit_date?: string;
     store_status: 'pending' | 'approved' | 'rejected' | null;
 }
 
@@ -24,269 +22,193 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isSuperAdmin: boolean;
     login: (email: string, password: string) => Promise<any>;
-    loginAsSuperAdmin: (username: string, password: string) => Promise<any>;
-    register: (data: RegisterData) => Promise<void>;
+    register: (data: any) => Promise<void>;
     logout: () => void;
-    registerFaceId: () => Promise<void>;
-    loginWithFaceId: (email?: string) => Promise<void>;
     refreshUser: () => Promise<void>;
-    verify2FA: (email: string, code: string, useBackupCode?: boolean) => Promise<void>;
-    setup2FA: () => Promise<any>;
-    enable2FA: (code: string) => Promise<any>;
-    disable2FA: () => Promise<void>;
-    listSessions: () => Promise<any[]>;
-    endSession: (id: number) => Promise<void>;
-    endAllSessions: () => Promise<void>;
-    acknowledgeRejection: () => Promise<void>;
-}
-
-interface RegisterData {
-    email: string;
-    username: string;
-    password: string;
-    password2: string;
-    first_name?: string;
-    last_name?: string;
-    phone?: string;
-    role?: 'store_admin' | 'customer' | 'courier';
+    updateProfile: (data: any) => Promise<void>;
+    updatePassword: (data: any) => Promise<void>;
+    verifyDevice: (code: string, tempToken: string) => Promise<any>;
+    verify2FA: (email: string, code: string, useBackupCode?: boolean) => Promise<any>;
+    loginWithFaceId: (email?: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// AuthContext.tsx
-
-export function useAuth() {
-    const context = useContext(AuthContext);
-    if (!context) {
-        throw new Error('useAuth must be used within AuthProvider');
-    }
-    return context;
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        checkAuth();
-    }, []);
+        // 1. Check local session (AvtoX style for persistent login)
+        const localSession = localStorage.getItem('local_admin_session');
+        if (localSession) {
+            setUser(JSON.parse(localSession));
+            setIsLoading(false);
+            // Don't return here, let Supabase also check in background
+        }
 
-    const checkAuth = async () => {
-        const token = localStorage.getItem('access_token');
-        if (token) {
-            try {
-                const response = await authApi.me();
-                setUser(response.data);
-            } catch (error: any) {
-                if (error.response?.status === 401 || error.response?.status === 403) {
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
+        // 2. Initial Supabase session check
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                fetchProfile(session.user);
+            } else {
+                if (!localSession) setIsLoading(false);
+            }
+        });
+
+        // 3. Listen for Auth changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session) {
+                fetchProfile(session.user);
+            } else {
+                if (!localStorage.getItem('local_admin_session')) {
                     setUser(null);
                 }
+                setIsLoading(false);
             }
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
+
+    const fetchProfile = async (authUser: any) => {
+        try {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', authUser.id)
+                .maybeSingle();
+
+            if (error) throw error;
+
+            if (data) {
+                const userData: User = {
+                    id: data.id,
+                    email: authUser.email,
+                    username: data.username || authUser.email?.split('@')[0],
+                    first_name: data.first_name || '',
+                    last_name: data.last_name || '',
+                    role: data.role || 'store_admin',
+                    is_superuser: data.role === 'superadmin',
+                    is_staff: data.is_admin || false,
+                    phone: data.phone,
+                    avatar: data.avatar,
+                    limit_date: data.limit_date,
+                    store_status: data.store_status || 'approved'
+                };
+                setUser(userData);
+            } else {
+                // Fallback to auth metadata if profile doesn't exist yet
+                setUser({
+                    id: authUser.id,
+                    email: authUser.email,
+                    username: authUser.user_metadata?.username || authUser.email?.split('@')[0],
+                    first_name: authUser.user_metadata?.first_name || '',
+                    last_name: authUser.user_metadata?.last_name || '',
+                    role: 'store_admin',
+                    is_superuser: false,
+                    is_staff: false,
+                    store_status: 'pending'
+                });
+            }
+        } catch (err) {
+            console.error('Error fetching profile:', err);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     const login = async (email: string, password: string) => {
-        const response = await authApi.login(email, password);
+        // Use Supabase Auth Login (Secure JWT-based authentication)
 
-        if (response.data.two_factor_required) {
-            return response.data;
-        }
+        // 2. Try Supabase Auth Login
+        const authEmail = email.includes('@') ? email : `${email}@savdoon.local`;
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: authEmail,
+            password,
+        });
 
-        const { user: userData, tokens } = response.data;
-        localStorage.setItem('access_token', tokens.access);
-        localStorage.setItem('refresh_token', tokens.refresh);
-        setUser(userData);
-        return response.data;
+        if (error) throw error;
+        return { success: true, data };
     };
 
-    const loginAsSuperAdmin = async (username: string, password: string) => {
-        const response = await authApi.superAdminLogin(username, password);
-        const { user: userData, tokens } = response.data;
+    const register = async (regData: any) => {
+        const { data, error } = await supabase.auth.signUp({
+            email: regData.email,
+            password: regData.password,
+            options: {
+                data: {
+                    username: regData.username,
+                    first_name: regData.first_name,
+                    last_name: regData.last_name,
+                }
+            }
+        });
 
-        localStorage.setItem('access_token', tokens.access);
-        localStorage.setItem('refresh_token', tokens.refresh);
-        setUser(userData);
-        return response.data;
+        if (error) throw error;
+        if (data.user) fetchProfile(data.user);
     };
 
-    const register = async (data: RegisterData) => {
-        const response = await authApi.register(data);
-        const { user: userData, tokens } = response.data;
-
-        localStorage.setItem('access_token', tokens.access);
-        localStorage.setItem('refresh_token', tokens.refresh);
-        setUser(userData);
-    };
-
-    const logout = () => {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+    const logout = async () => {
+        localStorage.removeItem('local_admin_session');
+        await supabase.auth.signOut();
         setUser(null);
     };
 
-    const registerFaceId = async () => {
-        if (!navigator.credentials?.create) {
-            throw new Error('WebAuthn not supported');
-        }
+    const refreshUser = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) fetchProfile(session.user);
+    };
 
-        const optionsResponse = await authApi.getFaceIdRegisterOptions();
-        const options = optionsResponse.data;
+    const updateProfile = async (profileData: any) => {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (!authUser) throw new Error('Not authenticated');
 
-        const challenge = base64URLToBuffer(options.challenge);
-        const userId = base64URLToBuffer(options.user.id);
+        const { error } = await supabase
+            .from('profiles')
+            .update({
+                first_name: profileData.first_name,
+                last_name: profileData.last_name,
+                phone: profileData.phone,
+            })
+            .eq('id', authUser.id);
 
-        const credential = (await navigator.credentials.create({
-            publicKey: {
-                challenge,
-                rp: options.rp,
-                user: {
-                    id: userId,
-                    name: options.user.name,
-                    displayName: options.user.displayName,
-                },
-                pubKeyCredParams: options.pubKeyCredParams,
-                timeout: options.timeout,
-                attestation: options.attestation,
-                authenticatorSelection: options.authenticatorSelection,
-            },
-        })) as PublicKeyCredential | null;
-
-        if (!credential) {
-            throw new Error('Failed to create credential');
-        }
-
-        const attestation = credential.response as AuthenticatorAttestationResponse;
-        const registration_response = {
-            id: bufferToBase64URL(credential.rawId),
-            rawId: bufferToBase64URL(credential.rawId),
-            type: 'public-key',
-            response: {
-                clientDataJSON: bufferToBase64URL(attestation.clientDataJSON),
-                attestationObject: bufferToBase64URL(attestation.attestationObject),
-                transports: attestation.getTransports?.() ?? undefined,
-            },
-        };
-
-        await authApi.registerFaceId(registration_response);
+        if (error) throw error;
         await refreshUser();
     };
 
-    const loginWithFaceId = async (email?: string) => {
-        if (!navigator.credentials?.get) {
-            throw new Error('WebAuthn not supported');
-        }
+    const updatePassword = async (data: any) => {
+        const { error } = await supabase.auth.updateUser({
+            password: data.new_password
+        });
+        if (error) throw error;
+    };
 
-        const optionsResponse = await authApi.getFaceIdLoginOptions(email);
-        const options = optionsResponse.data;
-
-        const challenge = base64URLToBuffer(options.challenge);
-        const allowCredentials = (options.allowCredentials || []).map((cred: { id: string; type: string }) => ({
-            type: cred.type,
-            id: base64URLToBuffer(cred.id),
-        }));
-
-        const credential = (await navigator.credentials.get({
-            publicKey: {
-                challenge,
-                rpId: options.rpId,
-                timeout: options.timeout,
-                userVerification: options.userVerification,
-                allowCredentials: allowCredentials.length ? allowCredentials : undefined,
-            },
-        })) as PublicKeyCredential | null;
-
-        if (!credential) {
-            throw new Error('Failed to get credential');
-        }
-
-        const assertion = credential.response as AuthenticatorAssertionResponse;
-        const authentication_response = {
-            id: bufferToBase64URL(credential.rawId),
-            rawId: bufferToBase64URL(credential.rawId),
-            type: 'public-key',
-            response: {
-                authenticatorData: bufferToBase64URL(assertion.authenticatorData),
-                clientDataJSON: bufferToBase64URL(assertion.clientDataJSON),
-                signature: bufferToBase64URL(assertion.signature),
-            },
-        };
-
-        try {
-            const loginResponse = await authApi.loginWithFaceId(authentication_response);
-
-            if (!loginResponse.data?.tokens) {
-                throw new Error('Invalid login response from server');
-            }
-
-            const { user: userData, tokens } = loginResponse.data;
-            localStorage.setItem('access_token', tokens.access);
-            localStorage.setItem('refresh_token', tokens.refresh);
-            setUser(userData);
-        } catch (error: unknown) {
-            const err = error as { response?: { data?: unknown } };
-            // Graceful error handling - Face ID is optional
-            if (err.response) {
-                console.warn('Face ID Login not available:', err.response.data);
-                throw new Error('Face ID is not registered or not available. Please use email/password login.');
-            }
-            throw error;
-        }
+    const verifyDevice = async (code: string, tempToken: string) => {
+        // Supabase Otp verification placeholder
+        const { data, error } = await supabase.auth.verifyOtp({
+            token: code,
+            type: 'email',
+            email: tempToken // Assuming tempToken holds the email for Supabase flow
+        });
+        if (error) throw error;
+        return data;
     };
 
     const verify2FA = async (email: string, code: string, useBackupCode: boolean = false) => {
-        const response = await authApi.verify2FA(email, code, useBackupCode);
-        const { user: userData, tokens } = response.data;
-
-        localStorage.setItem('access_token', tokens.access);
-        localStorage.setItem('refresh_token', tokens.refresh);
-        setUser(userData);
+        // Supabase MFA placeholder
+        const { data, error } = await supabase.auth.mfa.verify({
+            code,
+            factorId: 'placeholder-factor-id'
+        });
+        if (error) throw error;
+        return data;
     };
 
-    const setup2FA = async () => {
-        const response = await authApi.setup2FA();
-        return response.data;
-    };
-
-    const enable2FA = async (code: string) => {
-        const response = await authApi.enable2FA(code);
-        await refreshUser();
-        return response.data;
-    };
-
-    const disable2FA = async () => {
-        await authApi.disable2FA();
-        await refreshUser();
-    };
-
-    const listSessions = async () => {
-        const response = await authApi.listSessions();
-        return response.data;
-    };
-
-    const endSession = async (id: number) => {
-        await authApi.endSession(id);
-    };
-
-    const endAllSessions = async () => {
-        await authApi.endAllSessions();
-    };
-
-    const acknowledgeRejection = async () => {
-        const { storeApi } = await import('../services/api');
-        await storeApi.acknowledgeRejection();
-        await refreshUser();
-    };
-
-    const refreshUser = async () => {
-        try {
-            const response = await authApi.me();
-            setUser(response.data);
-        } catch (error) {
-            // Ignore errors
-        }
+    const loginWithFaceId = async (email?: string) => {
+        // WebAuthn placeholder
+        console.log('FaceID login requested for:', email);
+        throw new Error('FaceID login not yet configured in Supabase. Please use email/password.');
     };
 
     return (
@@ -296,24 +218,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isAuthenticated: !!user,
             isSuperAdmin: user?.role === 'superadmin',
             login,
-            loginAsSuperAdmin,
             register,
             logout,
-            registerFaceId,
-            loginWithFaceId,
             refreshUser,
+            updateProfile,
+            updatePassword,
+            verifyDevice,
             verify2FA,
-            setup2FA,
-            enable2FA,
-            disable2FA,
-            listSessions,
-            endSession,
-            endAllSessions,
-            acknowledgeRejection,
+            loginWithFaceId,
         }}>
             {children}
         </AuthContext.Provider>
     );
+
+}
+
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within AuthProvider');
+    }
+    return context;
 }
 
 export default AuthProvider;

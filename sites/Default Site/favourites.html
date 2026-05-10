@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sevimlilar — {{STORE_NAME}}</title>
+  <link rel="stylesheet" href="./main.css" />
+</head>
+<body>
+
+  <div id="navbar-placeholder"></div>
+
+  <main class="page">
+    <div class="section-header" style="margin-bottom:20px">
+      <h1 class="section-title" style="font-size:22px">❤️ Sevimlilar</h1>
+      <span id="fav-count" style="font-size:13px;color:var(--text-3)"></span>
+    </div>
+
+    <div class="products-grid" id="fav-grid">
+      <!-- renderFavs() tomonidan to'ldiriladi -->
+    </div>
+
+    <div id="fav-empty" style="display:none;text-align:center;padding:5rem 1rem;color:var(--text-3)">
+      <div style="font-size:60px;margin-bottom:16px">🤍</div>
+      <p style="font-size:16px;font-weight:600;margin-bottom:8px">Sevimlilar bo'sh</p>
+      <p style="font-size:14px;margin-bottom:24px">Yoqqan mahsulotlarni yurak belgisi orqali qo'shing</p>
+      <a href="index.html" class="btn-primary" style="display:inline-block;padding:12px 28px;border-radius:var(--radius-md);text-decoration:none">Xarid Qilish →</a>
+    </div>
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script src="js/products.js"></script>
+  <script>
+    function renderFavs() {
+      const ids  = Favs.get();
+      const grid = document.getElementById('fav-grid');
+      const empty = document.getElementById('fav-empty');
+      const countEl = document.getElementById('fav-count');
+
+      if (!ids.length) {
+        grid.style.display = 'none';
+        empty.style.display = '';
+        countEl.textContent = '';
+        return;
+      }
+
+      grid.style.display = '';
+      empty.style.display = 'none';
+      const favProducts = DEMO_PRODUCTS.filter(p => ids.includes(p.id));
+      countEl.textContent = `${favProducts.length} ta mahsulot`;
+
+      grid.innerHTML = favProducts.map(p => `
+        <div class="product-card" onclick="location.href='product.html?id=${p.id}'">
+          <div class="product-img-wrap">
+            <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;background:var(--surface-2)">${p.emoji}</div>
+            ${p.discount ? `<div class="product-discount-badge">-${p.discount}%</div>` : ''}
+            <button class="product-fav-btn active" onclick="removeFav(event,${p.id})" aria-label="Olib tashlash">❤️</button>
+          </div>
+          <div class="product-info">
+            <div class="product-name">${p.name}</div>
+            <div class="product-prices">
+              <span class="product-price">${fmtPrice(p.price)}</span>
+              ${p.oldPrice ? `<span class="product-old-price">${fmtPrice(p.oldPrice)}</span>` : ''}
+            </div>
+            <div class="product-rating">
+              <span class="star">★</span> ${p.rating} (${p.reviews})
+            </div>
+            <button class="btn-add-cart" onclick="handleAddCart(event,${p.id})">🛒 Savatga qo'shish</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function removeFav(e, id) {
+      e.stopPropagation();
+      Favs.toggle(id);
+      showToast('Sevimlilardan olib tashlandi');
+      renderFavs();
+    }
+
+    fetch('_navbar.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('navbar-placeholder').innerHTML = html;
+        initNavbar();
+        renderFavs();
+      });
+  </script>
+</body>
+</html>

@@ -270,16 +270,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('savdoon_currency', val);
   };
 
-  const formatPrice = (amount: number, currencyOverride?: string) => {
+  const formatPrice = (amount: number = 0, currencyOverride?: string) => {
     const targetCurrency = currencyOverride || currency;
     const baseCurrency = currentStore?.base_currency || 'UZS';
-    let convertedAmount = amount;
-    if (baseCurrency === 'USD') convertedAmount = amount * exchangeRates.USD;
-    if (baseCurrency === 'RUB') convertedAmount = amount * exchangeRates.RUB;
-    if (targetCurrency === 'USD') convertedAmount = convertedAmount / exchangeRates.USD;
-    if (targetCurrency === 'RUB') convertedAmount = convertedAmount / exchangeRates.RUB;
+    
+    // Safety check for NaN or non-number values
+    const safeAmount = isNaN(Number(amount)) ? 0 : Number(amount);
+    
+    let convertedAmount = safeAmount;
+    if (baseCurrency === 'USD') convertedAmount = safeAmount * (exchangeRates.USD || 12800);
+    if (baseCurrency === 'RUB') convertedAmount = safeAmount * (exchangeRates.RUB || 140);
+    if (targetCurrency === 'USD') convertedAmount = convertedAmount / (exchangeRates.USD || 12800);
+    if (targetCurrency === 'RUB') convertedAmount = convertedAmount / (exchangeRates.RUB || 140);
+    
     const symbol = targetCurrency === 'USD' ? '$' : targetCurrency === 'RUB' ? '₽' : 'sum';
-    return `${convertedAmount.toLocaleString(undefined, { maximumFractionDigits: targetCurrency === 'UZS' ? 0 : 2 })} ${symbol}`;
+    const formatted = (convertedAmount || 0).toLocaleString(undefined, { 
+      maximumFractionDigits: targetCurrency === 'UZS' ? 0 : 2 
+    });
+    return `${formatted} ${symbol}`;
   };
 
   useEffect(() => {

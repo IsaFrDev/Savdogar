@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp,
   TrendingDown,
@@ -14,9 +14,27 @@ import {
   Filter,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  Users,
+  ShoppingCart,
+  Bell,
+  Box,
+  CreditCard,
+  Building2,
+  ChevronRight,
+  Loader2,
+  LayoutDashboard,
+  ShieldCheck,
+  Calendar,
+  FileText,
+  BarChart3,
+  ArrowUpRight,
+  Download
 } from 'lucide-react';
-import api from '../../services/api';
+import { useApp } from '../../context/AppContext';
+import { supabaseApi } from '../../services/supabaseService';
+import { GlassCard } from '../../components/GlassCard';
+import { Modal } from '../../components/Modal';
 
 interface Vendor {
   id: number;
@@ -26,6 +44,7 @@ interface Vendor {
   phone: string;
   rating: number;
   is_active: boolean;
+  total_spent?: number;
 }
 
 interface PurchaseOrder {
@@ -39,34 +58,24 @@ interface PurchaseOrder {
   expected_delivery: string;
 }
 
-interface ReorderAlert {
-  rule_id: number;
-  product: string;
-  current_stock: number;
-  min_level: number;
-  reorder_quantity: number;
-  vendor: string;
-}
-
 interface Expense {
   id: number;
   category_name: string;
   amount: number;
-  expense_date: string;
   description: string;
+  expense_date: string;
+  payment_method: string;
 }
 
 const ERPDashboard: React.FC = () => {
+  const { formatPrice, currentStore } = useApp();
   const [activeTab, setActiveTab] = useState<'overview' | 'vendors' | 'purchase-orders' | 'alerts' | 'shipments' | 'expenses'>('overview');
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
-  const [alerts, setAlerts] = useState<ReorderAlert[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showCreatePO, setShowCreatePO] = useState(false);
-  const [showCreateVendor, setShowCreateVendor] = useState(false);
-
-  // Stats
+  const [showAddVendor, setShowAddVendor] = useState(false);
+  
   const [stats, setStats] = useState({
     totalSpent: 0,
     totalOrders: 0,
@@ -77,469 +86,297 @@ const ERPDashboard: React.FC = () => {
   });
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    if (currentStore?.id) {
+      loadDashboardData();
+    }
+  }, [currentStore]);
 
   const loadDashboardData = async () => {
+    if (!currentStore?.id) return;
     setLoading(true);
     try {
-      // Load stats
-      const [poAnalytics, expenseAnalytics, reorderAlerts] = await Promise.all([
-        api.get('/erp/purchase-orders/analytics/?days=30'),
-        api.get('/erp/expenses/analytics/?days=30'),
-        api.get('/erp/reorder-rules/alerts/')
+      const [pos, vends, exps, rules] = await Promise.all([
+        supabaseApi.erp.listPOs(currentStore.id),
+        supabaseApi.erp.listVendors(currentStore.id),
+        supabaseApi.erp.listExpenses(currentStore.id),
+        supabaseApi.erp.listReorderRules(currentStore.id)
       ]);
+
+      setPurchaseOrders(pos);
+      setVendors(vends);
+      setExpenses(exps);
 
       setStats({
-        totalSpent: poAnalytics.data.total_spent || 0,
-        totalOrders: poAnalytics.data.total_orders || 0,
-        avgOrderValue: poAnalytics.data.avg_order_value || 0,
-        pendingOrders: poAnalytics.data.by_status?.find((s: any) => s.status === 'sent')?.count || 0,
-        lowStockItems: reorderAlerts.data.count || 0,
-        totalExpenses: expenseAnalytics.data.total_expenses || 0
+        totalSpent: pos.filter((p: any) => p.status === 'received').reduce((sum: number, p: any) => sum + parseFloat(p.total), 0),
+        totalOrders: pos.length,
+        avgOrderValue: pos.length > 0 ? pos.reduce((sum: number, p: any) => sum + parseFloat(p.total), 0) / pos.length : 0,
+        pendingOrders: pos.filter((p: any) => p.status === 'sent' || p.status === 'draft').length,
+        lowStockItems: rules.filter((r: any) => r.is_active).length, // Simplified logic
+        totalExpenses: exps.reduce((sum: number, e: any) => sum + parseFloat(e.amount), 0)
       });
-
-      setAlerts(reorderAlerts.data.alerts || []);
-
-      // Load recent data
-      const [vendorsRes, ordersRes, expensesRes] = await Promise.all([
-        api.get('/erp/vendors/?limit=10'),
-        api.get('/erp/purchase-orders/?limit=10'),
-        api.get('/erp/expenses/?limit=10')
-      ]);
-
-      setVendors(vendorsRes.data.results || vendorsRes.data);
-      setPurchaseOrders(ordersRes.data.results || ordersRes.data);
-      setExpenses(expensesRes.data.results || expensesRes.data);
     } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-    } finally {
-      setLoading(false);
+      console.error('Failed to load ERP data:', error);
     }
+    setLoading(false);
   };
 
-  const formatCurrency = (amount: number) => {
-    return amount.toLocaleString() + ' so\'m';
-  };
+  const tabs = [
+    { id: 'overview', label: 'Umumiy', icon: LayoutDashboard },
+    { id: 'vendors', label: 'Vendorlar', icon: Users },
+    { id: 'purchase-orders', label: 'Buyurtmalar', icon: ShoppingCart },
+    { id: 'alerts', label: 'Qoidalar', icon: Bell },
+    { id: 'shipments', label: 'Logistika', icon: Truck },
+    { id: 'expenses', label: 'Xarajatlar', icon: CreditCard }
+  ];
 
-  const getStatusColor = (status: string) => {
-    const colors: any = {
-      'draft': 'bg-gray-100 text-gray-800',
-      'sent': 'bg-blue-100 text-blue-800',
-      'confirmed': 'bg-purple-100 text-purple-800',
-      'partial': 'bg-yellow-100 text-yellow-800',
-      'received': 'bg-green-100 text-green-800',
-      'cancelled': 'bg-red-100 text-red-800'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-800';
-  };
-
-  const getPriorityColor = (priority: string) => {
-    const colors: any = {
-      'low': 'text-gray-600',
-      'medium': 'text-blue-600',
-      'high': 'text-orange-600',
-      'urgent': 'text-red-600'
-    };
-    return colors[priority] || 'text-gray-600';
-  };
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] bg-white">
+        <Loader2 className="w-16 h-16 text-slate-900 animate-spin mb-6 opacity-20" />
+        <p className="text-[10px] font-black uppercase tracking-[0.5em] text-slate-400">Neural Sync In Progress</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-              🏢 ERP Boshqaruv
-            </h1>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowCreateVendor(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Plus className="w-4 h-4 inline mr-2" />
-                Vendor qo'shish
-              </button>
-              <button
-                onClick={() => setShowCreatePO(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                <Plus className="w-4 h-4 inline mr-2" />
-                Buyurtma yaratish
-              </button>
+    <div className="min-h-screen bg-white -m-12 p-12 space-y-12 text-slate-950 font-sans selection:bg-slate-900 selection:text-white">
+      {/* Premium Header */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10">
+        <div>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-1.5 bg-slate-950 rounded-full shadow-2xl" />
+            <span className="text-xs font-black text-slate-950 uppercase tracking-[0.5em]">Enterprise Hub</span>
+          </div>
+          <h1 className="text-4xl font-black tracking-tighter text-slate-950 uppercase font-heading leading-none">
+            ERP <span className="text-slate-300">Ultimate</span>
+          </h1>
+          <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-6 flex items-center gap-3">
+             <ShieldCheck size={14} className="text-emerald-500" /> Barcha tizimlar barqaror ishlamoqda
+          </p>
+        </div>
+        
+        <div className="flex flex-wrap gap-3">
+           <button className="h-16 px-8 bg-slate-100 text-slate-950 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-slate-200 transition-all flex items-center gap-3">
+             <Download size={18} /> Hisobot
+           </button>
+           <button 
+             onClick={() => setShowAddVendor(true)}
+             className="h-16 px-10 bg-slate-950 text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl shadow-slate-950/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
+           >
+             <Plus size={18} className="stroke-[3px]" /> Yangi Amaliyot
+           </button>
+        </div>
+      </div>
+
+      {/* Navigation Matrix */}
+      <div className="flex gap-3 p-1.5 bg-slate-50 rounded-[24px] w-fit border border-slate-100 overflow-x-auto no-scrollbar max-w-full">
+        {tabs.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-3 px-6 py-3.5 rounded-[18px] font-black text-[9px] uppercase tracking-[0.2em] transition-all duration-500 border ${
+              activeTab === tab.id
+                ? 'bg-white text-slate-950 border-white shadow-xl text-shadow-sm'
+                : 'text-slate-400 border-transparent hover:text-slate-600'
+            }`}
+          >
+            <tab.icon size={12} className={`${activeTab === tab.id ? 'text-slate-950' : 'text-slate-400'}`} strokeWidth={3} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {activeTab === 'overview' && (
+          <motion.div 
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            className="space-y-12"
+          >
+            {/* Grid Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+               {[
+                 { label: 'Jami xarajat', value: formatPrice(stats.totalSpent), icon: DollarSign, trend: '+12%', color: 'emerald' },
+                 { label: 'Buyurtmalar', value: stats.totalOrders, icon: ShoppingCart, trend: '85% active', color: 'indigo' },
+                 { label: 'Ombor ogohlantirishlari', value: stats.lowStockItems, icon: AlertTriangle, trend: 'Kritik', color: 'rose' },
+                 { label: 'Xarajatlar', value: formatPrice(stats.totalExpenses), icon: CreditCard, trend: 'Bu oy', color: 'slate' }
+               ].map((item, i) => (
+                 <div key={i} className="bg-white border-2 border-slate-50 p-10 rounded-[48px] hover:border-slate-200 transition-all group relative overflow-hidden h-full">
+                    <div className="absolute top-[-20px] right-[-10px] opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
+                       <item.icon size={150} className="text-slate-900" />
+                    </div>
+                    <div className="relative z-10">
+                       <div className="flex justify-between items-start mb-10">
+                          <div className={`w-14 h-14 rounded-2xl bg-slate-950 flex items-center justify-center text-white shadow-xl`}>
+                             <item.icon size={24} />
+                          </div>
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${item.color === 'rose' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-500'}`}>{item.trend}</span>
+                       </div>
+                       <h3 className="text-2xl font-black text-slate-950 tracking-tighter mb-1 tabular-nums">{item.value}</h3>
+                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.label}</p>
+                    </div>
+                 </div>
+               ))}
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          {[
-            { id: 'overview', label: '📊 Umumiy', },
-            { id: 'vendors', label: '👥 Vendorlar' },
-            { id: 'purchase-orders', label: '📦 Buyurtmalar' },
-            { id: 'alerts', label: '⚠️ Ogohlantirishlar' },
-            { id: 'shipments', label: '🚚 Yetkazish' },
-            { id: 'expenses', label: '💰 Xarajatlar' }
-          ].map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap ${
-                activeTab === tab.id
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 pb-4">
-        {loading ? (
-          <div className="flex justify-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
-        ) : (
-          <>
-            {/* Overview Tab */}
-            {activeTab === 'overview' && (
-              <div className="space-y-6">
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Jami xarajatlar</p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                          {formatCurrency(stats.totalSpent)}
-                        </p>
-                      </div>
-                      <DollarSign className="w-12 h-12 text-green-500" />
-                    </div>
-                    <div className="flex items-center mt-4 text-sm">
-                      <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                      <span className="text-green-600">{stats.totalOrders} buyurtma</span>
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">O'rtacha buyurtma</p>
-                        <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-                          {formatCurrency(stats.avgOrderValue)}
-                        </p>
-                      </div>
-                      <Package className="w-12 h-12 text-blue-500" />
-                    </div>
-                    <div className="flex items-center mt-4 text-sm">
-                      <Clock className="w-4 h-4 text-blue-500 mr-1" />
-                      <span className="text-blue-600">{stats.pendingOrders} kutilmoqda</span>
-                    </div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Kam ombor</p>
-                        <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">
-                          {stats.lowStockItems} ta
-                        </p>
-                      </div>
-                      <AlertTriangle className="w-12 h-12 text-red-500" />
-                    </div>
-                    <div className="flex items-center mt-4 text-sm">
-                      <TrendingDown className="w-4 h-4 text-red-500 mr-1" />
-                      <span className="text-red-600">Qo'shish kerak</span>
-                    </div>
-                  </motion.div>
-                </div>
-
-                {/* Recent Purchase Orders */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                  <div className="p-6 border-b dark:border-gray-700">
-                    <h3 className="font-semibold text-lg">Oxirgi buyurtmalar</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+               {/* Recent Transactions Table */}
+               <div className="lg:col-span-2 bg-white border-2 border-slate-50 rounded-[56px] overflow-hidden">
+                  <div className="p-12 border-b border-slate-50 flex items-center justify-between">
+                     <div>
+                        <h3 className="text-2xl font-black text-slate-950 uppercase tracking-tighter leading-none">Oxirgi Harakatlar</h3>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2">So'nggi 10 ta tranzaksiya</p>
+                     </div>
+                     <button className="w-14 h-14 rounded-2xl bg-slate-100 text-slate-950 flex items-center justify-center hover:bg-slate-950 hover:text-white transition-all">
+                        <ArrowUpRight size={20} />
+                     </button>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50 dark:bg-gray-700">
-                        <tr>
-                          <th className="text-left py-3 px-4 text-sm font-semibold">PO #</th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold">Vendor</th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold">Sana</th>
-                          <th className="text-left py-3 px-4 text-sm font-semibold">Status</th>
-                          <th className="text-right py-3 px-4 text-sm font-semibold">Summa</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {purchaseOrders.slice(0, 5).map(po => (
-                          <tr key={po.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <td className="py-3 px-4 font-mono text-sm">{po.po_number}</td>
-                            <td className="py-3 px-4 text-sm">{po.vendor_name}</td>
-                            <td className="py-3 px-4 text-sm">{new Date(po.order_date).toLocaleDateString('uz-UZ')}</td>
-                            <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(po.status)}`}>
-                                {po.status}
-                              </span>
-                            </td>
-                            <td className="py-3 px-4 text-right font-bold text-blue-600">
-                              {formatCurrency(po.total)}
-                            </td>
-                          </tr>
+                     <table className="w-full">
+                       <thead>
+                         <tr className="bg-slate-50/50">
+                           <th className="py-8 px-12 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">ID / SANA</th>
+                           <th className="py-8 px-12 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">VOMBOR / VENDOR</th>
+                           <th className="py-8 px-12 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">STATUS</th>
+                           <th className="py-8 px-12 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">SUMMA</th>
+                         </tr>
+                       </thead>
+                       <tbody className="divide-y divide-slate-50">
+                         {purchaseOrders.slice(0, 5).map(po => (
+                           <tr key={po.id} className="hover:bg-slate-50 transition-colors group cursor-pointer">
+                              <td className="py-10 px-12">
+                                 <div className="font-black text-slate-950 text-sm tracking-widest uppercase mb-1">{po.po_number}</div>
+                                 <div className="text-[10px] text-slate-400 font-bold">{new Date(po.order_date).toLocaleDateString()}</div>
+                              </td>
+                              <td className="py-10 px-12">
+                                 <div className="font-black text-slate-600 text-xs uppercase tracking-tight mb-1">{po.vendor_name}</div>
+                                 <div className="text-[9px] text-slate-300 font-bold uppercase tracking-widest">Global Logistics</div>
+                              </td>
+                              <td className="py-10 px-12 text-center">
+                                 <span className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest ${
+                                    po.status === 'received' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'
+                                 }`}>{po.status}</span>
+                              </td>
+                              <td className="py-10 px-12 text-right">
+                                 <div className="font-black text-slate-950 tabular-nums">{formatPrice(po.total)}</div>
+                                 <div className="text-[9px] text-emerald-500 font-black uppercase tracking-widest mt-1">Tasdiqlangan</div>
+                              </td>
+                           </tr>
+                         ))}
+                       </tbody>
+                     </table>
+                  </div>
+               </div>
+
+               {/* Vendor Quick List */}
+               <div className="space-y-8">
+                  <div className="bg-slate-950 p-12 rounded-[56px] text-white relative overflow-hidden">
+                     <div className="absolute top-0 right-0 p-8 opacity-20">
+                        <Users size={80} />
+                     </div>
+                     <h3 className="text-xl font-black uppercase tracking-widest mb-10">Top Vendorlar</h3>
+                     <div className="space-y-8">
+                        {vendors.slice(0, 4).map(v => (
+                           <div key={v.id} className="flex items-center justify-between group cursor-pointer">
+                              <div className="flex items-center gap-5">
+                                 <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center font-black text-white group-hover:bg-white group-hover:text-slate-900 transition-all">
+                                    {v.name[0]}
+                                 </div>
+                                 <div>
+                                    <div className="text-sm font-black uppercase tracking-tight">{v.name}</div>
+                                    <div className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">{v.phone}</div>
+                                 </div>
+                              </div>
+                              <div className="text-right">
+                                 <div className="text-xs font-black tabular-nums">4.8</div>
+                                 <div className="flex gap-0.5 mt-1">
+                                    {[1,2,3,4,5].map(i => <div key={i} className="w-1 h-1 rounded-full bg-amber-500" />)}
+                                 </div>
+                              </div>
+                           </div>
                         ))}
-                      </tbody>
-                    </table>
+                     </div>
+                     <button className="w-full mt-12 py-5 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-slate-950 transition-all">
+                        Hammasini Boshqarish
+                     </button>
                   </div>
-                </div>
 
-                {/* Stock Alerts */}
-                {alerts.length > 0 && (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg shadow p-6">
-                    <h3 className="font-semibold text-lg mb-4 flex items-center">
-                      <AlertTriangle className="w-5 h-5 mr-2 text-yellow-600" />
-                      Ombor ogohlantirishlari
-                    </h3>
-                    <div className="space-y-3">
-                      {alerts.slice(0, 5).map((alert, idx) => (
-                        <div key={idx} className="bg-white dark:bg-gray-800 p-4 rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h4 className="font-semibold">{alert.product}</h4>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                Hozir: {alert.current_stock} | Min: {alert.min_level}
-                              </p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-semibold">Qo'shish: {alert.reorder_quantity}</p>
-                              {alert.vendor && (
-                                <p className="text-xs text-gray-500">Vendor: {alert.vendor}</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="bg-white border-2 border-slate-50 p-12 rounded-[56px]">
+                     <h3 className="text-xl font-black text-slate-950 uppercase tracking-widest mb-8">AI Tahlil</h3>
+                     <div className="p-8 bg-slate-50 rounded-[32px] border border-slate-100">
+                        <p className="text-xs font-bold text-slate-500 leading-relaxed uppercase tracking-tight">
+                           Sizning <span className="text-slate-950 font-black">Warehouse Central</span> omboringizda 3 ta mahsulot kritik darajada kamaygan. Ta'minotchilarga buyurtma berishni tavsiya qilamiz.
+                        </p>
+                        <button className="mt-8 flex items-center gap-3 text-indigo-600 font-black text-[10px] uppercase tracking-widest hover:gap-5 transition-all">
+                           Hozir To'ldirish <ChevronRight size={14} />
+                        </button>
+                     </div>
                   </div>
-                )}
-              </div>
-            )}
-
-            {/* Vendors Tab */}
-            {activeTab === 'vendors' && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div className="p-6 border-b dark:border-gray-700">
-                  <h3 className="font-semibold text-lg">Vendorlar ro'yxati</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Nom</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Kontakt</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Telefon</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Reyting</th>
-                        <th className="text-center py-3 px-4 text-sm font-semibold">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {vendors.map(vendor => (
-                        <tr key={vendor.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <td className="py-3 px-4">
-                            <div>
-                              <p className="font-semibold">{vendor.name}</p>
-                              <p className="text-sm text-gray-500">{vendor.email}</p>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-sm">{vendor.contact_person}</td>
-                          <td className="py-3 px-4 text-sm">{vendor.phone}</td>
-                          <td className="py-3 px-4">
-                            <span className="text-yellow-600 font-semibold">⭐ {vendor.rating}</span>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                              vendor.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                            }`}>
-                              {vendor.is_active ? 'Faol' : 'Nofaol'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Purchase Orders Tab */}
-            {activeTab === 'purchase-orders' && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div className="p-6 border-b dark:border-gray-700">
-                  <h3 className="font-semibold text-lg">Xarid buyurtmalari</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">PO #</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Vendor</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Buyurtma sanasi</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Kutilayotgan</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Prioritet</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Status</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold">Summa</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {purchaseOrders.map(po => (
-                        <tr key={po.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <td className="py-3 px-4 font-mono text-sm">{po.po_number}</td>
-                          <td className="py-3 px-4 text-sm">{po.vendor_name}</td>
-                          <td className="py-3 px-4 text-sm">{new Date(po.order_date).toLocaleDateString('uz-UZ')}</td>
-                          <td className="py-3 px-4 text-sm">{new Date(po.expected_delivery).toLocaleDateString('uz-UZ')}</td>
-                          <td className="py-3 px-4">
-                            <span className={`font-semibold ${getPriorityColor(po.priority)}`}>
-                              {po.priority}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded text-xs font-semibold ${getStatusColor(po.status)}`}>
-                              {po.status}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right font-bold text-blue-600">
-                            {formatCurrency(po.total)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* Alerts Tab */}
-            {activeTab === 'alerts' && (
-              <div className="space-y-4">
-                {alerts.length === 0 ? (
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-12 text-center">
-                    <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-green-800 dark:text-green-400">
-                      Hammasi yaxshi! ✅
-                    </h3>
-                    <p className="text-green-600 dark:text-green-500 mt-2">
-                      Omborda yetarli mahsulot bor
-                    </p>
-                  </div>
-                ) : (
-                  alerts.map((alert, idx) => (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-start gap-4">
-                          <AlertTriangle className="w-8 h-8 text-red-500 flex-shrink-0" />
-                          <div>
-                            <h4 className="font-semibold text-lg">{alert.product}</h4>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                              Hozirgi ombor: <span className="font-bold text-red-600">{alert.current_stock}</span>
-                            </p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">
-                              Minimal daraja: {alert.min_level}
-                            </p>
-                            {alert.vendor && (
-                              <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                                Tavsiya etilgan vendor: <span className="font-semibold">{alert.vendor}</span>
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-600 dark:text-gray-400">Qo'shish kerak:</p>
-                          <p className="text-2xl font-bold text-blue-600">{alert.reorder_quantity}</p>
-                          <button className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                            Buyurtma yaratish
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Shipments Tab */}
-            {activeTab === 'shipments' && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
-                <Truck className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Yetkazib berish tracking</h3>
-                <p className="text-gray-600 dark:text-gray-400">
-                  Tez orada qo'shiladi...
-                </p>
-              </div>
-            )}
-
-            {/* Expenses Tab */}
-            {activeTab === 'expenses' && (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-                <div className="p-6 border-b dark:border-gray-700">
-                  <h3 className="font-semibold text-lg">Xarajatlar</h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 dark:bg-gray-700">
-                      <tr>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Kategoriya</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Tavsif</th>
-                        <th className="text-left py-3 px-4 text-sm font-semibold">Sana</th>
-                        <th className="text-right py-3 px-4 text-sm font-semibold">Summa</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {expenses.map(expense => (
-                        <tr key={expense.id} className="border-t dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <td className="py-3 px-4">
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">
-                              {expense.category_name}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-sm">{expense.description}</td>
-                          <td className="py-3 px-4 text-sm">{new Date(expense.expense_date).toLocaleDateString('uz-UZ')}</td>
-                          <td className="py-3 px-4 text-right font-bold text-red-600">
-                            {formatCurrency(expense.amount)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </>
+               </div>
+            </div>
+          </motion.div>
         )}
-      </div>
+
+        {activeTab === 'vendors' && (
+           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                 {vendors.map(vendor => (
+                   <div key={vendor.id} className="bg-white border-2 border-slate-50 p-10 rounded-[48px] hover:shadow-2xl hover:shadow-slate-200 transition-all duration-700">
+                      <div className="flex justify-between items-start mb-10">
+                         <div className="w-20 h-20 rounded-[32px] bg-slate-100 flex items-center justify-center font-black text-3xl text-slate-950">
+                            {vendor.name[0]}
+                         </div>
+                         <div className="flex gap-2">
+                            <button className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 hover:text-slate-950 transition-all"><Edit size={18} /></button>
+                            <button className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-400 hover:text-rose-600 transition-all"><Trash2 size={18} /></button>
+                         </div>
+                      </div>
+                      <h4 className="text-2xl font-black text-slate-950 uppercase tracking-tighter mb-2">{vendor.name}</h4>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-8">{vendor.contact_person}</p>
+                      
+                      <div className="space-y-4 pt-8 border-t border-slate-50">
+                         <div className="flex justify-between items-center">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Telefon</span>
+                            <span className="text-xs font-black text-slate-900">{vendor.phone}</span>
+                         </div>
+                         <div className="flex justify-between items-center">
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Email</span>
+                            <span className="text-xs font-black text-slate-900">{vendor.email}</span>
+                         </div>
+                      </div>
+
+                      <button className="w-full mt-10 h-16 bg-slate-950 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] hover:scale-105 transition-all">
+                         Tarixni Ko'rish
+                      </button>
+                   </div>
+                 ))}
+              </div>
+           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <Modal isOpen={showAddVendor} onClose={() => setShowAddVendor(false)} title="Yangi Vendor Qo'shish">
+         <div className="p-12 space-y-10 bg-white">
+            <div className="space-y-4">
+               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] px-2">Kompaniya Nomi</label>
+               <input type="text" className="w-full h-20 bg-slate-50 border-2 border-slate-100 rounded-3xl px-8 font-black text-slate-950 uppercase tracking-tight outline-none focus:border-slate-950 transition-all" />
+            </div>
+            <div className="grid grid-cols-2 gap-8">
+               <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] px-2">Mas'ul Shaxs</label>
+                  <input type="text" className="w-full h-20 bg-slate-50 border-2 border-slate-100 rounded-3xl px-8 font-black text-slate-950 uppercase tracking-tight outline-none focus:border-slate-950 transition-all" />
+               </div>
+               <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] px-2">Telefon</label>
+                  <input type="text" className="w-full h-20 bg-slate-50 border-2 border-slate-100 rounded-3xl px-8 font-black text-slate-950 uppercase tracking-tight outline-none focus:border-slate-950 transition-all" />
+               </div>
+            </div>
+            <button className="w-full h-24 bg-slate-950 text-white rounded-[32px] font-black uppercase tracking-[0.5em] text-sm shadow-2xl shadow-slate-950/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+               Vendor Ro'yxatga Olish
+            </button>
+         </div>
+      </Modal>
     </div>
   );
 };

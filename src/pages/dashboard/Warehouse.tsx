@@ -16,7 +16,7 @@ import {
   DollarSign
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { productApi, inventoryApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -47,7 +47,7 @@ export function Warehouse() {
     try {
       // In a real app, this might be a specialized inventory endpoint.
       // Here we use the product list and supplement with margin/speed logic.
-      const res = await productApi.list({ store: currentStore.id });
+      const res = await supabaseApi.products.list({ store: currentStore.id });
       const productData = res.data.results || res.data || [];
       
       const inventoryData = productData.map((p: any) => ({
@@ -75,7 +75,7 @@ export function Warehouse() {
 
   const handleAdjustStock = async (id: number, type: 'add' | 'subtract' | 'set') => {
     try {
-      await inventoryApi.updateStock(id, adjustmentValue, type);
+      await supabaseApi.inventory.updateStock(id, adjustmentValue, type);
       setIsAdjusting(null);
       setAdjustmentValue(0);
       loadInventory();

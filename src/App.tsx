@@ -8,7 +8,6 @@ import { Marketplace } from './pages/Marketplace';
 import { StorePendingApproval } from './components/StorePendingApproval';
 
 import { Dashboard } from './pages/Dashboard';
-import { CourierDashboard } from './pages/dashboard/CourierDashboard';
 import AiBusinessIntelligence from './pages/dashboard/AiBusinessIntelligence';
 
 import { Storefront } from './pages/Storefront';
@@ -22,7 +21,7 @@ import { motion } from 'framer-motion';
 import RejectionModal from './components/RejectionModal';
 
 
-type Page = 'login' | 'register' | 'wizard' | 'pending-approval' | 'dashboard' | 'storefront' | 'admin-login' | 'super-admin' | 'courier-dashboard' | 'ai-intel' | 'marketplace';
+type Page = 'login' | 'register' | 'wizard' | 'pending-approval' | 'dashboard' | 'storefront' | 'admin-login' | 'super-admin' | 'ai-intel' | 'marketplace';
 
 function AppContent() {
   const { isLoading, isAuthenticated, isSuperAdmin, user, logout } = useAuth();
@@ -162,8 +161,6 @@ function AppContent() {
       if (onAuthPage) {
         if (isSuperAdmin) {
           setPage('super-admin');
-        } else if (user?.role === 'courier') {
-          setPage('courier-dashboard');
         } else {
           setPage('dashboard');
         }
@@ -366,12 +363,11 @@ function AppContent() {
       case 'wizard':
         return (
           <StoreWizard
-            onComplete={(storeId: number, storeName: string) => {
+            onComplete={(storeId: number, _storeName: string) => {
               setStoreId(storeId);
-              setPendingStoreName(storeName);
-              setIsPendingStore(true);
-              setDashboardTab(undefined);
-              setPage('pending-approval');
+              setIsPendingStore(false);
+              setDashboardTab('overview');
+              setPage('dashboard');
             }}
           />
         );
@@ -414,12 +410,7 @@ function AppContent() {
             onBack={() => setPage('login')}
           />
         );
-      case 'courier-dashboard':
-        return (
-          <CourierDashboard
-            onLogout={handleLogout}
-          />
-        );
+
       case 'super-admin':
         return (
           <SuperAdminDashboard

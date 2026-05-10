@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Layers, Loader2, Download, Check, Camera } from 'lucide-react';
-import { aiApi, productApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 
 import { useApp } from '../../context/AppContext';
 
@@ -26,7 +26,7 @@ export default function AiFittingRoom({ storeId }: AiFittingRoomProps) {
 
     const loadProducts = async () => {
         try {
-            const res = await productApi.list({ store: storeId });
+            const res = await supabaseApi.products.list({ store: storeId });
             // Filter products that have images
             setProducts(res.data.filter((p: any) => p.image));
         } catch (e) {
@@ -54,7 +54,7 @@ export default function AiFittingRoom({ storeId }: AiFittingRoomProps) {
 
             const productBase64 = await urlToBase64(selectedProduct.image);
 
-            const res = await aiApi.virtualTryOn({
+            const res = await supabaseApi.ai.virtualTryOn({
                 person_image: personImage,
                 garment_image: productBase64
             });

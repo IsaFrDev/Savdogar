@@ -6,7 +6,7 @@ import {
     ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { orderApi, deliveryApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import { Button } from '../../components/Button';
 
 export function CourierDashboard({ onLogout }: { onLogout: () => void }) {
@@ -23,31 +23,32 @@ export function CourierDashboard({ onLogout }: { onLogout: () => void }) {
         // Setup location tracking if available
         let watchId: number;
         if ('geolocation' in navigator) {
-            watchId = navigator.geolocation.watchPosition(
-                (position) => {
-                    const { latitude, longitude } = position.coords;
-                    deliveryApi.updateLocation(latitude, longitude).catch(err => console.error(err));
-                },
-                (error) => console.error('Tracking error:', error),
-                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-            );
+            watchId = window.setInterval(() => {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude } = position.coords;
+                        supabaseApi.delivery.updateLocation(latitude, longitude).catch(err => console.error(err));
+                    },
+                    (error) => console.error('Tracking error:', error),
+                    { enableHighAccuracy: true }
+                );
+            }, 10000); // Track every 10 seconds
         }
 
         return () => {
-            if (watchId) navigator.geolocation.clearWatch(watchId);
+            if (watchId) clearInterval(watchId);
         };
     }, []);
 
     const loadData = async () => {
         setLoading(true);
         try {
-            const [profileRes, ordersRes] = await Promise.all([
-                deliveryApi.getProfile(),
-                orderApi.list({ status: activeTab === 'assigned' ? 'confirmed' : 'completed' })
-                // Note: On backend we should ensure couriers only see their assigned orders
+            const [profileData, ordersData] = await Promise.all([
+                supabaseApi.delivery.getProfile(),
+                supabaseApi.orders.listAll({ status: activeTab === 'assigned' ? 'confirmed' : 'completed' })
             ]);
-            setProfile(profileRes.data);
-            setOrders(ordersRes.data);
+            setProfile(profileData);
+            setOrders(ordersData);
         } catch (error) {
             console.error('Failed to load courier data:', error);
         } finally {
@@ -57,7 +58,7 @@ export function CourierDashboard({ onLogout }: { onLogout: () => void }) {
 
     const handleStatusUpdate = async (newStatus: string) => {
         try {
-            await deliveryApi.updateStatus(newStatus);
+            await supabaseApi.delivery.updateStatus(newStatus);
             setProfile((prev: any) => ({ ...prev, status: newStatus }));
         } catch (error) {
             console.error('Failed to update status:', error);
@@ -66,7 +67,7 @@ export function CourierDashboard({ onLogout }: { onLogout: () => void }) {
 
     const handleOrderAction = async (orderId: number, nextStatus: string) => {
         try {
-            await orderApi.updateStatus(orderId, nextStatus);
+            await supabaseApi.orders.updateStatus(orderId, nextStatus);
             loadData();
             if (selectedOrder?.id === orderId) {
                 setSelectedOrder(null);

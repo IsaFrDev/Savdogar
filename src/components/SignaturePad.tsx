@@ -22,7 +22,7 @@ export interface SignaturePadRef {
 
 export const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(
     ({ onSign, width = 400, height = 200, label, nameForGeneration }, ref) => {
-        const { language } = useApp();
+        const { t } = useApp();
         const signatureRef = useRef<SignatureCanvas>(null);
         const [isEnhancing, setIsEnhancing] = useState(false);
         const [isGenerating, setIsGenerating] = useState(false);
@@ -129,7 +129,7 @@ export const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(
                     style={{ width, height: height + 50 }}
                 >
                     <div className="absolute top-3 left-4 text-[10px] font-black uppercase tracking-widest text-slate-600 flex items-center gap-2 z-10">
-                        ✍️ {language === 'uz' ? "Imzo chizing yoki AI tanlang" : "Sign or select AI"}
+                        ✍️ {t('signOrSelectAi')}
                         {enhanced && (
                             <motion.span
                                 initial={{ opacity: 0, scale: 0.8 }}
@@ -168,7 +168,7 @@ export const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(
                                         <Loader2 className="w-8 h-8 text-[var(--brand-primary)] animate-spin" />
                                     </div>
                                     <span className="text-[11px] font-black uppercase tracking-widest text-[var(--brand-primary)]">
-                                        AI Analyzing...
+                                        {t('aiAnalyzing')}
                                     </span>
                                 </div>
                             </motion.div>
@@ -184,7 +184,7 @@ export const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(
                                 <div className="flex justify-between items-center mb-6">
                                     <h3 className="text-[11px] font-black text-[var(--text-primary)] flex items-center gap-2 uppercase tracking-widest">
                                         <Sparkles className="w-4 h-4 text-[var(--brand-primary)]" />
-                                        AI Signature Lab
+                                        {t('aiSignatureLab')}
                                     </h3>
                                     <button onClick={() => setShowVariants(false)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
                                         <X className="w-5 h-5" />
@@ -208,7 +208,7 @@ export const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(
                                     ))}
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-[10px] text-slate-600 mb-2 font-bold uppercase tracking-widest">Select to apply</p>
+                                    <p className="text-[10px] text-slate-600 mb-2 font-bold uppercase tracking-widest">{t('selectToApply')}</p>
                                 </div>
                             </motion.div>
                         )}
@@ -224,7 +224,7 @@ export const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(
                         icon={<Eraser className="w-4 h-4" />}
                         className="shadow-sm"
                     >
-                        {language === 'uz' ? "O'chirish" : "Clear"}
+                        {t('clear')}
                     </Button>
                     <Button
                         type="button"
@@ -235,7 +235,7 @@ export const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(
                         className="!border-[var(--brand-primary)]/30 !text-[var(--brand-primary)] hover:!bg-[var(--brand-primary)]/10"
                         icon={<Sparkles className="w-4 h-4" />}
                     >
-                        {language === 'uz' ? "Chiroyli qilish" : "Beautify"}
+                        {t('beautify')}
                     </Button>
                     {nameForGeneration && (
                         <Button
@@ -247,7 +247,7 @@ export const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(
                             className="!border-emerald-500/30 !text-emerald-400 hover:!bg-emerald-500/10"
                             icon={<Sparkles className="w-4 h-4" />}
                         >
-                            AI Generate
+                            {t('aiGenerate')}
                         </Button>
                     )}
                     <Button
@@ -257,7 +257,7 @@ export const SignaturePad = forwardRef<SignaturePadRef, SignaturePadProps>(
                         icon={<Check className="w-4 h-4" />}
                         className="bg-[var(--brand-primary)] hover:brightness-110 text-[var(--primary-foreground)] shadow-lg shadow-[var(--brand-primary-glow)]"
                     >
-                        {language === 'uz' ? "Tasdiqlash" : "Confirm"}
+                        {t('confirm')}
                     </Button>
                 </div>
             </div>

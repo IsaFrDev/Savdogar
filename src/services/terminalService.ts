@@ -39,9 +39,9 @@ export const terminalService = {
 
         if (command === 'whoami') {
             return [
-                { type: 'output', content: 'User: superadmin@savdoon.uz' },
-                { type: 'output', content: 'Role: ROOT_ACCESS' },
-                { type: 'output', content: 'Permissions: ALL_MODULES' }
+                { type: 'output', content: `${t('terminal_user_label') || 'User'}: superadmin@savdoon.uz` },
+                { type: 'output', content: `${t('terminal_role_label') || 'Role'}: ROOT_ACCESS` },
+                { type: 'output', content: `${t('terminal_permissions_label') || 'Permissions'}: ALL_MODULES` }
             ];
         }
 
@@ -76,8 +76,8 @@ export const terminalService = {
         }
 
         return [
-            { type: 'error', content: `Command not found: ${command}` },
-            { type: 'output', content: "Type 'help' for available commands." }
+            { type: 'error', content: t('terminal_cmd_not_found', { command }) || `Command not found: ${command}` },
+            { type: 'output', content: t('terminal_type_help') || "Type 'help' for available commands." }
         ];
     }
 };

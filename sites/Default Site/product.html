@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mahsulot — {{STORE_NAME}}</title>
+  <link rel="stylesheet" href="./main.css" />
+  <style>
+    .product-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    @media(max-width:700px){ .product-detail { grid-template-columns: 1fr; } }
+
+    .product-gallery {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      aspect-ratio: 1;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 120px;
+      position: relative;
+    }
+    .gallery-fav {
+      position: absolute; top: 16px; right: 16px;
+      width: 44px; height: 44px;
+      background: var(--surface);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: var(--shadow-md);
+      border: none; cursor: pointer;
+      transition: transform var(--transition);
+    }
+    .gallery-fav:hover { transform: scale(1.12); }
+
+    .product-info-panel { display: flex; flex-direction: column; gap: 18px; }
+
+    .product-detail-name {
+      font-size: 22px; font-weight: 800; color: var(--text-1); line-height: 1.3;
+    }
+    .product-detail-rating {
+      display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-2);
+    }
+    .product-detail-rating .star { color: var(--warn); font-size: 16px; }
+
+    .price-row { display: flex; align-items: baseline; gap: 12px; }
+    .price-main { font-size: 28px; font-weight: 800; color: var(--text-1); }
+    .price-old-big { font-size: 16px; color: var(--text-3); text-decoration: line-through; }
+    .price-badge-big {
+      background: var(--danger); color: #fff;
+      font-size: 13px; font-weight: 700;
+      padding: 4px 12px; border-radius: var(--radius-pill);
+    }
+
+    .info-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+    .info-row {
+      display: flex; justify-content: space-between;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .info-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .info-label { color: var(--text-3); font-weight: 500; }
+    .info-val { color: var(--text-1); font-weight: 600; }
+
+    .qty-selector {
+      display: flex; align-items: center; gap: 0;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      width: fit-content;
+    }
+    .qty-selector button {
+      width: 44px; height: 44px;
+      background: var(--surface-2);
+      font-size: 20px; font-weight: 600;
+      border: none; cursor: pointer;
+      transition: background var(--transition);
+    }
+    .qty-selector button:hover { background: var(--border); }
+    .qty-selector span {
+      width: 52px; text-align: center;
+      font-size: 16px; font-weight: 700;
+    }
+
+    .action-btns { display: flex; gap: 12px; flex-direction: column; }
+    .btn-buy-now {
+      width: 100%; padding: 16px;
+      background: var(--brand); color: #fff;
+      font-size: 16px; font-weight: 700;
+      border-radius: var(--radius-md);
+      border: none; cursor: pointer;
+      transition: background var(--transition);
+    }
+    .btn-buy-now:hover { background: var(--brand-dark); }
+    .btn-add-cart-big {
+      width: 100%; padding: 15px;
+      background: var(--surface); color: var(--brand);
+      font-size: 16px; font-weight: 700;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--brand); cursor: pointer;
+      transition: background var(--transition);
+    }
+    .btn-add-cart-big:hover { background: var(--brand-light); }
+
+    .delivery-cards { display: flex; gap: 10px; flex-wrap: wrap; }
+    .delivery-card {
+      flex: 1; min-width: 120px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      font-size: 12px; color: var(--text-2);
+      text-align: center;
+    }
+    .delivery-card .dc-icon { font-size: 24px; margin-bottom: 6px; }
+    .delivery-card strong { display: block; color: var(--text-1); font-size: 13px; margin-bottom: 2px; }
+
+    .reviews-section { margin-top: 32px; }
+    .review-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .review-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .review-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--brand-light);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .review-name { font-size: 14px; font-weight: 600; }
+    .review-date { font-size: 12px; color: var(--text-3); }
+    .review-stars { color: var(--warn); font-size: 13px; margin-bottom: 6px; }
+    .review-text { font-size: 14px; color: var(--text-2); line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+  <div id="navbar-placeholder"></div>
+
+  <main class="page">
+
+    <!-- Breadcrumb -->
+    <nav style="font-size:13px;color:var(--text-3);margin-bottom:20px;display:flex;gap:6px;align-items:center">
+      <a href="index.html" style="color:var(--brand)">Bosh sahifa</a>
+      <span>›</span>
+      <a href="#" id="bc-cat" style="color:var(--brand)">Toifa</a>
+      <span>›</span>
+      <span id="bc-name">Mahsulot</span>
+    </nav>
+
+    <div class="product-detail">
+
+      <!-- Gallery -->
+      <div>
+        <div class="product-gallery" id="detail-emoji">
+          <button class="gallery-fav" id="detail-fav-btn" aria-label="Sevimli">🤍</button>
+          📦
+        </div>
+      </div>
+
+      <!-- Info panel -->
+      <div class="product-info-panel">
+
+        <h1 class="product-detail-name" id="detail-name">Yuklanmoqda...</h1>
+
+        <div class="product-detail-rating">
+          <span class="star">★</span>
+          <span id="detail-rating">—</span>
+          <span id="detail-reviews" style="color:var(--text-3)"></span>
+        </div>
+
+        <div class="price-row">
+          <span class="price-main" id="detail-price">—</span>
+          <span class="price-old-big" id="detail-old-price" style="display:none"></span>
+          <span class="price-badge-big" id="detail-discount" style="display:none"></span>
+        </div>
+
+        <!-- Info table -->
+        <div class="info-block">
+          <div class="info-row">
+            <span class="info-label">Holati</span>
+            <span class="info-val" style="color:var(--success)">✅ Mavjud</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Yetkazib berish</span>
+            <span class="info-val">1–3 kun</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Qaytarish</span>
+            <span class="info-val">14 kun ichida</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Kafolat</span>
+            <span class="info-val">1 yil</span>
+          </div>
+        </div>
+
+        <!-- Qty -->
+        <div>
+          <p style="font-size:13px;color:var(--text-3);margin-bottom:8px;font-weight:500">Miqdor:</p>
+          <div class="qty-selector">
+            <button onclick="changeQty(-1)">−</button>
+            <span id="qty-num">1</span>
+            <button onclick="changeQty(1)">+</button>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-btns">
+          <button class="btn-buy-now" id="btn-buy">💳 Hozir Sotib Olish</button>
+          <button class="btn-add-cart-big" id="btn-cart">🛒 Savatga Qo'shish</button>
+        </div>
+
+        <!-- Delivery info -->
+        <div class="delivery-cards">
+          <div class="delivery-card">
+            <div class="dc-icon">🚚</div>
+            <strong>Tezkor</strong>
+            1–3 kun
+          </div>
+          <div class="delivery-card">
+            <div class="dc-icon">🏪</div>
+            <strong>Do'kondan</strong>
+            Bepul
+          </div>
+          <div class="delivery-card">
+            <div class="dc-icon">↩️</div>
+            <strong>Qaytarish</strong>
+            14 kun
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Reviews -->
+    <section class="reviews-section">
+      <div class="section-header">
+        <h2 class="section-title">Sharhlar</h2>
+      </div>
+      <div id="reviews-list">
+        <div class="review-card">
+          <div class="review-header">
+            <div class="review-avatar">👤</div>
+            <div>
+              <div class="review-name">Aziz T.</div>
+              <div class="review-date">12 aprel 2024</div>
+            </div>
+          </div>
+          <div class="review-stars">★★★★★</div>
+          <div class="review-text">Juda yaxshi mahsulot! Sifati a'lo, tez yetib keldi. Tavsiya qilaman.</div>
+        </div>
+        <div class="review-card">
+          <div class="review-header">
+            <div class="review-avatar">👤</div>
+            <div>
+              <div class="review-name">Malika S.</div>
+              <div class="review-date">3 mart 2024</div>
+            </div>
+          </div>
+          <div class="review-stars">★★★★☆</div>
+          <div class="review-text">Umuman olganda yaxshi, lekin rangi rasmdan sal farq qiladi. Qolganiga shikoyat yo'q.</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script src="js/products.js"></script>
+  <script>
+    let currentProduct = null;
+    let qty = 1;
+
+    function changeQty(d) {
+      qty = Math.max(1, qty + d);
+      document.getElementById('qty-num').textContent = qty;
+    }
+
+    function loadProduct() {
+      const params = new URLSearchParams(location.search);
+      const id = parseInt(params.get('id'));
+      const p = DEMO_PRODUCTS.find(x => x.id === id);
+      if (!p) { document.getElementById('detail-name').textContent = 'Mahsulot topilmadi'; return; }
+
+      currentProduct = p;
+      document.title = p.name + ' — {{STORE_NAME}}';
+
+      document.getElementById('detail-emoji').childNodes[0].textContent = '';
+      const emojiEl = document.getElementById('detail-emoji');
+      emojiEl.insertAdjacentHTML('afterbegin', `<span style="font-size:100px">${p.emoji}</span>`);
+
+      document.getElementById('detail-name').textContent = p.name;
+      document.getElementById('detail-rating').textContent = p.rating;
+      document.getElementById('detail-reviews').textContent = `(${p.reviews} sharh)`;
+      document.getElementById('detail-price').textContent = fmtPrice(p.price);
+      document.getElementById('bc-name').textContent = p.name;
+
+      if (p.oldPrice) {
+        document.getElementById('detail-old-price').textContent = fmtPrice(p.oldPrice);
+        document.getElementById('detail-old-price').style.display = '';
+        document.getElementById('detail-discount').textContent = `-${p.discount}%`;
+        document.getElementById('detail-discount').style.display = '';
+      }
+
+      const favBtn = document.getElementById('detail-fav-btn');
+      favBtn.textContent = Favs.has(p.id) ? '❤️' : '🤍';
+      favBtn.onclick = () => {
+        const added = Favs.toggle(p.id);
+        favBtn.textContent = added ? '❤️' : '🤍';
+        showToast(added ? '❤️ Sevimlilarga qo\'shildi' : 'Olib tashlandi');
+      };
+
+      document.getElementById('btn-cart').onclick = () => {
+        for (let i = 0; i < qty; i++) addToCart(p);
+      };
+      document.getElementById('btn-buy').onclick = () => {
+        if (!Auth.isLoggedIn()) { openModal('login-modal'); return; }
+        for (let i = 0; i < qty; i++) addToCart(p);
+        openCartPanel();
+      };
+    }
+
+    fetch('_navbar.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('navbar-placeholder').innerHTML = html;
+        initNavbar();
+        loadProduct();
+      });
+  </script>
+</body>
+</html>

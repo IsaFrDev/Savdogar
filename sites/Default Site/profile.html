@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profil — {{STORE_NAME}}</title>
+  <link rel="stylesheet" href="./main.css" />
+  <style>
+    .profile-page { max-width: 640px; margin: 0 auto; }
+
+    .profile-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      display: flex; align-items: center; gap: 20px;
+      margin-bottom: 20px;
+    }
+    .profile-big-avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--brand-light);
+      border: 3px solid var(--brand);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; flex-shrink: 0;
+    }
+    .profile-card-name { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+    .profile-card-phone { font-size: 14px; color: var(--text-3); }
+    .profile-card-edit {
+      margin-left: auto;
+      padding: 8px 18px;
+      background: var(--brand-light);
+      color: var(--brand);
+      border: 1.5px solid var(--brand);
+      border-radius: var(--radius-pill);
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+    }
+
+    .profile-stats {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 12px; margin-bottom: 20px;
+    }
+    .pstat {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px 12px;
+      text-align: center;
+    }
+    .pstat-num { font-size: 22px; font-weight: 800; color: var(--brand); }
+    .pstat-label { font-size: 12px; color: var(--text-3); margin-top: 4px; }
+
+    .tabs {
+      display: flex; gap: 0;
+      border-bottom: 2px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .tab-btn {
+      flex: 1; padding: 12px 8px;
+      font-size: 14px; font-weight: 600;
+      color: var(--text-3);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      background: none; border-top: none; border-left: none; border-right: none;
+      cursor: pointer; transition: color var(--transition), border-color var(--transition);
+    }
+    .tab-btn.active { color: var(--brand); border-bottom-color: var(--brand); }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .order-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+    .order-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .order-id { font-size: 13px; font-weight: 700; color: var(--text-1); }
+    .order-date { font-size: 12px; color: var(--text-3); }
+    .order-status {
+      font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: var(--radius-pill);
+    }
+    .status-delivered { background: #E6FAF4; color: var(--success); }
+    .status-pending   { background: #FFF7E0; color: var(--warn); }
+    .status-shipping  { background: var(--brand-light); color: var(--brand); }
+    .order-items { font-size: 13px; color: var(--text-2); margin-bottom: 8px; }
+    .order-total { font-size: 15px; font-weight: 700; color: var(--text-1); }
+
+    .edit-form { display: flex; flex-direction: column; gap: 14px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-label { font-size: 13px; font-weight: 600; color: var(--text-2); }
+    .form-input {
+      padding: 12px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      font-size: 15px;
+      background: var(--surface);
+      color: var(--text-1);
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    .form-input:focus { border-color: var(--brand); }
+
+    .not-logged {
+      text-align: center; padding: 5rem 1rem; color: var(--text-3);
+    }
+    .not-logged .icon { font-size: 60px; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+
+  <div id="navbar-placeholder"></div>
+
+  <!-- Not logged in -->
+  <main class="page profile-page" id="not-logged-view" style="display:none">
+    <div class="not-logged">
+      <div class="icon">🔒</div>
+      <p style="font-size:18px;font-weight:700;margin-bottom:8px;color:var(--text-1)">Kirish kerak</p>
+      <p style="font-size:14px;margin-bottom:24px">Profilingizni ko'rish uchun tizimga kiring</p>
+      <button class="btn-primary" style="width:auto;padding:14px 32px;border-radius:var(--radius-pill)" onclick="openModal('login-modal')">
+        📱 Kirish
+      </button>
+    </div>
+  </main>
+
+  <!-- Logged in -->
+  <main class="page profile-page" id="logged-view" style="display:none">
+
+    <!-- Profile card -->
+    <div class="profile-card">
+      <div class="profile-big-avatar">👤</div>
+      <div>
+        <div class="profile-card-name" id="pf-name">Foydalanuvchi</div>
+        <div class="profile-card-phone" id="pf-phone">—</div>
+      </div>
+      <button class="profile-card-edit" onclick="switchTab('edit')">✏️ Tahrirlash</button>
+    </div>
+
+    <!-- Stats -->
+    <div class="profile-stats">
+      <div class="pstat">
+        <div class="pstat-num">3</div>
+        <div class="pstat-label">Buyurtmalar</div>
+      </div>
+      <div class="pstat">
+        <div class="pstat-num" id="pf-fav-count">0</div>
+        <div class="pstat-label">Sevimlilar</div>
+      </div>
+      <div class="pstat">
+        <div class="pstat-num">2</div>
+        <div class="pstat-label">Sharhlar</div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('orders')">📦 Buyurtmalar</button>
+      <button class="tab-btn" onclick="switchTab('edit')">✏️ Tahrirlash</button>
+      <button class="tab-btn" onclick="switchTab('settings')">⚙️ Sozlamalar</button>
+    </div>
+
+    <!-- Tab: Orders -->
+    <div class="tab-content active" id="tab-orders">
+      <div class="order-card">
+        <div class="order-header">
+          <div>
+            <div class="order-id">#ORD-2024-001</div>
+            <div class="order-date">15 aprel 2024</div>
+          </div>
+          <span class="order-status status-delivered">✅ Yetkazildi</span>
+        </div>
+        <div class="order-items">👟 Erkaklar sport krossovkasi × 1</div>
+        <div class="order-total">890 000 UZS</div>
+      </div>
+      <div class="order-card">
+        <div class="order-header">
+          <div>
+            <div class="order-id">#ORD-2024-002</div>
+            <div class="order-date">2 may 2024</div>
+          </div>
+          <span class="order-status status-shipping">🚚 Yolda</span>
+        </div>
+        <div class="order-items">👗 Ayollar yozgi ko'ylagi × 2, 🧥 Erkaklar hoodie × 1</div>
+        <div class="order-total">1 760 000 UZS</div>
+      </div>
+      <div class="order-card">
+        <div class="order-header">
+          <div>
+            <div class="order-id">#ORD-2024-003</div>
+            <div class="order-date">7 may 2024</div>
+          </div>
+          <span class="order-status status-pending">⏳ Jarayonda</span>
+        </div>
+        <div class="order-items">🩳 Sport shimlar × 1</div>
+        <div class="order-total">560 000 UZS</div>
+      </div>
+    </div>
+
+    <!-- Tab: Edit -->
+    <div class="tab-content" id="tab-edit">
+      <div class="edit-form">
+        <div class="form-group">
+          <label class="form-label">Ism</label>
+          <input class="form-input" type="text" id="edit-name" placeholder="Ismingiz" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Familiya</label>
+          <input class="form-input" type="text" id="edit-surname" placeholder="Familiyangiz" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Telefon raqam</label>
+          <input class="form-input" type="tel" id="edit-phone" placeholder="+998 __ ___ __ __" readonly style="background:var(--surface-2);cursor:not-allowed" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Manzil</label>
+          <input class="form-input" type="text" id="edit-address" placeholder="Toshkent, ..." />
+        </div>
+        <button class="btn-primary" onclick="saveProfile()">💾 Saqlash</button>
+      </div>
+    </div>
+
+    <!-- Tab: Settings -->
+    <div class="tab-content" id="tab-settings">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;">
+        <div class="profile-menu-item" style="padding:16px">
+          <div class="profile-menu-icon">🔔</div>
+          <span class="profile-menu-text">Bildirishnomalar</span>
+          <label style="cursor:pointer;position:relative;width:44px;height:24px;background:var(--brand);border-radius:12px;display:flex;align-items:center;padding:2px 4px;">
+            <span style="width:20px;height:20px;background:#fff;border-radius:50%;margin-left:auto"></span>
+          </label>
+        </div>
+        <div class="profile-menu-item" style="padding:16px">
+          <div class="profile-menu-icon">🌐</div>
+          <span class="profile-menu-text">Til</span>
+          <select style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 8px;font-size:13px;color:var(--text-2);background:var(--surface)">
+            <option>O'zbekcha</option>
+            <option>Русский</option>
+            <option>English</option>
+          </select>
+        </div>
+        <div class="profile-menu-item" style="padding:16px">
+          <div class="profile-menu-icon">ℹ️</div>
+          <span class="profile-menu-text">Biz haqimizda</span>
+          <span class="profile-menu-arrow">›</span>
+        </div>
+        <div class="profile-menu-item" style="padding:16px">
+          <div class="profile-menu-icon">✉️</div>
+          <span class="profile-menu-text">Biz bilan bog'lanish</span>
+          <span class="profile-menu-arrow">›</span>
+        </div>
+      </div>
+
+      <button class="btn-logout" onclick="doLogout()" style="margin-top:20px">Chiqish</button>
+    </div>
+
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script src="js/products.js"></script>
+  <script>
+    function switchTab(name) {
+      document.querySelectorAll('.tab-btn').forEach((b,i) => {
+        const map = ['orders','edit','settings'];
+        b.classList.toggle('active', map[i] === name);
+      });
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      const target = document.getElementById('tab-' + name);
+      if (target) target.classList.add('active');
+    }
+
+    function saveProfile() {
+      const user = Auth.get() || {};
+      user.name    = document.getElementById('edit-name').value.trim();
+      user.surname = document.getElementById('edit-surname').value.trim();
+      user.address = document.getElementById('edit-address').value.trim();
+      Auth.set(user);
+      const fullName = [user.name, user.surname].filter(Boolean).join(' ') || 'Foydalanuvchi';
+      document.getElementById('pf-name').textContent = fullName;
+      showToast('✅ Profil saqlandi');
+      switchTab('orders');
+    }
+
+    function doLogout() {
+      Auth.clear();
+      showToast('👋 Chiqildi');
+      setTimeout(() => location.href = 'index.html', 800);
+    }
+
+    function renderProfilePage() {
+      const user = Auth.get();
+      const loggedView = document.getElementById('logged-view');
+      const notLogged  = document.getElementById('not-logged-view');
+
+      if (!user) {
+        notLogged.style.display  = '';
+        loggedView.style.display = 'none';
+        return;
+      }
+
+      loggedView.style.display = '';
+      notLogged.style.display  = 'none';
+
+      const fullName = [user.name, user.surname].filter(Boolean).join(' ') || 'Foydalanuvchi';
+      document.getElementById('pf-name').textContent  = fullName;
+      document.getElementById('pf-phone').textContent = user.phone || '—';
+      document.getElementById('pf-fav-count').textContent = Favs.get().length;
+
+      if (document.getElementById('edit-phone'))
+        document.getElementById('edit-phone').value = user.phone || '';
+      if (document.getElementById('edit-name'))
+        document.getElementById('edit-name').value = user.name || '';
+      if (document.getElementById('edit-surname'))
+        document.getElementById('edit-surname').value = user.surname || '';
+      if (document.getElementById('edit-address'))
+        document.getElementById('edit-address').value = user.address || '';
+    }
+
+    fetch('_navbar.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('navbar-placeholder').innerHTML = html;
+        initNavbar();
+        renderProfilePage();
+      });
+  </script>
+</body>
+</html>

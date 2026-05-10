@@ -152,14 +152,10 @@ Quyida imzo chekish orqali barcha shartlarga rozilik bildirasiz.
                 />
                 <div className="flex-1">
                     <p className={`text-xs font-black uppercase tracking-wider ${agreed ? 'text-emerald-600' : 'text-[var(--text-primary)]'}`}>
-                        {language === 'uz' ? "Men shartlarga roziman" :
-                            language === 'ru' ? "Я согласен с условиями" :
-                                "I agree to the terms"}
+                        {t('agreeToTerms')}
                     </p>
                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1">
-                        {language === 'uz' ? "Shartnomani o'qidim va qabul qildim" :
-                            language === 'ru' ? "Я прочитал и принимаю договор" :
-                                "I have read and accept"}
+                        {t('readAndAccept')}
                     </p>
                 </div>
                 {agreed && <CheckCircle className="w-6 h-6 text-green-500" />}

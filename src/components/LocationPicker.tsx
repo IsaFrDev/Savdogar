@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { MapPin } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 // Fix Leaflet default icon issue
 import 'leaflet/dist/leaflet.css';
@@ -58,6 +59,7 @@ function LocationMarker({ onSelect, initialPos }: { onSelect: (lat: number, lng:
 }
 
 export function LocationPicker({ initialLat, initialLng, onLocationSelect }: LocationPickerProps) {
+    const { t } = useApp();
     // Default to Tashkent coordinates if none provided
     const defaultCenter: L.LatLngExpression = [41.2995, 69.2401];
     const initialPos = initialLat && initialLng ? [initialLat, initialLng] as L.LatLngExpression : null;
@@ -81,7 +83,7 @@ export function LocationPicker({ initialLat, initialLng, onLocationSelect }: Loc
             <div className="absolute bottom-4 right-4 z-[1000] bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-xl border border-[var(--color-border)] text-[10px] text-[var(--text-primary)] font-black uppercase tracking-widest shadow-lg pointer-events-none">
                 <div className="flex items-center gap-3">
                     <MapPin className="w-3.5 h-3.5 text-[var(--brand-primary)]" />
-                    <span>{initialLat ? `${initialLat.toFixed(4)}, ${initialLng?.toFixed(4)}` : "Click to select location"}</span>
+                    <span>{initialLat ? `${initialLat.toFixed(4)}, ${initialLng?.toFixed(4)}` : t('clickToSelectLocation')}</span>
                 </div>
             </div>
         </div>

@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Store, Settings, MapPin, MessageCircle, FileSignature, Check, ChevronRight, ChevronLeft, Upload, AlertCircle, Sparkles, Loader2, Download } from 'lucide-react';
+import { Store, Settings, MapPin, MessageCircle, FileSignature, Check, ChevronRight, ChevronLeft, Upload, AlertCircle, Sparkles, Loader2, Download, LayoutTemplate, Palette, Eye, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { storeApi } from '../services/api';
+import { supabaseApi } from '../services/supabaseService';
 import { Button } from '../components/Button';
 import { Input, TextArea } from '../components/Input';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -17,7 +17,17 @@ interface StoreWizardProps {
     onComplete: (storeId: number, storeName: string) => void;
 }
 
-const businessTypes = ['grocery', 'clothing', 'electronics', 'services', 'restaurant', 'beauty', 'home', 'other'];
+const templates = [
+    { id: 'clothing', type: 'clothing', image: 'https://images.unsplash.com/photo-1441984904996-e0b6ba687e12?auto=format&fit=crop&q=80&w=1200' },
+    { id: 'grocery', type: 'grocery', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200' },
+    { id: 'electronics', type: 'electronics', image: 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&q=80&w=1200' },
+    { id: 'restaurant', type: 'restaurant', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=1200' },
+    { id: 'bakery', type: 'bakery', image: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?auto=format&fit=crop&q=80&w=1200' },
+    { id: 'furniture', type: 'furniture', image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=1200' },
+    { id: 'beauty', type: 'beauty', image: 'https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&q=80&w=1200' },
+    { id: 'home', type: 'home', image: 'https://images.unsplash.com/photo-1513584684374-8bdb74838a0f?auto=format&fit=crop&q=80&w=1200' },
+    { id: 'services', type: 'services', image: 'https://images.unsplash.com/photo-1454165833767-02a698d58745?auto=format&fit=crop&q=80&w=1200' },
+];
 
 export function StoreWizard({ onComplete }: StoreWizardProps) {
     const { t, language, addStore } = useApp();
@@ -28,39 +38,78 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
     const [createdStoreId, setCreatedStoreId] = useState<number | null>(null);
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
-    const [primaryColor, setPrimaryColor] = useState('#6366F1');
-    const [secondaryColor, setSecondaryColor] = useState('#8B5CF6');
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Step 1: Basics
+    // Step 1: Identity & Type
+    const [businessType, setBusinessType] = useState<'restoran' | 'onlayn_dokon'>('onlayn_dokon');
+    const [businessCategory, setBusinessCategory] = useState('');
+    const [customCategory, setCustomCategory] = useState('');
+    const [platform, setPlatform] = useState<'telegram' | 'veb_sayt'>('telegram');
     const [storeName, setStoreName] = useState('');
     const [storeSlug, setStoreSlug] = useState('');
-    const [businessType, setBusinessType] = useState('electronics');
     const [description, setDescription] = useState('');
 
-    // Step 3: Catalog
+    // Step 2: Template
+    const [selectedTemplate, setSelectedTemplate] = useState(templates[0]);
+    const [previewModal, setPreviewModal] = useState<string | null>(null);
+
+    const [isAnalyzingBusiness, setIsAnalyzingBusiness] = useState(false);
+    const [complianceResult, setComplianceResult] = useState<{ is_allowed: boolean; reason: string; suggested_features: string[]; suggested_category: string; summary: string } | null>(null);
+
+    // Step 5: Catalog
     const [catalogMode, setCatalogMode] = useState(false);
     const [defaultLang, setDefaultLang] = useState<Language>('uz');
 
-    // Step 4: Location
+    // Step 7: Location
+    const [branchName, setBranchName] = useState('');
+    const [branchPhone, setBranchPhone] = useState('+998 ');
+    const [deliveryFee, setDeliveryFee] = useState('');
     const [pickupAddress, setPickupAddress] = useState('');
     const [latitude, setLatitude] = useState('');
     const [longitude, setLongitude] = useState('');
 
-    // Step 5: Telegram
+    // Step 8: Telegram
     const [botToken, setBotToken] = useState('');
     const [chatId, setChatId] = useState('');
 
-    // Step 6: Contract
+    // Step 9: Contract
     const [telegramUsername, setTelegramUsername] = useState('');
     const [agreeToTerms, setAgreeToTerms] = useState(false);
     const [signatureData, setSignatureData] = useState('');
     const signaturePadRef = useRef<SignaturePadRef>(null);
-    const [businessDescription, _setBusinessDescription] = useState('');
-    const [isAnalyzingBusiness, setIsAnalyzingBusiness] = useState(false);
-    const [complianceResult, setComplianceResult] = useState<{ is_allowed: boolean; reason: string; suggested_features: string[]; suggested_category: string; summary: string } | null>(null);
 
-    // Live theme preview
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const formatPhoneNumber = (value: string) => {
+        // Remove all non-digits except +
+        const digits = value.replace(/[^\d+]/g, '');
+
+        // Ensure it starts with +998
+        let result = digits;
+        if (!result.startsWith('+998')) {
+            result = '+998' + result.replace(/^\+?998?/, '');
+        }
+
+        // Apply mask: +998 (XX) XXX-XX-XX
+        const match = result.match(/^\+998(\d{0,2})(\d{0,3})(\d{0,2})(\d{0,2})$/);
+        if (match) {
+            let formatted = '+998';
+            if (match[1]) formatted += ` (${match[1]}`;
+            if (match[1].length === 2) formatted += ')';
+            if (match[2]) formatted += ` ${match[2]}`;
+            if (match[2].length === 3) formatted += '-';
+            if (match[3]) formatted += `${match[3]}`;
+            if (match[3].length === 2) formatted += '-';
+            if (match[4]) formatted += `${match[4]}`;
+            return formatted.trim();
+        }
+
+        return result.slice(0, 19); // Fallback limit
+    };
+
+    // Colors are now fixed based on Default Site theme
+    const primaryColor = '#6366F1';
+    const secondaryColor = '#F43F5E';
+
     useEffect(() => {
         const root = document.documentElement;
         const originalPrimary = root.style.getPropertyValue('--brand-primary');
@@ -69,35 +118,50 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
 
         root.style.setProperty('--brand-primary', primaryColor);
         root.style.setProperty('--brand-secondary', secondaryColor);
-        root.style.setProperty('--brand-primary-glow', `${primaryColor}40`); // 25% opacity for glow
+        root.style.setProperty('--brand-primary-glow', `${primaryColor}40`);
 
         return () => {
             if (originalPrimary) root.style.setProperty('--brand-primary', originalPrimary);
             if (originalSecondary) root.style.setProperty('--brand-secondary', originalSecondary);
             if (originalGlow) root.style.setProperty('--brand-primary-glow', originalGlow);
         };
-    }, [primaryColor, secondaryColor]);
+    }, []);
 
     const steps = [
-        { num: 1, title: t('createYourStore'), icon: Store },
-        { num: 2, title: 'AI Analysis', icon: Sparkles },
-        { num: 3, title: t('catalogSettings'), icon: Settings },
-        { num: 4, title: t('locationPickup'), icon: MapPin },
-        { num: 5, title: t('telegramIntegration'), icon: MessageCircle },
-        { num: 6, title: t('signContract'), icon: FileSignature },
+        { num: 1, title: t('identity'), icon: Store },
+        { num: 2, title: t('template'), icon: LayoutTemplate },
+        { num: 3, title: t('aiAnalysis'), icon: Sparkles },
+        { num: 4, title: t('catalogSettings'), icon: Settings },
+        { num: 5, title: t('identity'), icon: Upload },
+        { num: 6, title: t('locationPickup'), icon: MapPin },
+        { num: 7, title: t('telegramIntegration'), icon: MessageCircle },
+        { num: 8, title: t('signContract'), icon: FileSignature },
     ];
 
     const handleNext = async () => {
         if (step === 1) {
-            // Need to analyze business before proceeding if "other" or description provided
-            if (businessDescription.trim().length > 10) {
+            if (!storeName || !businessCategory || (businessCategory === 'other' && !customCategory)) {
+                setError(t('pleaseFillRequiredFields') || 'Iltimos, barcha maydonlarni to\'ldiring');
+                return;
+            }
+            setError('');
+            setStep(2);
+            return;
+        }
+
+        if (step === 3) {
+            if (complianceResult) {
+                setStep(4);
+                return;
+            }
+
+            if (description.trim().length > 10) {
                 setIsAnalyzingBusiness(true);
                 setError('');
                 try {
-                    const { aiApi } = await import('../services/api');
-                    const res = await aiApi.analyzeBusiness({
-                        description: businessDescription,
-                        business_type: businessType,
+                    const res = await supabaseApi.ai.analyzeBusiness({
+                        description: description,
+                        business_type: selectedTemplate.type,
                         language
                     });
                     setComplianceResult(res.data);
@@ -105,27 +169,26 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                         setError(res.data.reason);
                         return;
                     }
-                    setStep(2); // Go to Analysis review step
+                    setStep(3);
                 } catch (err) {
-                    console.error("Business analysis failed", err);
-                    setStep(3); // Skip to catalog if AI fails but allow proceeding
+                    setStep(4);
                 } finally {
                     setIsAnalyzingBusiness(false);
                 }
                 return;
-            } else if (businessType === 'other') {
-                setError(language === 'uz' ? "Iltimos, biznesingiz haqida qisqacha ma'lumot bering." : "Please provide a short description of your business.");
+            } else {
+                setStep(4);
                 return;
             }
         }
 
-        if (step < 6) setStep(step + 1);
+        if (step < 8) setStep(step + 1);
         else handleComplete();
     };
 
     const handleComplete = async () => {
         if (!agreeToTerms || !signatureData) {
-            setError(t('signatureRequired') || 'Please agree to terms and sign the contract');
+            setError(t('signatureRequired'));
             return;
         }
 
@@ -136,52 +199,70 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
             // Create store via API
             let data: any;
             const slug = storeSlug || storeName.toLowerCase().replace(/\s+/g, '-');
+            // Map frontend categories to valid backend BUSINESS_TYPE_CHOICES
+            const backendTypeMap: Record<string, string> = {
+                grocery: 'grocery', clothing: 'clothing', electronics: 'electronics',
+                restaurant: 'restaurant', bakery: 'bakery', beauty: 'beauty',
+                home: 'home', services: 'services',
+                // Map sub-categories to closest backend type
+                accessories: 'other', auto_parts: 'other', pet_products: 'other',
+                drinks: 'grocery', bookstore: 'other', appliances: 'electronics',
+                shoes: 'clothing', sport: 'other', furniture: 'home',
+                construction: 'other', pharmacy: 'other', toys: 'other',
+                dark_kitchen: 'restaurant', fast_food: 'restaurant', cafe: 'restaurant',
+                restoran: 'restaurant',
+            };
+            const rawCategory = businessCategory === 'other' ? customCategory : businessCategory;
+            const finalBusinessType = backendTypeMap[rawCategory] || 'other';
 
+            const deliverySettings = {
+                enabled: !catalogMode,
+                order_fee: deliveryFee ? parseInt(deliveryFee) : 0
+            };
+
+            let logoUrl = '';
             if (logoFile) {
-                const formData = new FormData();
-                formData.append('name', storeName);
-                formData.append('slug', slug);
-                formData.append('description', description);
-                formData.append('business_type', businessType);
-                formData.append('business_description', businessDescription);
-                formData.append('catalog_mode', String(catalogMode));
-                formData.append('default_language', defaultLang);
-                formData.append('signature_data', signatureData);
-                formData.append('agree_to_terms', String(agreeToTerms));
-                formData.append('telegram_username', telegramUsername);
-                formData.append('logo', logoFile);
-                if (pickupAddress) formData.append('pickup_address', pickupAddress);
-                if (latitude) formData.append('latitude', latitude);
-                if (longitude) formData.append('longitude', longitude);
-                if (botToken) formData.append('telegram_bot_token', botToken);
-                if (chatId) formData.append('telegram_chat_id', chatId);
-                formData.append('primary_color', primaryColor);
-                formData.append('secondary_color', secondaryColor);
-                data = formData;
-            } else {
-                data = {
-                    name: storeName,
-                    slug: slug,
-                    description,
-                    business_type: businessType,
-                    business_description: businessDescription,
-                    pickup_address: pickupAddress,
-                    latitude: latitude ? parseFloat(latitude) : undefined,
-                    longitude: longitude ? parseFloat(longitude) : undefined,
-                    telegram_bot_token: botToken,
-                    telegram_chat_id: chatId,
-                    catalog_mode: catalogMode,
-                    default_language: defaultLang,
-                    signature_data: signatureData,
-                    agree_to_terms: agreeToTerms,
-                    telegram_username: telegramUsername,
-                    primary_color: primaryColor,
-                    secondary_color: secondaryColor,
-                };
+                const fileName = `${Date.now()}-${logoFile.name}`;
+                logoUrl = await supabaseApi.storage.upload('store-logos', fileName, logoFile);
             }
 
-            const response = await storeApi.create(data);
-            
+            const storeData = {
+                name: storeName,
+                slug: slug,
+                description,
+                business_type: finalBusinessType || 'other',
+                pickup_address: pickupAddress,
+                latitude: latitude ? parseFloat(latitude) : undefined,
+                longitude: longitude ? parseFloat(longitude) : undefined,
+                branch_name: branchName,
+                branch_phone: branchPhone,
+                telegram_bot_token: botToken,
+                telegram_chat_id: chatId,
+                catalog_mode: catalogMode,
+                default_language: defaultLang,
+                signature_data: signatureData,
+                agree_to_terms: agreeToTerms,
+                telegram_username: telegramUsername,
+                primary_color: primaryColor,
+                secondary_color: secondaryColor,
+                delivery_settings: deliverySettings,
+                theme_config: { platform, business_main_type: businessType },
+                logo: logoUrl || undefined
+            };
+
+            const createdStore = await supabaseApi.stores.create(storeData);
+            const response = { data: createdStore };
+
+            // Trigger Edge Function for provisioning
+            try {
+                const { supabase } = await import('../supabase');
+                await supabase.functions.invoke('site-provisioner', {
+                    body: { storeId: createdStore.id }
+                });
+            } catch (invokeErr) {
+                console.error('Edge Function invocation failed:', invokeErr);
+            }
+
             // Refresh user role (from customer to store_admin)
             await refreshUser();
 
@@ -191,7 +272,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
             // Add to local context using the actual data from server
             addStore(response.data);
 
-            setStep(7); // Success step (pushed from 6 to 7)
+            setStep(9); // Success step
         } catch (err: any) {
             console.error('Store creation error:', err.response?.data);
             const data = err.response?.data;
@@ -203,9 +284,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                 } else if (data.slug) {
                     const slugError = data.slug[0].toLowerCase();
                     if (slugError.includes('already exists') || slugError.includes('exists')) {
-                        errorMessage = language === 'uz' ? "Bu nomdagi do'kon havolasi (link) band. Iltimos, boshqa nom tanlang." :
-                            language === 'ru' ? "Магазин с таким URL уже существует. Выберите другое имя." :
-                                "A store with this URL already exists. Please choose another name.";
+                        errorMessage = t('errorStoreSlugExists');
                     } else {
                         errorMessage = `URL: ${data.slug[0]}`;
                     }
@@ -252,26 +331,20 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
     };
 
     return (
-        <div className="min-h-screen bg-[#F8FAFC] text-[var(--text-primary)] flex items-center justify-center p-4 selection:bg-[var(--brand-primary)]/10">
+        <div className="min-h-screen bg-[#F8FAFC] text-[var(--text-primary)] flex items-center justify-center p-4 selection:bg-[var(--brand-primary)]/10 font-sans">
             {/* Background Decor */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <motion.div
-                    animate={{
-                        scale: [1, 1.2, 1],
-                        opacity: [0.1, 0.2, 0.1],
-                    }}
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.1, 0.2, 0.1] }}
                     transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
                     className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] blur-[130px] rounded-full"
-                    style={{ backgroundColor: `${primaryColor}33` }} // 20% opacity primary
+                    style={{ backgroundColor: `${primaryColor}33` }}
                 />
                 <motion.div
-                    animate={{
-                        scale: [1, 1.3, 1],
-                        opacity: [0.1, 0.15, 0.1],
-                    }}
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.15, 0.1] }}
                     transition={{ duration: 15, repeat: Infinity, ease: "easeInOut", delay: 2 }}
                     className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] blur-[130px] rounded-full"
-                    style={{ backgroundColor: `${secondaryColor}26` }} // 15% opacity secondary
+                    style={{ backgroundColor: `${secondaryColor}26` }}
                 />
             </div>
 
@@ -279,39 +352,33 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                 <LanguageSwitcher />
             </div>
 
-            <div className="w-full max-w-2xl relative z-10">
+            <div className="w-full max-w-4xl relative z-10">
                 {/* Progress Steps */}
-                {step < 6 && (
-                    <div className="mb-12">
-                        <div className="flex items-center justify-between relative px-2">
-                            {/* Background Line */}
+                {step < 10 && (
+                    <div className="mb-8 overflow-x-auto hide-scrollbar pb-4 px-2">
+                        <div className="flex items-center min-w-max justify-between relative px-2">
                             <div className="absolute left-10 right-10 top-5 h-[2px] bg-[var(--color-border)] -translate-y-1/2 z-0" />
-                            {/* Progress Line */}
                             <div
                                 className="absolute left-10 top-5 h-[3px] bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-secondary)] -translate-y-1/2 z-0 transition-all duration-700 shadow-[0_0_15px_var(--brand-primary-glow)]"
-                                style={{ width: `${Math.max(0, ((step - 1) / (steps.length - 1)) * (100 - (20)))}%` }}
+                                style={{ width: `${Math.max(0, ((step - 1) / (steps.length - 1)) * 100)}%` }}
                             />
                             {steps.map((s) => (
-                                <div key={s.num} className="relative z-10 flex flex-col items-center w-20">
+                                <div key={s.num} className="relative z-10 flex flex-col items-center w-16 sm:w-20">
                                     <motion.div
                                         animate={{
                                             scale: step === s.num ? 1.2 : 1,
-                                            backgroundColor: step > s.num ? 'var(--brand-primary)' : step === s.num ? 'white' : 'white',
+                                            backgroundColor: step > s.num ? 'var(--brand-primary)' : 'white',
                                             borderColor: step >= s.num ? 'var(--brand-primary)' : 'var(--color-border)'
                                         }}
-                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white border-2 backdrop-blur-md transition-shadow duration-300"
+                                        className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-white border-2 backdrop-blur-md transition-shadow duration-300"
                                         style={{
                                             boxShadow: step === s.num ? '0 0 20px var(--brand-primary-glow)' : 'none',
                                             color: step > s.num ? 'white' : step === s.num ? 'var(--brand-primary)' : 'var(--text-muted)'
                                         }}
                                     >
-                                        {step > s.num ? (
-                                            <Check className="w-5 h-5" />
-                                        ) : (
-                                            <s.icon className="w-5 h-5" />
-                                        )}
+                                        {step > s.num ? <Check className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={3} /> : <s.icon className="w-4 h-4 sm:w-5 sm:h-5" />}
                                     </motion.div>
-                                    <span className={`mt-3 text-[9px] font-black uppercase tracking-tight text-center leading-tight whitespace-pre-wrap ${step >= s.num ? 'text-[var(--brand-primary)]' : 'text-[var(--text-muted)]'}`}>
+                                    <span className={`mt-3 text-[8px] sm:text-[9px] font-black uppercase tracking-tight text-center leading-tight whitespace-pre-wrap ${step >= s.num ? 'text-[var(--brand-primary)]' : 'text-[var(--text-muted)]'}`}>
                                         {s.title}
                                     </span>
                                 </div>
@@ -327,464 +394,606 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -20 }}
                         transition={{ duration: 0.3 }}
+                        className="bg-white/90 backdrop-blur-xl rounded-[2.5rem] p-6 sm:p-10 relative overflow-hidden text-left border border-[var(--color-border)] shadow-2xl shadow-slate-200/50"
                     >
-                        <div className="bg-white rounded-[2.5rem] p-6 sm:p-10 relative overflow-hidden text-left border border-[var(--color-border)] shadow-xl shadow-slate-200/50">
-                            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[var(--brand-primary)] via-[var(--brand-secondary)] to-[var(--brand-primary)]" />
-                            {step === 1 && (
-                                <div className="space-y-6">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-[var(--text-main)] w-full">{t('createYourStore')}</h2>
-                                        <p className="text-[var(--text-dim)] mt-1">
-                                            {t('storeBasicsSubtitle')}
-                                        </p>
-                                    </div>
-                                    <Input
-                                        label={t('storeName')}
-                                        value={storeName}
-                                        onChange={(v) => {
-                                            setStoreName(v);
-                                            setStoreSlug(v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
-                                        }}
-                                        placeholder="My Awesome Store"
-                                    />
-                                    <Input
-                                        label={t('storeSlug')}
-                                        value={storeSlug}
-                                        onChange={setStoreSlug}
-                                        placeholder="my-awesome-store"
-                                        helper={`${storeSlug || 'your-store'}.savdoon.uz`}
-                                        className="font-mono text-sm"
-                                    />
-                                    <div className="space-y-1.5 text-left">
-                                        <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-2">{t('businessType')}</label>
-                                        <select
-                                            value={businessType}
-                                            onChange={(e) => setBusinessType(e.target.value)}
-                                            className="w-full px-4 py-3.5 rounded-2xl border-1.5 border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--text-primary)] focus:outline-none focus:ring-4 focus:ring-[var(--brand-primary-glow)] appearance-none cursor-pointer font-medium"
-                                        >
-                                            {businessTypes.map((type) => (
-                                                <option key={type} value={type} className="bg-white">{t(type)}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <TextArea
-                                        label={t('shortDescription')}
-                                        value={description}
-                                        onChange={setDescription}
-                                        placeholder={t('descriptionPlaceholder')}
-                                        rows={3}
-                                    />
+                        <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[var(--brand-primary)] via-[var(--brand-secondary)] to-[var(--brand-primary)]" />
+
+                        {step === 1 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{t('createYourStore')}</h2>
+                                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1">{t('storeBasicsSubtitle')}</p>
                                 </div>
-                            )}
 
-                            {step === 2 && (
-                                <div className="space-y-6">
-                                    <div>
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <Sparkles className="w-6 h-6 text-[var(--brand-primary)]" />
-                                            <h2 className="text-2xl font-bold text-[var(--text-main)] w-full">AI Business Analysis</h2>
-                                        </div>
-                                        <p className="text-[var(--text-dim)] text-sm">
-                                            {language === 'uz' ? 'Biznesingiz muvaffaqiyatli tahlil qilindi' : 'AI has analyzed your business model'}
-                                        </p>
-                                    </div>
+                                <Input
+                                    label={t('storeName')}
+                                    value={storeName}
+                                    onChange={(v) => {
+                                        setStoreName(v);
+                                        setStoreSlug(v.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''));
+                                    }}
+                                    placeholder={t('storeNamePlaceholder')}
+                                    required
+                                />
 
-                                    {complianceResult && (
-                                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                                            <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">{t('summary')}</h3>
-                                                <p className="text-sm leading-relaxed text-slate-300 italic">
-                                                    "{complianceResult.summary}"
-                                                </p>
-                                            </div>
-
-                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                <div className="p-5 rounded-2xl bg-green-500/5 border border-green-500/20">
-                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-green-500 mb-3">
-                                                        {language === 'uz' ? 'Tavsiya etilgan kategoriya' : 'Suggested Category'}
-                                                    </h3>
-                                                    <p className="text-xl font-bold text-white capitalize">{complianceResult.suggested_category}</p>
-                                                </div>
-                                                <div className="p-5 rounded-2xl bg-blue-500/5 border border-blue-500/20">
-                                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-3">Status</h3>
-                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                                        <p className="text-sm font-bold text-white">Verified & Compliant</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="space-y-3">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 px-1">
-                                                    {language === 'uz' ? 'Tavsiya etilgan funksiyalar' : 'Suggested AI Features'}
-                                                </h3>
-                                                <div className="flex flex-wrap gap-2">
-                                                    {complianceResult.suggested_features.map((feature, i) => (
-                                                        <span key={i} className="px-4 py-2 rounded-xl bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20 text-[var(--brand-primary)] text-[10px] font-bold uppercase tracking-wide">
-                                                            {feature}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {step === 3 && (
-                                <div className="space-y-6">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-[var(--text-main)]">{t('catalogSettings')}</h2>
-                                        <p className="text-[var(--text-dim)] mt-1">
-                                            {t('configureStoreBehavior')}
-                                        </p>
-                                    </div>
-                                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-[var(--brand-primary)]/5 border border-[var(--brand-primary)]/10">
-                                        <input
-                                            type="checkbox"
-                                            checked={catalogMode}
-                                            onChange={(e) => setCatalogMode(e.target.checked)}
-                                            className="mt-1 w-5 h-5 text-[var(--brand-primary)] rounded-lg border-white/10 bg-slate-900 focus:ring-[var(--brand-primary)]"
-                                        />
-                                        <div>
-                                            <p className="font-bold text-[var(--text-primary)] uppercase tracking-tight">{t('catalogModeOnly')}</p>
-                                            <p className="text-xs text-[var(--text-muted)] mt-1 font-medium leading-relaxed">{t('catalogModeHelper')}</p>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1.5 text-left">
-                                        <label className="block text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">{t('defaultLanguage')}</label>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            {(['uz', 'ru'] as Language[]).map((lang) => (
-                                                <button
-                                                    key={lang}
-                                                    onClick={() => setDefaultLang(lang)}
-                                                    className={`p-6 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center ${defaultLang === lang
-                                                        ? 'bg-white border-[var(--brand-primary)] shadow-[0_0_20px_var(--brand-primary-glow)] scale-[1.02]'
-                                                        : 'bg-[var(--color-surface-raised)] border-transparent hover:border-[var(--brand-primary)]/30 text-[var(--text-muted)]'
-                                                        }`}
-                                                >
-                                                    <span className="text-3xl mb-3 block">
-                                                        {lang === 'uz' ? '🇺🇿' : '🇷🇺'}
-                                                    </span>
-                                                    <span className={`text-[11px] font-black uppercase tracking-widest ${defaultLang === lang ? 'text-[var(--brand-primary)]' : 'text-[var(--text-dim)]'}`}>
-                                                        {lang === 'uz' ? "O'zbekcha" : 'Русский'}
-                                                    </span>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {step === 4 && (
-                                <div className="space-y-6 text-left">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-[var(--text-main)]">{t('locationPickup')}</h2>
-                                        <p className="text-[var(--text-dim)] mt-1">{t('pickupHelper')}</p>
-                                    </div>
-                                    <Input
-                                        label={t('pickupAddress')}
-                                        value={pickupAddress}
-                                        onChange={setPickupAddress}
-                                        placeholder="123 Main Street, City, Country"
-                                    />
+                                <div className="space-y-3">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">{t('businessType')}</label>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <Input
-                                            label={t('latitude')}
-                                            value={latitude}
-                                            onChange={setLatitude}
-                                            placeholder="41.2995"
-                                        />
-                                        <Input
-                                            label={t('longitude')}
-                                            value={longitude}
-                                            onChange={setLongitude}
-                                            placeholder="69.2401"
-                                        />
-                                    </div>
-                                    <div className="rounded-xl overflow-hidden border border-white/10">
-                                        <LocationPicker
-                                            initialLat={latitude ? parseFloat(latitude) : undefined}
-                                            initialLng={longitude ? parseFloat(longitude) : undefined}
-                                            onLocationSelect={(lat, lng, addr) => {
-                                                setLatitude(lat.toFixed(6));
-                                                setLongitude(lng.toFixed(6));
-                                                if (addr) setPickupAddress(addr);
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {step === 5 && (
-                                <div className="space-y-6 text-left">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-[var(--text-main)]">{t('telegramIntegration')}</h2>
-                                        <p className="text-[var(--text-dim)] mt-1">{t('telegramHelper')}</p>
-                                    </div>
-                                    <Input
-                                        label={t('botToken')}
-                                        value={botToken}
-                                        onChange={setBotToken}
-                                        placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ"
-                                    />
-                                    <Input
-                                        label={t('chatId')}
-                                        value={chatId}
-                                        onChange={setChatId}
-                                        placeholder="@your_channel or 123456789"
-                                    />
-                                    <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10">
-                                        <p className="text-xs text-blue-400 font-bold uppercase tracking-wider text-center">
-                                            💡 {t('setupLater')}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {step === 6 && (
-                                <div className="space-y-6 text-left">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-[var(--text-main)]">
-                                            {language === 'uz' && "Shartnoma va imzo"}
-                                            {language === 'ru' && "Договор и подпись"}
-                                            {language === 'en' && "Contract & Signature"}
-                                        </h2>
-                                        <p className="text-[var(--text-dim)] mt-1">
-                                            {language === 'uz' ? "Do'koningiz logotipi va shartnomani tasdiqlang" :
-                                                language === 'ru' ? "Загрузите логотип и подтвердите договор" :
-                                                    "Upload logo and confirm the contract"}
-                                        </p>
-                                    </div>
-
-                                    {/* Move Logo Upload here */}
-                                    <div className="space-y-1.5 text-left">
-                                        <label className="block text-[11px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-2">{t('uploadLogo')}</label>
-                                        <input
-                                            type="file"
-                                            ref={fileInputRef}
-                                            onChange={onLogoChange}
-                                            accept="image/*"
-                                            className="hidden"
-                                        />
-                                        <div
-                                            onClick={() => fileInputRef.current?.click()}
-                                            className="border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-raised)] rounded-3xl p-10 text-center hover:border-[var(--brand-primary)]/50 hover:bg-[var(--brand-primary)]/5 transition-all cursor-pointer group relative overflow-hidden min-h-[140px] flex flex-col items-center justify-center shadow-inner"
-                                        >
-                                            {logoPreview ? (
-                                                <div className="relative group/preview w-full h-full flex items-center justify-center">
-                                                    <img src={logoPreview} alt="Logo preview" className="max-h-28 rounded-xl object-contain shadow-lg" />
-                                                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center rounded-xl">
-                                                        <p className="text-[10px] font-black text-white uppercase tracking-widest">{t('change') || 'Change'}</p>
-                                                    </div>
+                                        {[
+                                            { id: 'onlayn_dokon', label: t('onlayn_dokon') || 'Onlayn do\'kon' },
+                                            { id: 'restoran', label: t('restoran') || 'Restoran' }
+                                        ].map((type) => (
+                                            <button
+                                                key={type.id}
+                                                onClick={() => {
+                                                    setBusinessType(type.id as any);
+                                                    setBusinessCategory('');
+                                                }}
+                                                className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-3 ${businessType === type.id ? 'bg-indigo-50 border-indigo-600' : 'bg-slate-50 border-transparent hover:border-slate-200'}`}
+                                            >
+                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${businessType === type.id ? 'border-indigo-600' : 'border-slate-300'}`}>
+                                                    {businessType === type.id && <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}
                                                 </div>
-                                            ) : (
-                                                <>
-                                                    <div className="p-4 rounded-full bg-white shadow-sm mb-4 group-hover:scale-110 transition-transform">
-                                                        <Upload className="w-8 h-8 text-[var(--brand-primary)]" />
+                                                <span className="font-bold text-sm text-slate-700">{type.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">{t('selectPlatform')}</label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {[
+                                            { id: 'telegram', label: 'Telegram' },
+                                            { id: 'veb_sayt', label: 'Veb-sayt' }
+                                        ].map((p) => (
+                                            <button
+                                                key={p.id}
+                                                onClick={() => setPlatform(p.id as any)}
+                                                className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-3 ${platform === p.id ? 'bg-indigo-50 border-indigo-600' : 'bg-slate-50 border-transparent hover:border-slate-200'}`}
+                                            >
+                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${platform === p.id ? 'border-indigo-600' : 'border-slate-300'}`}>
+                                                    {platform === p.id && <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}
+                                                </div>
+                                                <span className="font-bold text-sm text-slate-700">{p.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">{t('businessCategory')}</label>
+                                    <select
+                                        value={businessCategory}
+                                        onChange={(e) => setBusinessCategory(e.target.value)}
+                                        className="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 focus:border-indigo-600 focus:outline-none font-bold text-sm transition-all"
+                                    >
+                                        <option value="">{t('selectCategory') || 'Toifani tanlang'}</option>
+                                        {businessType === 'restoran' ? (
+                                            <>
+                                                <option value="dark_kitchen">{t('darkKitchen')}</option>
+                                                <option value="fast_food">{t('fastFood')}</option>
+                                                <option value="cafe">{t('cafe')}</option>
+                                                <option value="restoran">{t('restoran')}</option>
+                                                <option value="other">{t('other')}</option>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <option value="accessories">{t('accessories')}</option>
+                                                <option value="auto_parts">{t('autoParts')}</option>
+                                                <option value="electronics">{t('electronics')}</option>
+                                                <option value="beauty">{t('beauty')}</option>
+                                                <option value="pet_products">{t('petProducts')}</option>
+                                                <option value="drinks">{t('drinks')}</option>
+                                                <option value="bookstore">{t('bookstore')}</option>
+                                                <option value="clothing">{t('clothing')}</option>
+                                                <option value="appliances">{t('appliances')}</option>
+                                                <option value="grocery">{t('grocery')}</option>
+                                                <option value="shoes">{t('shoes')}</option>
+                                                <option value="sport">{t('sport')}</option>
+                                                <option value="home">{t('home')}</option>
+                                                <option value="other">{t('other')}</option>
+                                            </>
+                                        )}
+                                    </select>
+                                </div>
+
+                                {businessCategory === 'other' && (
+                                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+                                        <Input
+                                            label={t('otherCustom')}
+                                            value={customCategory}
+                                            onChange={setCustomCategory}
+                                            placeholder={t('otherCustomPlaceholder') || 'O\'zingiz kiriting...'}
+                                            required
+                                        />
+                                    </motion.div>
+                                )}
+
+                                <Input
+                                    label={t('storeSlug')}
+                                    value={storeSlug}
+                                    onChange={setStoreSlug}
+                                    placeholder={t('storeSlugPlaceholder')}
+                                    helper={`${storeSlug || 'your-store'}.savdoon.uz`}
+                                    className="font-mono text-sm"
+                                    required
+                                />
+                                <TextArea
+                                    label={t('shortDescription')}
+                                    value={description}
+                                    onChange={setDescription}
+                                    placeholder={t('descriptionPlaceholder')}
+                                    rows={3}
+                                />
+                            </div>
+                        )}
+
+
+                        {step === 2 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{t('selectTemplate')}</h2>
+                                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1">{t('templatesReady')}</p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {templates
+                                        .filter(tpl => businessType === 'restoran' ? tpl.type === 'restaurant' || tpl.type === 'bakery' : tpl.type !== 'restaurant')
+                                        .map(tpl => (
+                                            <div key={tpl.id} className={`group rounded-[2rem] overflow-hidden border-2 transition-all duration-300 ${selectedTemplate.id === tpl.id ? 'border-indigo-600 shadow-xl' : 'border-slate-100 hover:border-slate-300'}`}>
+                                                <div className="aspect-[16/10] relative overflow-hidden bg-slate-100">
+                                                    <img src={tpl.image} alt={t(tpl.id)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                                                    <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 backdrop-blur-sm">
+                                                        <button onClick={() => setPreviewModal(tpl.image)} className="px-4 py-2 rounded-xl bg-white/90 text-slate-900 font-black text-[10px] uppercase tracking-widest hover:bg-white hover:scale-105 transition-all flex items-center gap-2 shadow-xl">
+                                                            <Eye size={14} /> {t('preview')}
+                                                        </button>
+                                                        <button onClick={() => setSelectedTemplate(tpl)} className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-black text-[10px] uppercase tracking-widest hover:bg-indigo-700 hover:scale-105 transition-all flex items-center gap-2 shadow-xl">
+                                                            <Check size={14} /> {t('select')}
+                                                        </button>
                                                     </div>
-                                                    <p className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest">
-                                                        {t('clickToUpload')}
-                                                    </p>
-                                                </>
-                                            )}
+                                                    {selectedTemplate.id === tpl.id && (
+                                                        <div className="absolute top-4 right-4 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-lg">
+                                                            <Check size={16} strokeWidth={3} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="p-4 bg-white cursor-pointer" onClick={() => setSelectedTemplate(tpl)}>
+                                                    <h3 className="text-md font-black text-slate-900 uppercase tracking-tighter">{t(tpl.id)}</h3>
+                                                </div>
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 3 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{t('customizeColors')}</h2>
+                                    <p className="text-slate-500 text-[11px] font-bold uppercase tracking-widest mt-1">{t('chooseColorsForBrand')}</p>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('primaryColor')}</label>
+                                            <div className="flex items-center gap-4 p-3 border border-slate-100 rounded-2xl bg-slate-50">
+                                                <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-10 h-10 rounded-xl cursor-pointer border-0 p-0" />
+                                                <span className="font-mono text-sm font-bold text-slate-700">{primaryColor}</span>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('secondaryColor')}</label>
+                                            <div className="flex items-center gap-4 p-3 border border-slate-100 rounded-2xl bg-slate-50">
+                                                <input type="color" value={secondaryColor} onChange={e => setSecondaryColor(e.target.value)} className="w-10 h-10 rounded-xl cursor-pointer border-0 p-0" />
+                                                <span className="font-mono text-sm font-bold text-slate-700">{secondaryColor}</span>
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="p-6 rounded-[2rem] flex flex-col items-center justify-center border-2 border-slate-100/50" style={{ backgroundColor: `${primaryColor}08` }}>
+                                        <div className="w-full rounded-2xl bg-white shadow-xl p-6 text-center">
+                                            <h3 className="text-xl font-black uppercase tracking-tighter" style={{ color: primaryColor }}>{t('preview')}</h3>
+                                            <button className="mt-4 w-full py-3 rounded-xl text-white font-black text-[10px] uppercase shadow-lg" style={{ backgroundColor: primaryColor }}>{t('buyNow')}</button>
+                                            <div className="mt-3 inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase" style={{ backgroundColor: `${secondaryColor}15`, color: secondaryColor }}>{t('discount')} -20%!</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
-                                    {/* Color Preview */}
-                                    {logoPreview && (
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.9 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            className="flex items-center gap-4 p-5 rounded-2xl bg-white border border-[var(--color-border)] shadow-sm"
-                                        >
-                                            <div className="flex -space-x-3">
-                                                <div className="w-10 h-10 rounded-full ring-4 ring-white shadow-lg" style={{ backgroundColor: primaryColor }} />
-                                                <div className="w-10 h-10 rounded-full ring-4 ring-white shadow-lg" style={{ backgroundColor: secondaryColor }} />
+
+
+
+                        {step === 3 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                        <Sparkles className="w-6 h-6 text-[var(--brand-primary)]" />
+                                        <h2 className="text-2xl font-bold text-[var(--text-main)] w-full">{t('aiAnalysisTitle')}</h2>
+                                    </div>
+                                    <p className="text-[var(--text-dim)] text-sm">{t('aiAnalysisSubtitle')}</p>
+                                </div>
+                                {complianceResult && (
+                                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                                        <div className="p-5 rounded-2xl bg-white/5 border border-white/10 shadow-sm bg-slate-50">
+                                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">{t('summary')}</h3>
+                                            <p className="text-sm leading-relaxed text-slate-700 italic">"{complianceResult.summary}"</p>
+                                        </div>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div className="p-5 rounded-2xl bg-green-500/10 border border-green-500/20">
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-green-600 mb-3">{t('suggestedCategory')}</h3>
+                                                <p className="text-xl font-bold text-green-700 capitalize">{complianceResult.suggested_category}</p>
+                                            </div>
+                                            <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/20">
+                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-3">{t('status')}</h3>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                                    <p className="text-sm font-bold text-blue-700">{t('verifiedAndCompliant')}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {step === 4 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-[var(--text-main)]">{t('catalogSettings')}</h2>
+                                    <p className="text-[var(--text-dim)] mt-1">{t('configureStoreBehavior')}</p>
+                                </div>
+                                <div
+                                    onClick={() => setCatalogMode(!catalogMode)}
+                                    className={`flex items-start gap-4 p-5 rounded-2xl border-2 transition-all cursor-pointer ${catalogMode ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-transparent hover:border-slate-200'}`}
+                                >
+                                    <div className={`mt-1 w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${catalogMode ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-300 text-transparent'}`}>
+                                        <Check className="w-4 h-4" strokeWidth={4} />
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-[var(--text-primary)] uppercase tracking-tight">{t('catalogModeTitle')}</p>
+                                        <p className="text-xs text-[var(--text-muted)] mt-1 font-medium leading-relaxed">
+                                            {t('catalogModeSubtitle')}
+                                        </p>
+                                    </div>
+                                </div>
+                                {!catalogMode && (
+                                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-5 rounded-2xl bg-amber-50 border border-amber-100 space-y-4">
+                                        <div>
+                                            <p className="font-bold text-amber-900 uppercase tracking-tight text-sm">{t('ordersAndDelivery')}</p>
+                                            <p className="text-xs text-amber-700 mt-1 font-medium">{t('deliveryFeeNotice')}</p>
+                                        </div>
+                                        <div className="flex items-center gap-3 bg-white p-2 rounded-xl border border-amber-200">
+                                            <span className="pl-3 text-slate-400 font-bold text-sm">{t('currency') || 'UZS'}</span>
+                                            <input
+                                                type="number"
+                                                value={deliveryFee}
+                                                onChange={(e) => setDeliveryFee(e.target.value)}
+                                                placeholder={t('deliveryFeePlaceholder')}
+                                                className="w-full p-2 text-sm font-bold focus:outline-none"
+                                            />
+                                        </div>
+                                    </motion.div>
+                                )}
+                                <div className="space-y-1.5 text-left">
+                                    <label className="block text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3">{t('defaultLanguage')}</label>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {(['uz', 'ru'] as Language[]).map((lang) => (
+                                            <button
+                                                key={lang}
+                                                onClick={() => setDefaultLang(lang)}
+                                                className={`p-6 rounded-2xl border-2 transition-all duration-300 flex flex-col items-center ${defaultLang === lang ? 'bg-indigo-50 border-[var(--brand-primary)] scale-[1.02]' : 'bg-[var(--color-surface-raised)] border-transparent hover:border-[var(--brand-primary)]/30 text-[var(--text-muted)]'}`}
+                                            >
+                                                <span className="text-3xl mb-3 block">{lang === 'uz' ? '🇺🇿' : '🇷🇺'}</span>
+                                                <span className={`text-[11px] font-black uppercase tracking-widest ${defaultLang === lang ? 'text-[var(--brand-primary)]' : 'text-[var(--text-dim)]'}`}>{t(lang === 'uz' ? 'uzbek' : 'russian')}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 5 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-[var(--text-main)]">{t('uploadLogoTitle')}</h2>
+                                    <p className="text-[var(--text-dim)] mt-1">{t('uploadLogoDesc')}</p>
+                                </div>
+                                <div className="space-y-1.5 text-left">
+                                    <input type="file" ref={fileInputRef} onChange={onLogoChange} accept="image/*" className="hidden" />
+                                    <div onClick={() => fileInputRef.current?.click()} className="border-2 border-dashed border-[var(--color-border)] bg-[var(--color-surface-raised)] rounded-3xl p-10 text-center hover:border-[var(--brand-primary)]/50 hover:bg-[var(--brand-primary)]/5 transition-all cursor-pointer group relative overflow-hidden min-h-[140px] flex flex-col items-center justify-center">
+                                        {logoPreview ? (
+                                            <img src={logoPreview} alt="Logo preview" className="max-h-28 rounded-xl object-contain shadow-lg" />
+                                        ) : (
+                                            <>
+                                                <div className="p-4 rounded-full bg-white shadow-sm mb-4"><Upload className="w-8 h-8 text-[var(--brand-primary)]" /></div>
+                                                <p className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest">{t('clickToUpload')}</p>
+                                            </>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 6 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-[var(--text-main)]">{t('locationPickup')}</h2>
+                                    <p className="text-[var(--text-dim)] mt-1">{t('pickupHelper')}</p>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <Input label={t('branchName')} value={branchName} onChange={setBranchName} placeholder={t('branchNamePlaceholder')} required />
+                                    <Input
+                                        label={t('branchPhone')}
+                                        value={branchPhone}
+                                        onChange={(v) => setBranchPhone(formatPhoneNumber(v))}
+                                        placeholder="+998 (90) 123-45-67"
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-4">
+                                    <label className="text-[10px] font-black text-[var(--text-dim)] uppercase tracking-widest px-1 flex items-center gap-2">
+                                        {t('selectLocationOnMap')}
+                                    </label>
+                                    <LocationPicker
+                                        initialLat={latitude ? parseFloat(latitude) : undefined}
+                                        initialLng={longitude ? parseFloat(longitude) : undefined}
+                                        onLocationSelect={(lat, lng, addr) => {
+                                            setLatitude(lat.toString());
+                                            setLongitude(lng.toString());
+                                            if (addr) setPickupAddress(addr);
+                                        }}
+                                    />
+                                </div>
+                                <Input label={t('pickupAddress')} value={pickupAddress} onChange={setPickupAddress} placeholder={t('pickupAddressPlaceholder')} />
+                            </div>
+                        )}
+
+                        {step === 7 && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-[var(--text-main)]">{t('telegramIntegration')}</h2>
+                                    <p className="text-[var(--text-dim)] mt-1">{t('telegramHelper')}</p>
+                                </div>
+                                <Input label={t('botToken')} value={botToken} onChange={setBotToken} placeholder="123456789:ABCdefGHIjklMNOpqrSTUvwxYZ" />
+                                <Input label={t('chatId')} value={chatId} onChange={setChatId} placeholder="@your_channel or 123456789" />
+                                <div className="p-4 rounded-xl bg-blue-50 border border-blue-100">
+                                    <p className="text-xs text-blue-600 font-bold uppercase tracking-wider text-center">💡 {t('setupLater')}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 8 && (
+                            <div className="space-y-6 text-left">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-[var(--text-main)]">{t('signContract')}</h2>
+                                    <p className="text-[var(--text-dim)] mt-1">{t('confirmContract')}</p>
+                                </div>
+
+                                <Input label={t('telegramUsername')} value={telegramUsername} onChange={(v) => { if (v && !v.startsWith('@')) setTelegramUsername('@' + v); else setTelegramUsername(v); }} placeholder={t('telegramUsernamePlaceholder')} required />
+
+                                <ContractPreview onAgree={setAgreeToTerms} agreed={agreeToTerms} />
+
+                                {agreeToTerms && (
+                                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4">
+                                        <SignaturePad ref={signaturePadRef} onSign={handleSignature} nameForGeneration={storeName} label={t('yourElectronicSignature')} />
+                                        {signatureData && (
+                                            <div className="flex items-center gap-2 text-green-600">
+                                                <Check className="w-5 h-5" />
+                                                <span className="text-sm font-medium">{t('signatureAccepted')}</span>
+                                            </div>
+                                        )}
+                                    </motion.div>
+                                )}
+
+                                {error && (
+                                    <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-600">
+                                        <AlertCircle className="w-5 h-5" />
+                                        <span className="text-sm">{error}</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {step === 9 && (
+                            <div className="text-center py-8">
+                                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', duration: 0.5 }} className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
+                                    <Check className="w-12 h-12 text-emerald-500" strokeWidth={3} />
+                                </motion.div>
+                                <h2 className="text-3xl font-black text-slate-900 mb-4 uppercase tracking-tight">{t('pendingApprovalTitle')}</h2>
+
+                                <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 mb-8 max-w-md mx-auto text-left shadow-2xl overflow-hidden relative group">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-transparent opacity-50" />
+                                    <div className="relative z-10">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
+                                                <FolderCheck className="w-5 h-5 text-emerald-400" />
                                             </div>
                                             <div>
-                                                <p className="text-[11px] font-black uppercase tracking-widest text-[var(--text-primary)] flex items-center gap-2">
-                                                    <Sparkles className="w-3 h-3 text-amber-500" />
-                                                    {language === 'uz' ? 'AI Ranglar' : 'AI Colors'}
-                                                </p>
-                                                <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-wider">
-                                                    {language === 'uz' ? 'Logotip asosida tanlandi' : 'Extracted from logo'}
-                                                </p>
+                                                <p className="text-white font-bold text-sm tracking-tight">{t('filesystemSyncComplete') || 'Filesystem Sync Complete'}</p>
+                                                <p className="text-slate-400 text-[10px] font-medium uppercase tracking-widest">sites/{storeSlug}/</p>
                                             </div>
-                                        </motion.div>
-                                    )}
-
-                                    <div className="space-y-4">
-                                        <Input
-                                            label={t('telegramUsername')}
-                                            value={telegramUsername}
-                                            onChange={(v) => {
-                                                if (v && !v.startsWith('@')) setTelegramUsername('@' + v);
-                                                else setTelegramUsername(v);
-                                            }}
-                                            placeholder={t('telegramUsernamePlaceholder')}
-                                            required
-                                            helper={t('telegramUsernameRequired')}
-                                        />
-                                    </div>
-
-                                    <ContractPreview onAgree={setAgreeToTerms} agreed={agreeToTerms} />
-
-                                    {agreeToTerms && (
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            className="space-y-4"
-                                        >
-                                            <SignaturePad
-                                                ref={signaturePadRef}
-                                                onSign={handleSignature}
-                                                nameForGeneration={storeName}
-                                                label={
-                                                    language === 'uz' ? "Elektron imzongiz" :
-                                                        language === 'ru' ? "Ваша электронная подпись" :
-                                                            "Your electronic signature"
-                                                }
-                                            />
-
-                                            {signatureData && (
-                                                <div className="flex items-center gap-2 text-green-600">
-                                                    <Check className="w-5 h-5" />
-                                                    <span className="text-sm font-medium">
-                                                        {language === 'uz' && "Imzo qabul qilindi"}
-                                                        {language === 'ru' && "Подпись принята"}
-                                                        {language === 'en' && "Signature accepted"}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </motion.div>
-                                    )}
-
-                                    {error && (
-                                        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 text-red-600">
-                                            <AlertCircle className="w-5 h-5" />
-                                            <span className="text-sm">{error}</span>
                                         </div>
-                                    )}
 
-                                    <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
-                                        <p className="text-xs text-amber-500 font-bold uppercase tracking-widest text-center leading-relaxed">
-                                            ⚠️ {language === 'uz' ? "Do'koningiz admin tasdig'idan keyin faollashadi" :
-                                                language === 'ru' ? "Ваш магазин будет активирован после одобрения админа" :
-                                                    "Your store will be activated after admin approval"}
-                                        </p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {step === 7 && (
-                                <div className="text-center py-8">
-                                    <motion.div
-                                        initial={{ scale: 0 }}
-                                        animate={{ scale: 1 }}
-                                        transition={{ type: 'spring', duration: 0.5 }}
-                                        className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-6"
-                                    >
-                                        <FileSignature className="w-10 h-10 text-white" />
-                                    </motion.div>
-                                    <h2 className="text-3xl font-black text-[var(--text-primary)] mb-4 uppercase tracking-tight">
-                                        {t('pendingApprovalTitle')}
-                                    </h2>
-                                    <p className="text-[var(--text-muted)] mb-8 max-w-sm mx-auto font-medium">
-                                        {t('pendingApprovalMsg')}
-                                    </p>
-
-                                    <div className="bg-[var(--brand-primary)]/5 border border-[var(--brand-primary)]/10 rounded-[2rem] p-8 mb-10 text-left shadow-sm">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <span className="text-xs font-black uppercase tracking-widest text-[var(--brand-primary)] opacity-70">{t('subscriptionFee')}</span>
-                                            <span className="text-2xl font-black text-[var(--brand-primary)]">{t('monthlyFee')}</span>
+                                        <div className="space-y-2 font-mono text-[9px]">
+                                            <div className="flex items-center gap-2 text-emerald-400/80">
+                                                <div className="w-1 h-1 rounded-full bg-emerald-400" />
+                                                <span>Replicating Default Site structure...</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-emerald-400/80">
+                                                <div className="w-1 h-1 rounded-full bg-emerald-400" />
+                                                <span>Injecting {storeName} metadata...</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 text-emerald-400/80">
+                                                <div className="w-1 h-1 rounded-full bg-emerald-400" />
+                                                <span>Deploying HTML/CSS assets...</span>
+                                            </div>
                                         </div>
-                                        <div className="h-[1px] bg-[var(--brand-primary)]/10 w-full mb-4" />
-                                        <p className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest leading-relaxed">
-                                            {language === 'uz'
-                                                ? "To'lov do'kon tasdiqlanganidan so'ng amalga oshiriladi."
-                                                : language === 'ru'
-                                                    ? "Оплата производится после одобрения магазина."
-                                                    : "Payment is required after store approval."}
-                                        </p>
-                                    </div>
-                                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                                        {createdStoreId && (
-                                            <button
-                                                onClick={async () => {
-                                                    if (!createdStoreId) return;
-                                                    try {
-                                                        const response = await storeApi.downloadContract(createdStoreId);
-                                                        const url = window.URL.createObjectURL(new Blob([response.data]));
-                                                        const link = document.createElement('a');
-                                                        link.href = url;
-                                                        link.setAttribute('download', `contract_${storeSlug}.pdf`);
-                                                        document.body.appendChild(link);
-                                                        link.click();
-                                                        link.remove();
-                                                        window.URL.revokeObjectURL(url);
-                                                    } catch (err) {
-                                                        console.error('Contract download failed:', err);
-                                                    }
-                                                }}
-                                                className="flex items-center gap-2 px-6 py-4 rounded-2xl border-2 border-[var(--color-border)] text-[var(--text-primary)] text-[10px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
-                                            >
-                                                <Download className="w-4 h-4" />
-                                                {t('downloadContract')}
-                                            </button>
-                                        )}
-                                        <Button
-                                            onClick={() => onComplete(createdStoreId || 0, storeName)}
-                                            size="lg"
-                                            className="px-10 py-5 shadow-xl shadow-[var(--brand-primary-glow)]"
-                                            disabled={!createdStoreId}
-                                        >
-                                            {t('goToDashboard')}
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
 
-                            {step < 7 && (
-                                <div className="flex justify-between mt-8">
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => setStep(step - 1)}
-                                        disabled={step === 1 || isSubmitting}
-                                        icon={<ChevronLeft className="w-4 h-4" />}
-                                    >
-                                        {t('back')}
-                                    </Button>
-                                    <Button
-                                        onClick={handleNext}
-                                        disabled={
-                                            isSubmitting || isAnalyzingBusiness ||
-                                            (step === 1 && (!storeName || !businessType)) ||
-                                            (step === 6 && (!agreeToTerms || !signatureData))
-                                        }
-                                        icon={isAnalyzingBusiness ? <Loader2 className="w-4 h-4 animate-spin" /> : (step === 6 ? <Check className="w-5 h-5" /> : <ChevronRight className="w-4 h-4" />)}
-                                    >
-                                        {isSubmitting ? (
-                                            <span className="flex items-center gap-2">
-                                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                                                {t('submitting')}
-                                            </span>
-                                        ) : isAnalyzingBusiness ? (
-                                            <span className="flex items-center gap-2">
-                                                {language === 'uz' ? 'Tahlil qilinmoqda...' : 'Analyzing...'}
-                                            </span>
-                                        ) : step === 6 ? (
-                                            language === 'uz' ? 'YARATISH' : 'CREATE STORE'
-                                        ) : (
-                                            t('next')
-                                        )}
-                                    </Button>
+                                        <div className="mt-5 p-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between">
+                                            <code className="text-[10px] text-indigo-400 font-mono truncate mr-2">
+                                                /sites/{storeSlug}/index.html
+                                            </code>
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                                <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                                                <span className="text-[8px] font-bold text-emerald-500">LIVE</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
+
+                                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                                    {createdStoreId && (
+                                        <button onClick={async () => { if (!createdStoreId) return; try { const { supabaseApi } = await import('../services/supabaseService'); const response = await supabaseApi.stores.downloadContract(createdStoreId); const url = window.URL.createObjectURL(new Blob([response.data])); const link = document.createElement('a'); link.href = url; link.setAttribute('download', `contract_${storeSlug}.pdf`); document.body.appendChild(link); link.click(); link.remove(); window.URL.revokeObjectURL(url); } catch (err) { console.error('Contract download failed:', err); } }} className="flex items-center gap-2 px-6 py-4 rounded-2xl border-2 border-slate-200 text-slate-700 text-[10px] font-black uppercase tracking-widest hover:bg-slate-50">
+                                            <Download className="w-4 h-4" /> {t('downloadContract')}
+                                        </button>
+                                    )}
+                                    <Button onClick={() => onComplete(createdStoreId || 0, storeName)} size="lg" className="px-10 py-5 shadow-xl shadow-indigo-600/30" disabled={!createdStoreId}>{t('goToDashboard')}</Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {step < 9 && (
+                            <div className="flex justify-between mt-8 pt-6 border-t border-slate-100">
+                                <Button variant="ghost" onClick={() => setStep(step - 1)} disabled={step === 1 || isSubmitting} icon={<ChevronLeft className="w-4 h-4" />} className="text-slate-500 hover:text-slate-900 hover:bg-slate-100">
+                                    {t('back')}
+                                </Button>
+                                <Button
+                                    onClick={handleNext}
+                                    disabled={
+                                        isSubmitting || isAnalyzingBusiness ||
+                                        (step === 1 && !storeName) ||
+                                        (step === 8 && (!agreeToTerms || !signatureData))
+                                    }
+                                    className="bg-indigo-600 hover:bg-indigo-700 shadow-lg shadow-indigo-600/30 font-bold tracking-wider"
+                                >
+                                    {isSubmitting ? (
+                                        <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> {t('submitting')}</span>
+                                    ) : isAnalyzingBusiness ? (
+                                        <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> {t('analyzing')}</span>
+                                    ) : step === 8 ? (
+                                        t('create')
+                                    ) : (
+                                        <span className="flex items-center gap-2">{t('next')} <ChevronRight className="w-4 h-4" /></span>
+                                    )}
+                                </Button>
+                            </div>
+                        )}
                     </motion.div>
                 </AnimatePresence>
             </div>
+
+            {/* Template Preview Modal */}
+            <AnimatePresence>
+                {previewModal && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100000] bg-slate-900/90 backdrop-blur-md flex items-center justify-center p-4 sm:p-10" onClick={() => setPreviewModal(null)}>
+                        <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="relative w-full max-w-5xl max-h-[90vh] rounded-[3rem] overflow-hidden bg-white shadow-2xl flex flex-col md:flex-row" onClick={e => e.stopPropagation()}>
+                            <button onClick={() => setPreviewModal(null)} className="absolute top-6 right-6 z-50 w-10 h-10 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:bg-slate-200 transition-colors">
+                                <X size={20} />
+                            </button>
+
+                            {/* Sidebar Info */}
+                            <div className="w-full md:w-80 p-8 border-r border-slate-100 flex flex-col justify-between bg-slate-50/50">
+                                <div>
+                                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center mb-6 shadow-lg shadow-indigo-200">
+                                        <LayoutTemplate size={24} />
+                                    </div>
+                                    <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter leading-tight">
+                                        {t(templates.find(t => t.image === previewModal)?.id || '')}
+                                    </h3>
+                                    <p className="text-slate-500 text-xs font-bold uppercase tracking-widest mt-4">{t('templateFeatures')}</p>
+                                    <ul className="mt-4 space-y-3">
+                                        {[t('premiumDesign'), t('mobileResponsive'), t('fastLoading'), t('aiAssistant')].map(item => (
+                                            <li key={item} className="flex items-center gap-2 text-sm text-slate-600 font-medium">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> {item}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const tpl = templates.find(t => t.image === previewModal);
+                                        if (tpl) setSelectedTemplate(tpl);
+                                        setPreviewModal(null);
+                                        if (step === 1) setStep(2);
+                                    }}
+                                    className="w-full py-4 rounded-2xl bg-indigo-600 text-white font-black uppercase tracking-widest hover:bg-indigo-700 shadow-xl shadow-indigo-200 transition-all flex items-center justify-center gap-2"
+                                >
+                                    <Check size={18} /> {t('select')}
+                                </button>
+                            </div>
+
+                            {/* Live Mock View */}
+                            <div className="flex-1 bg-slate-100 p-8 overflow-auto flex items-center justify-center">
+                                <div className="w-full max-w-[320px] aspect-[9/19] bg-white rounded-[3rem] shadow-2xl border-[8px] border-slate-900 overflow-hidden relative">
+                                    {/* Mock Status Bar */}
+                                    <div className="h-6 bg-slate-900 w-full flex items-center justify-center">
+                                        <div className="w-16 h-4 bg-black rounded-full" />
+                                    </div>
+
+                                    {/* Mock Content */}
+                                    <div className="h-full overflow-y-auto hide-scrollbar pb-10 bg-[#F5F6FA]">
+                                        {/* Mock Header */}
+                                        <div className="p-4 flex items-center justify-between bg-white border-b border-slate-100 sticky top-0 z-10">
+                                            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-[10px] text-white font-bold">
+                                                {storeName ? storeName[0] : 'S'}
+                                            </div>
+                                            <div className="flex gap-3">
+                                                <div className="w-5 h-5 text-slate-400"><Search size={16} /></div>
+                                                <div className="w-5 h-5 text-slate-400 relative">
+                                                    <ShoppingCart size={16} />
+                                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-indigo-600 rounded-full border border-white" />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Mock Hero (Actual Default Site Style) */}
+                                        <div className="p-3">
+                                            <div className="rounded-2xl bg-gradient-to-br from-indigo-600 to-indigo-800 p-6 relative overflow-hidden text-white">
+                                                <div className="relative z-10">
+                                                    <div className="text-[8px] font-bold uppercase tracking-widest opacity-70 mb-2">Yangi Kolleksiya 2024</div>
+                                                    <div className="text-lg font-black leading-tight mb-2 uppercase italic">{storeName || 'Sizning Do\'kon'}</div>
+                                                    <div className="text-[10px] opacity-80 mb-4 line-clamp-2">Eng so'nggi trendlar va eksklyuziv dizaynlar.</div>
+                                                    <div className="inline-block px-4 py-2 bg-white text-indigo-600 text-[10px] font-black rounded-full shadow-lg">Xarid Qilish →</div>
+                                                </div>
+                                                <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-white/10 rounded-full" />
+                                            </div>
+                                        </div>
+
+                                        {/* Category Chips */}
+                                        <div className="px-3 py-2 flex gap-2 overflow-hidden">
+                                            <div className="px-4 py-1.5 bg-indigo-600 text-white text-[9px] font-bold rounded-full">Barchasi</div>
+                                            <div className="px-4 py-1.5 bg-white border border-slate-200 text-slate-600 text-[9px] font-bold rounded-full whitespace-nowrap">Erkaklar</div>
+                                            <div className="px-4 py-1.5 bg-white border border-slate-200 text-slate-600 text-[9px] font-bold rounded-full whitespace-nowrap">Ayollar</div>
+                                        </div>
+
+                                        {/* Mock Grid (Default Site Style) */}
+                                        <div className="p-3 grid grid-cols-2 gap-3">
+                                            {[
+                                                { name: "Sport krossovkasi", emoji: "👟", price: "890,000" },
+                                                { name: "Yozgi ko'ylak", emoji: "👗", price: "450,000" },
+                                                { name: "Bolalar kiyimi", emoji: "🧒", price: "320,000" },
+                                                { name: "Sport shimlar", emoji: "🩳", price: "560,000" }
+                                            ].map((p, i) => (
+                                                <div key={i} className="bg-white rounded-2xl p-2 border border-slate-100 shadow-sm">
+                                                    <div className="aspect-square w-full rounded-xl bg-slate-50 flex items-center justify-center text-3xl mb-2">
+                                                        {p.emoji}
+                                                    </div>
+                                                    <div className="text-[9px] font-bold text-slate-800 mb-1 truncate">{p.name}</div>
+                                                    <div className="text-[10px] font-black text-indigo-600">{p.price} UZS</div>
+                                                    <div className="mt-2 w-full h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white text-[8px] font-bold">
+                                                        Savatga
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
         </div>
     );
 }

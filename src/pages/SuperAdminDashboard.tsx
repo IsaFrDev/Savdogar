@@ -39,7 +39,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
-import { storeApi, authApi, orderApi } from '../services/api';
+import { supabaseApi } from '../services/supabaseService';
 import { GlassCard } from '../components/GlassCard';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { AdminTerminal } from '../components/AdminTerminal';
@@ -109,15 +109,19 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
     const loadData = async () => {
         try {
             const [pendingRes, allRes, usersRes, ordersRes] = await Promise.all([
-                storeApi.getPendingStores(),
-                storeApi.list(),
-                authApi.listUsers(),
-                orderApi.list(),
+                supabaseApi.stores.getPendingStores(),
+                supabaseApi.stores.list(),
+                supabaseApi.admin.listUsers(),
+                supabaseApi.orders.listAll(),
             ]);
-            setPendingStores(pendingRes.data.filter((s: any) => s.status === 'pending'));
-            setAllStores(allRes.data.filter((s: any) => s.status !== 'rejected'));
-            setAllUsers(usersRes.data);
-            setAllOrders(ordersRes.data.sort((a: any, b: any) => (b.id || 0) - (a.id || 0)));
+            const pendingData = Array.isArray(pendingRes.data) ? pendingRes.data : [];
+            const allData = Array.isArray(allRes.data) ? allRes.data : [];
+            const ordersData = Array.isArray(ordersRes.data) ? ordersRes.data : [];
+            
+            setPendingStores(pendingData.filter((s: any) => s.status === 'pending' || s.status === 'draft'));
+            setAllStores(allData.filter((s: any) => s.status !== 'rejected'));
+            setAllUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+            setAllOrders(ordersData.sort((a: any, b: any) => (b.id || 0) - (a.id || 0)));
         } catch (error) {
             console.error('Failed to load dashboard data:', error);
         }
@@ -126,7 +130,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
     const handleDeleteUser = async (id: number) => {
         if (!confirm(language === 'uz' ? "Ushbu foydalanuvchini o'chirmoqchimisiz?" : language === 'ru' ? "Удалить этого пользователя?" : "Are you sure you want to delete this user?")) return;
         try {
-            await authApi.deleteUser(id);
+            await supabaseApi.admin.deleteUser(id);
             setAllUsers(prev => prev.filter(u => u.id !== id));
         } catch (error) {
             console.error('Failed to delete user:', error);
@@ -139,7 +143,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
         if (!editingUser) return;
         setActionLoading(editingUser.id);
         try {
-            const res = await authApi.updateUser(editingUser.id, editingUser);
+            const res = await supabaseApi.admin.updateUser(editingUser.id, editingUser);
             setAllUsers(prev => prev.map(u => u.id === editingUser.id ? res.data : u));
             setEditingUser(null);
             alert(language === 'uz' ? "Muvaffaqiyatli saqlandi" : "Успешно сохранено");
@@ -153,7 +157,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
     const handleApprove = async (storeId: number) => {
         setActionLoading(storeId);
         try {
-            await storeApi.approveStore(storeId);
+            await supabaseApi.stores.approveStore(storeId);
             await loadData();
         } catch (error) {
             console.error('Failed to approve store:', error);
@@ -174,7 +178,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
         setActionLoading(storeId);
         try {
             // Send in all languages (for now, same reason)
-            await storeApi.rejectStore(storeId, reason, reason, reason);
+            await supabaseApi.stores.rejectStore(storeId, reason, reason, reason);
             await loadData();
         } catch (error) {
             console.error('Failed to reject store:', error);
@@ -184,7 +188,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
 
     const handleDownloadContract = async (storeId: number, slug: string) => {
         try {
-            const response = await storeApi.downloadContract(storeId);
+            const response = await supabaseApi.stores.downloadContract(storeId);
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -209,7 +213,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
 
         setActionLoading(id);
         try {
-            await storeApi.delete(id);
+            await supabaseApi.stores.delete(id);
             setAllStores(prev => prev.filter(s => s.id !== id));
             setPendingStores(prev => prev.filter(s => s.id !== id));
         } catch (error) {
@@ -246,6 +250,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
 
     const getStatusBadge = (status: string) => {
         const styles: Record<string, string> = {
+            draft: 'bg-amber-500/10 text-amber-500 border border-amber-500/20',
             pending: 'bg-amber-500/10 text-amber-500 border border-amber-500/20',
             approved: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
             rejected: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
@@ -253,8 +258,9 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
         };
 
         const labels: Record<string, Record<string, string>> = {
+            draft: { uz: 'Kutilmoqda', ru: 'Ожидает', en: 'Pending' },
             pending: { uz: 'Kutilmoqda', ru: 'Ожидает', en: 'Pending' },
-            approved: { uz: 'Tasdiqlangan', ru: 'Одобren', en: 'Approved' },
+            approved: { uz: 'Tasdiqlangan', ru: 'Одобрен', en: 'Approved' },
             rejected: { uz: 'Rad etilgan', ru: 'Отклонён', en: 'Rejected' },
             expired: { uz: 'Muddati o\'tgan', ru: 'Истек', en: 'Expired' },
         };
@@ -705,7 +711,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                                 </td>
                                                 <td className="py-7 px-6 lg:px-8">
                                                     <div className="flex items-center justify-end gap-3 transition-all duration-300">
-                                                        {store.status === 'pending' && (
+                                                        {(store.status === 'pending' || store.status === 'draft') && (
                                                             <>
                                                                 <button
                                                                     onClick={() => handleApprove(store.id)}

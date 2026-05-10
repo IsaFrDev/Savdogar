@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Mail, Lock, Scan, AlertCircle, CheckCircle, Loader2, Shield } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { authApi } from '../services/api'; // Import authApi
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { GlassCard } from '../components/GlassCard';
@@ -17,7 +16,7 @@ interface LoginProps {
 
 export function Login({ onLogin, onRegister }: LoginProps) {
   const { t, language } = useApp();
-  const { login, loginWithFaceId, verify2FA } = useAuth();
+  const { login, loginWithFaceId, verify2FA, verifyDevice } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -46,16 +45,15 @@ export function Login({ onLogin, onRegister }: LoginProps) {
         onLogin();
       }
     } catch (err: any) {
-      if (err.response?.status === 401 && err.response?.data?.device_verification_required) {
-        setTempToken(err.response.data.temp_token);
+      if (err.status === 401 && err.data?.device_verification_required) {
+        setTempToken(err.data.temp_token);
         setStep('device_verification');
         setError('');
         return;
       }
 
       setError(
-        err.response?.data?.error ||
-        err.response?.data?.detail ||
+        err.message ||
         t('errorInvalidCredentials')
       );
     } finally {
@@ -95,7 +93,7 @@ export function Login({ onLogin, onRegister }: LoginProps) {
       await verify2FA(twoFactorEmail, twoFactorCode, useBackupCode);
       onLogin();
     } catch (err: any) {
-      setError(err.response?.data?.error || "2FA verification failed");
+      setError(err.message || "2FA verification failed");
     } finally {
       setIsLoading(false);
     }
@@ -107,17 +105,15 @@ export function Login({ onLogin, onRegister }: LoginProps) {
     setIsLoading(true);
 
     try {
-      const res = await authApi.verifyDevice(deviceCode, tempToken);
-      const { access, refresh } = res.data.tokens;
-      localStorage.setItem('access_token', access);
-      localStorage.setItem('refresh_token', refresh);
+      await verifyDevice(deviceCode, tempToken);
       onLogin();
     } catch (err: any) {
-      setError(err.response?.data?.error || "Device verification failed");
+      setError(err.message || "Device verification failed");
     } finally {
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen relative text-[var(--text-primary)] transition-colors duration-500 flex items-center justify-center p-4 overflow-hidden">
@@ -216,6 +212,15 @@ export function Login({ onLogin, onRegister }: LoginProps) {
                 t('login')
               )}
             </Button>
+
+            <button
+              type="button"
+              onClick={() => {/* Google Login Logic */}}
+              className="w-full mt-4 h-14 rounded-2xl border border-[var(--color-border)] bg-white/5 backdrop-blur-md flex items-center justify-center gap-3 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--text-primary)] hover:bg-white/10 transition-all shadow-xl group"
+            >
+              <div className="w-5 h-5 rounded-full bg-[#DB4437] group-hover:scale-110 transition-transform" />
+              Google bilan kirish
+            </button>
 
             <div className="pt-4">
               <div className="relative">

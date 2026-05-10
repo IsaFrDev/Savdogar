@@ -1,11 +1,24 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, X, Loader2, FolderOpen, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  X, 
+  Loader2, 
+  FolderOpen, 
+  Sparkles, 
+  Image as ImageIcon,
+  Check,
+  Globe,
+  ChevronRight,
+  LayoutGrid,
+  ArrowRight,
+  ArrowUpRight
+} from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { categoryApi, aiApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import { GlassCard } from '../../components/GlassCard';
-import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
 
 interface CategoriesProps {
     storeId?: number;
@@ -39,10 +52,10 @@ export function Categories({ storeId }: CategoriesProps) {
     const loadData = async () => {
         setLoading(true);
         try {
-            const response = await categoryApi.list(storeId);
-            setCategories(response.data);
+            const data = await supabaseApi.categories.list(storeId!);
+            setCategories(Array.isArray(data) ? data : (data && Array.isArray((data as any).data) ? (data as any).data : []));
         } catch (error) {
-            console.error('Failed to load categories:', error);
+            console.error('Failed to load categories from Supabase:', error);
         }
         setLoading(false);
     };
@@ -78,28 +91,24 @@ export function Categories({ storeId }: CategoriesProps) {
 
         setIsSubmitting(true);
         try {
-            let data: any;
+            let imageUrl = imagePreview;
+
             if (imageFile) {
-                data = new FormData();
-                data.append('store', storeId.toString());
-                data.append('name', formData.name);
-                data.append('name_uz', formData.name_uz || formData.name);
-                data.append('name_ru', formData.name_ru || formData.name);
-                data.append('slug', formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'));
-                data.append('active', String(formData.active));
-                data.append('image', imageFile);
-            } else {
-                data = {
-                    ...formData,
-                    store: storeId,
-                    slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
-                };
+                const fileName = `${storeId}-${Date.now()}-${imageFile.name}`;
+                imageUrl = await supabaseApi.storage.upload('categories', fileName, imageFile);
             }
 
+            const data: any = {
+                ...formData,
+                store_id: storeId,
+                image: imageUrl,
+                slug: formData.slug || formData.name.toLowerCase().replace(/\s+/g, '-'),
+            };
+
             if (editingCategory) {
-                await categoryApi.update(editingCategory.id, data);
+                await supabaseApi.categories.update(editingCategory.id, data);
             } else {
-                await categoryApi.create(data);
+                await supabaseApi.categories.create(data);
             }
 
             await loadData();
@@ -115,153 +124,168 @@ export function Categories({ storeId }: CategoriesProps) {
         if (!confirm(language === 'uz' ? "Ushbu kategoriyani o'chirmoqchimisiz?" : "Удалить эту категорию?")) return;
 
         try {
-            await categoryApi.delete(id);
+            await supabaseApi.categories.delete(id);
             await loadData();
         } catch (error) {
-            console.error('Failed to delete category:', error);
+            console.error('Failed to delete category from Supabase:', error);
         }
     };
 
     if (loading && categories.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-20">
-                <Loader2 className="w-10 h-10 text-[var(--brand-primary)] animate-spin mb-4" />
-                <p className="text-[var(--text-muted)] font-black uppercase tracking-[0.3em] text-xs">{t('loading') || 'Yuklanmoqda...'}</p>
+            <div className="flex flex-col items-center justify-center py-24">
+                <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-6" />
+                <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-xs">{t('loading') || 'Yuklanmoqda...'}</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+        <div className="space-y-12 pb-20">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
                 <div>
-                    <h1 className="text-2xl lg:text-3xl font-black text-[var(--text-primary)] tracking-tight">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-1 bg-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)]" />
+                        <span className="text-xs font-black text-emerald-400 uppercase tracking-[0.4em]">Product Hierarchy</span>
+                    </div>
+                    <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase font-heading">
                         {language === 'uz' ? 'Kategoriyalar' : language === 'ru' ? 'Категории' : 'Categories'}
                     </h1>
-                    <p className="text-[var(--text-secondary)] mt-1 uppercase tracking-[0.2em] text-[10px] font-bold">{categories.length} {t('itemsTotal') || 'jami'}</p>
+                    <p className="text-slate-400 mt-2 uppercase tracking-[0.2em] text-[10px] font-black">{categories.length} {t('itemsTotal') || 'jami'} mavjud</p>
                 </div>
-                <Button onClick={() => openModal()} icon={<Plus className="w-4 h-4" />} className="shadow-lg shadow-[var(--brand-primary-glow)] rounded-2xl h-12 font-black uppercase tracking-widest text-[11px] px-8 bg-[var(--brand-primary)] text-[var(--primary-foreground)]">
-                    {language === 'uz' ? "Kategoriya qo'shish" : language === 'ru' ? "Добавить категорию" : "Add Category"}
-                </Button>
+                <button 
+                    onClick={() => openModal()} 
+                    className="h-16 px-10 bg-emerald-600 text-white rounded-[24px] font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-emerald-600/30 hover:scale-105 transition-all flex items-center gap-4"
+                >
+                    <Plus size={20} />
+                    {language === 'uz' ? "Kategoriya" : language === 'ru' ? "Категория" : "Category"}
+                </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Categories Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10">
                 {categories.map((category, index) => (
                     <motion.div
                         key={category.id}
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
                     >
-                        <GlassCard className="p-6 border-[var(--color-border)] hover:border-[var(--brand-primary)] transition-all group overflow-hidden relative">
-                            <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--brand-primary-glow)] blur-3xl rounded-full -mr-16 -mt-16 group-hover:bg-[var(--brand-primary-glow)] transition-colors opacity-40" />
-
-                            <div className="flex justify-between items-start mb-4 relative z-10">
-                                {category.image ? (
-                                    <div className="w-12 h-12 rounded-xl overflow-hidden shadow-sm group-hover:scale-110 transition-transform">
-                                        <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
-                                    </div>
-                                ) : (
-                                    <div className="p-3 rounded-xl bg-[var(--brand-primary-glow)] text-[var(--brand-primary)] group-hover:scale-110 transition-transform">
-                                        <FolderOpen className="w-6 h-6" />
-                                    </div>
-                                )}
-                                <div className="flex gap-2">
-                                    <button onClick={() => openModal(category)} className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-[var(--text-muted)] hover:text-[var(--brand-primary)] transition-all">
-                                        <Edit2 className="w-4 h-4" />
-                                    </button>
-                                    <button onClick={() => handleDelete(category.id)} className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-400 hover:text-rose-500 transition-all">
-                                        <Trash2 className="w-4 h-4" />
-                                    </button>
-                                </div>
+                        <GlassCard className="group p-0 border-slate-200/60 bg-white hover:bg-white hover:border-emerald-500/30 transition-all duration-700 shadow-xl relative rounded-[48px] overflow-hidden border">
+                            {/* Decorative Background Icon */}
+                            <div className="absolute top-0 right-0 p-10 opacity-[0.03] group-hover:scale-110 transition-transform duration-700 pointer-events-none">
+                                <LayoutGrid size={160} className="text-emerald-500" />
                             </div>
 
-                            <h3 className="font-bold text-[var(--text-primary)] text-lg tracking-tight mb-1 relative z-10">{ln(category, 'name')}</h3>
-                            <p className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest relative z-10">/{category.slug}</p>
+                            <div className="p-10 space-y-10 relative z-10">
+                                <div className="flex justify-between items-start">
+                                    <div className="w-24 h-24 rounded-[32px] overflow-hidden bg-slate-950 border border-white/5 shadow-2xl group-hover:scale-110 transition-transform duration-700 group-hover:border-emerald-500/20">
+                                        {category.image ? (
+                                            <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-slate-900">
+                                                <FolderOpen size={48} />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex gap-3 translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500">
+                                        <button onClick={() => openModal(category)} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-900 border border-slate-200 transition-all shadow-sm">
+                                            <Edit2 size={20} />
+                                        </button>
+                                        <button onClick={() => handleDelete(category.id)} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white border border-rose-100 transition-all shadow-sm">
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </div>
+                                </div>
 
-                            <div className="mt-6 flex items-center justify-between relative z-10">
-                                <span className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg border ${category.active ? 'bg-[var(--brand-primary-glow)] text-[var(--brand-primary)] border-[var(--brand-primary)]/20' : 'bg-white/5 text-slate-500 border-white/5'}`}>
-                                    {category.active ? t('active') : t('inactive')}
-                                </span>
-                                <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest">
-                                    {category.product_count || 0} {t('products')}
-                                </span>
+                                <div>
+                                    <h3 className="font-black text-slate-800 text-2xl tracking-tighter uppercase font-heading group-hover:text-emerald-600 transition-colors mb-2">{ln(category, 'name')}</h3>
+                                    <div className="flex items-center gap-2">
+                                       <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.2em]">PATH:</span>
+                                       <p className="text-[9px] text-emerald-500 font-black uppercase tracking-[0.3em] tabular-nums">/{category.slug}</p>
+                                    </div>
+                                </div>
+
+                                <div className="pt-10 flex items-center justify-between border-t border-slate-100">
+                                    <div className="flex flex-col">
+                                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Status</p>
+                                       <span className={`px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-xl border transition-all ${category.active ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>
+                                           {category.active ? t('active') : t('inactive')}
+                                       </span>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Mahsulotlar</p>
+                                        <div className="flex items-center gap-3">
+                                           <p className="text-xl font-black text-slate-900 tabular-nums tracking-tighter">{category.product_count || 0}</p>
+                                           <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                              <ArrowUpRight size={14} />
+                                           </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </GlassCard>
                     </motion.div>
                 ))}
 
-                <div className="col-span-full py-20 rounded-2xl bg-[var(--color-surface)] border border-[var(--color-border)] flex flex-col items-center justify-center text-[var(--text-muted)] shadow-sm">
-                    <FolderOpen className="w-16 h-16 mb-6 opacity-10" />
-                    <p className="text-[10px] font-black uppercase tracking-[0.3em]">
-                        {language === 'ru' ? 'Категорий пока нет' : language === 'uz' ? 'Hali kategoriyalar yo\'q' : 'No categories yet'}
-                    </p>
-                </div>
+                {categories.length === 0 && (
+                    <div className="col-span-full empty-state-card py-40 flex flex-col items-center justify-center">
+                        <FolderOpen className="w-24 h-24 mb-10 text-slate-200" />
+                        <p className="text-xs font-black uppercase tracking-[0.5em] text-slate-400">
+                            {language === 'ru' ? 'Kategoriyalar bo\'sh' : language === 'uz' ? 'Kategoriyalar mavjud emas' : 'No categories found'}
+                        </p>
+                    </div>
+                )}
             </div>
 
             <AnimatePresence>
                 {showModal && (
-                    <>
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/40 backdrop-blur-md z-50" onClick={() => !isSubmitting && setShowModal(false)} />
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-3xl">
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9, y: 40 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 40 }}
-                            className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-xl bg-white rounded-[2.5rem] border border-[var(--color-border)] z-[60] overflow-hidden flex flex-col shadow-2xl"
+                            className="relative w-full max-w-4xl bg-white border border-slate-200 rounded-[56px] shadow-2xl overflow-hidden flex flex-col"
                         >
-                            <div className="p-8 border-b border-[var(--color-border)] flex items-center justify-between">
-                                <h2 className="text-2xl font-black text-[var(--text-primary)] tracking-tight">
-                                    {editingCategory
-                                        ? (language === 'ru' ? 'Редактировать категорию' : language === 'uz' ? 'Kategoriyani tahrirlash' : 'Edit Category')
-                                        : (language === 'ru' ? 'Добавить новую' : language === 'uz' ? 'Yangini qo\'shish' : 'Add New')}
-                                </h2>
-                                <button onClick={() => setShowModal(false)} disabled={isSubmitting} className="p-3 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"><X className="w-5 h-5" /></button>
+                            <div className="px-12 py-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                                <div>
+                                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase font-heading">
+                                        {editingCategory
+                                            ? (language === 'ru' ? 'Tahrirlash' : language === 'uz' ? 'Tahrirlash' : 'Modify Category')
+                                            : (language === 'ru' ? 'Yangi Kategoriya' : language === 'uz' ? 'Yangi Kategoriya' : 'Add Category')}
+                                    </h2>
+                                    <p className="text-emerald-400 font-black uppercase tracking-[0.4em] text-[10px] mt-2.5 flex items-center gap-3">
+                                       <Sparkles size={14} className="animate-pulse" />
+                                       Structure Node Configuration
+                                    </p>
+                                </div>
+                                <button onClick={() => setShowModal(false)} disabled={isSubmitting} className="w-14 h-14 bg-slate-100 border border-slate-200 rounded-2xl text-slate-400 hover:text-slate-900 transition-all flex items-center justify-center">
+                                    <X size={28} />
+                                </button>
                             </div>
 
-                            <div className="p-8 space-y-6">
-                                <div className="flex gap-6">
-                                    <div className="flex-1 space-y-2 relative">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest ml-1">{t('name')}</label>
-                                            <button
-                                                type="button"
-                                                onClick={async () => {
-                                                    if (!formData.name) return;
-                                                    setIsTranslating(true);
-                                                    try {
-                                                        const uzRes = await aiApi.translateText({ text: formData.name, target_lang: 'uz' });
-                                                        const ruRes = await aiApi.translateText({ text: formData.name, target_lang: 'ru' });
-                                                        setFormData(prev => ({ ...prev, name_uz: uzRes.data.translated_text || prev.name_uz, name_ru: ruRes.data.translated_text || prev.name_ru }));
-                                                    } catch (error) {
-                                                        console.error('Translation failed', error);
-                                                    } finally {
-                                                        setIsTranslating(false);
-                                                    }
-                                                }}
-                                                disabled={isTranslating || !formData.name}
-                                                className={`text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-lg border shadow-sm transition-all flex items-center gap-2 ${!formData.name
-                                                    ? 'opacity-30 cursor-not-allowed border-[var(--color-border)] text-[var(--text-muted)]'
-                                                    : 'border-[var(--brand-primary-glow)] text-[var(--brand-primary)] hover:bg-[var(--brand-primary-glow)]'
-                                                    }`}
-                                            >
-                                                {isTranslating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                                                AI Localize
-                                            </button>
-                                        </div>
-                                        <Input value={formData.name} onChange={(v) => setFormData(prev => ({ ...prev, name: v, slug: v.toLowerCase().replace(/\s+/g, '-') }))} placeholder="Masalan: Mevalar" required />
-                                    </div>
-
-                                    {/* Image Upload */}
-                                    <div className="w-32 flex-shrink-0">
-                                        <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest ml-1 mb-2 block text-center">Rasm</label>
+                            <div className="p-12 space-y-12 flex-1 overflow-y-auto custom-scrollbar">
+                                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                                    {/* Image Section */}
+                                    <div className="lg:col-span-4 space-y-4">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 block ml-1">Icon / Thumbnail</label>
                                         <div
-                                            className="h-24 w-32 border-2 border-dashed border-[var(--color-border)] rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[var(--brand-primary)]/50 transition-colors overflow-hidden group"
+                                            className="aspect-square w-full rounded-[48px] bg-slate-800 border-2 border-dashed border-white/10 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500/50 transition-all overflow-hidden group relative shadow-inner"
                                             onClick={() => document.getElementById('category-image')?.click()}
                                         >
                                             {imagePreview ? (
-                                                <img src={imagePreview} className="w-full h-full object-cover group-hover:opacity-70 transition-opacity" />
+                                                <>
+                                                    <img src={imagePreview} className="w-full h-full object-cover group-hover:opacity-40 transition-opacity" />
+                                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <ImageIcon size={48} className="text-white" />
+                                                    </div>
+                                                </>
                                             ) : (
-                                                <ImageIcon className="w-6 h-6 text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] transition-colors" />
+                                                <div className="flex flex-col items-center gap-6">
+                                                    <ImageIcon size={64} className="text-slate-900 group-hover:text-emerald-400 transition-colors" />
+                                                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-[0.3em]">Yuklash</span>
+                                                </div>
                                             )}
                                             <input
                                                 id="category-image"
@@ -277,32 +301,85 @@ export function Categories({ storeId }: CategoriesProps) {
                                                 }}
                                             />
                                         </div>
+                                           <div className="lg:col-span-8 space-y-10">
+                                        <div className="space-y-6">
+                                            <div className="flex justify-between items-center px-1">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('name')}</label>
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        if (!formData.name) return;
+                                                        setIsTranslating(true);
+                                                        try {
+                                                            const uzRes = await supabaseApi.ai.translateText({ text: formData.name, target_lang: 'uz' });
+                                                            const ruRes = await supabaseApi.ai.translateText({ text: formData.name, target_lang: 'ru' });
+                                                            setFormData(prev => ({ ...prev, name_uz: uzRes.data.translated_text || prev.name_uz, name_ru: ruRes.data.translated_text || prev.name_ru }));
+                                                        } catch (error) {
+                                                            console.error('Translation failed in Supabase', error);
+                                                        } finally {
+                                                            setIsTranslating(false);
+                                                        }
+                                                    }}
+                                                    disabled={isTranslating || !formData.name}
+                                                    className={`text-[9px] font-black uppercase tracking-widest px-6 py-2 rounded-xl border transition-all flex items-center gap-3 ${!formData.name
+                                                        ? 'opacity-50 cursor-not-allowed border-slate-100 text-slate-300'
+                                                        : 'border-emerald-100 text-emerald-600 hover:bg-emerald-50'
+                                                        }`}
+                                                >
+                                                    {isTranslating ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+                                                    AI Auto-Fill
+                                                </button>
+                                            </div>
+                                            <input 
+                                                value={formData.name} 
+                                                onChange={(e) => {
+                                                    const v = e.target.value;
+                                                    setFormData(prev => ({ ...prev, name: v, slug: v.toLowerCase().replace(/\s+/g, '-') }));
+                                                }}
+                                                placeholder="Masalan: Elektronika"
+                                                className="w-full h-20 bg-slate-50 border border-slate-100 rounded-[28px] px-8 text-xl font-black text-slate-900 placeholder:text-slate-300 outline-none focus:border-emerald-500/50 transition-all uppercase tracking-tighter"
+                                                required 
+                                            />
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div className="space-y-4">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">O'zbekcha Nomi</label>
+                                                <input value={formData.name_uz} onChange={(e) => setFormData(prev => ({ ...prev, name_uz: e.target.value }))} className="w-full h-16 bg-slate-50 border border-slate-100 rounded-2xl px-8 text-slate-900 font-bold outline-none focus:border-emerald-500/30 transition-all" />
+                                            </div>
+                                            <div className="space-y-4">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Ruscha Nomi</label>
+                                                <input value={formData.name_ru} onChange={(e) => setFormData(prev => ({ ...prev, name_ru: e.target.value }))} className="w-full h-16 bg-slate-50 border border-slate-100 rounded-2xl px-8 text-slate-900 font-bold outline-none focus:border-emerald-500/30 transition-all" />
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Slug (URL)</label>
+                                            <input value={formData.slug} onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))} className="w-full h-16 bg-slate-50 border border-slate-100 rounded-2xl px-8 text-emerald-600 font-black uppercase tracking-[0.3em] text-[10px] outline-none focus:border-emerald-500/30 transition-all" />
+                                        </div>
+                              </div>
                                     </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest ml-1">O'zbekcha nomi</label>
-                                        <Input value={formData.name_uz} onChange={(v) => setFormData(prev => ({ ...prev, name_uz: v }))} placeholder="Meva va sabzavotlar" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest ml-1">Русское название</label>
-                                        <Input value={formData.name_ru} onChange={(v) => setFormData(prev => ({ ...prev, name_ru: v }))} placeholder="Фрукты и овощи" />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest ml-1">Slug (URL)</label>
-                                    <Input value={formData.slug} onChange={(v) => setFormData(prev => ({ ...prev, slug: v }))} placeholder="fruit" />
                                 </div>
                             </div>
 
-                            <div className="p-8 border-t border-[var(--color-border)] flex gap-4 justify-end">
-                                <Button variant="secondary" onClick={() => setShowModal(false)} disabled={isSubmitting}>{t('cancel')}</Button>
-                                <Button onClick={handleSave} disabled={isSubmitting} className="min-w-[140px]">
-                                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t('save')}
-                                </Button>
+                            <div className="px-12 py-10 border-t border-slate-100 bg-slate-50/50 flex gap-4 justify-end">
+                                <button 
+                                    onClick={() => setShowModal(false)} 
+                                    disabled={isSubmitting}
+                                    className="h-16 px-10 border border-slate-200 text-slate-500 rounded-[24px] font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all"
+                                >
+                                    {t('cancel')}
+                                </button>
+                                <button 
+                                    onClick={handleSave} 
+                                    disabled={isSubmitting} 
+                                    className="h-16 px-16 bg-emerald-600 text-white rounded-[24px] font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-emerald-600/30 hover:scale-105 transition-all flex items-center gap-4"
+                                >
+                                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> {t('save')}</>}
+                                </button>
                             </div>
                         </motion.div>
-                    </>
+                    </div>
                 )}
             </AnimatePresence>
         </div>

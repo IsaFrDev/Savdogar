@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion'; // Re-scan trigger
 import { Wand2, Instagram, Send, Copy, RefreshCw, Loader2, Check, Sparkles } from 'lucide-react';
-import { marketingApi, productApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import { getMediaUrl } from '../../utils/media';
 import { useApp } from '../../context/AppContext';
 
@@ -29,7 +29,7 @@ export default function AiCreativeSuite({ storeId }: AiCreativeSuiteProps) {
     const loadProducts = async () => {
         setProductsLoading(true);
         try {
-            const response = await productApi.list({ store: storeId });
+            const response = await supabaseApi.products.list({ store: storeId });
             setProducts(response.data);
         } catch (error) {
             console.error('Failed to load products:', error);
@@ -42,7 +42,7 @@ export default function AiCreativeSuite({ storeId }: AiCreativeSuiteProps) {
         if (!selectedProduct) return;
         setLoading(true);
         try {
-            const response = await marketingApi.generateSMMContent({
+            const response = await supabaseApi.marketing.generateSMMContent({
                 product_id: selectedProduct,
                 platform,
                 language

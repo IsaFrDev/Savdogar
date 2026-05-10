@@ -15,10 +15,9 @@ import { useApp } from '../../context/AppContext';
 import { GlassCard } from '../../components/GlassCard';
 import { Input } from '../../components/Input';
 import { Button } from '../../components/Button';
-import { authApi } from '../../services/api';
 
 export default function UserProfile() {
-    const { user, refreshUser } = useAuth();
+    const { user, refreshUser, updateProfile, updatePassword } = useAuth();
     const { t, language, setLanguage } = useApp();
     const [isLoading, setIsLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -44,12 +43,9 @@ export default function UserProfile() {
     }, []);
 
     const loadTrustedDevices = async () => {
-        try {
-            const res = await authApi.listTrustedDevices();
-            setTrustedDevices(res.data);
-        } catch (error) {
-            console.error('Failed to load trusted devices:', error);
-        }
+        // Supabase doesn't have a direct "trusted devices" list like the legacy API
+        // For now, we'll leave it as an empty list or implement it via a custom table if needed
+        setTrustedDevices([]);
     };
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -59,12 +55,11 @@ export default function UserProfile() {
         setSuccess(false);
 
         try {
-            await authApi.updateProfile(formData);
-            await refreshUser();
+            await updateProfile(formData);
             setSuccess(true);
             setTimeout(() => setSuccess(false), 3000);
         } catch (err: any) {
-            setError(err.response?.data?.message || (language === 'uz' ? 'Profilni yangilashda xatolik yuz berdi' : language === 'ru' ? 'Ошибка при обновлении профиля' : 'Failed to update profile'));
+            setError(err.message || (language === 'uz' ? 'Profilni yangilashda xatolik yuz berdi' : language === 'ru' ? 'Ошибка при обновлении профиля' : 'Failed to update profile'));
         } finally {
             setIsLoading(false);
         }
@@ -82,8 +77,7 @@ export default function UserProfile() {
         setSuccess(false);
 
         try {
-            await authApi.updatePassword({
-                old_password: passwordData.current_password,
+            await updatePassword({
                 new_password: passwordData.new_password,
             });
             setSuccess(true);
@@ -94,19 +88,14 @@ export default function UserProfile() {
             });
             setTimeout(() => setSuccess(false), 3000);
         } catch (err: any) {
-            setError(err.response?.data?.message || (language === 'uz' ? 'Parolni yangilashda xatolik yuz berdi' : language === 'ru' ? 'Ошибка при обновлении пароля' : 'Failed to update password'));
+            setError(err.message || (language === 'uz' ? 'Parolni yangilashda xatolik yuz berdi' : language === 'ru' ? 'Ошибка при обновлении пароля' : 'Failed to update password'));
         } finally {
             setIsLoading(false);
         }
     };
 
     const handleDeleteDevice = async (id: number) => {
-        try {
-            await authApi.deleteTrustedDevice(id);
-            setTrustedDevices(prev => prev.filter(d => d.id !== id));
-        } catch (error) {
-            console.error('Failed to remove device:', error);
-        }
+        // Not implemented in Supabase yet
     };
 
     return (

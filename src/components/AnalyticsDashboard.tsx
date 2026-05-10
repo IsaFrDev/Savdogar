@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import {
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,

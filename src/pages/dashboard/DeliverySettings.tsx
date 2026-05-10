@@ -19,7 +19,7 @@ import {
   Coffee
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { storeApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -41,7 +41,7 @@ export function DeliverySettings() {
     if (!currentStore?.id) return;
     setLoading(true);
     try {
-      await storeApi.update(currentStore.id, { delivery_settings: settingsToSave });
+      await supabaseApi.stores.update(currentStore.id, { delivery_settings: settingsToSave });
       await loadStores?.();
     } catch (error) {
       console.error('Failed to update delivery settings:', error);

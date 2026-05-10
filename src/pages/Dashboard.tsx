@@ -26,11 +26,26 @@ import {
   Image,
   Layers,
   CreditCard,
-  DollarSign
+  DollarSign,
+  Megaphone,
+  Users,
+  Gift,
+  Trophy,
+  Activity,
+  Zap,
+  Target,
+  LayoutGrid,
+  Bell,
+  Search,
+  Globe,
+  Download,
+  Plus,
+  Terminal,
+  Cpu
 } from 'lucide-react';
 import { useApp, Store as StoreType } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { storeApi } from '../services/api';
+import { supabaseApi } from '../services/supabaseService';
 import { getMediaUrl } from '../utils/media';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -39,7 +54,7 @@ import { Products } from './dashboard/Products';
 import { Orders } from './dashboard/Orders';
 import { StoreChatDashboard } from './dashboard/StoreChatDashboard';
 import { Categories } from './dashboard/Categories';
-import { SettingsPage } from './dashboard/Settings';
+import { Settings as SettingsPage } from './dashboard/Settings';
 import AIStudio from './dashboard/AiStudio';
 import { Discounts } from './dashboard/Discounts';
 import POSInterface from './dashboard/POSInterface';
@@ -48,8 +63,13 @@ import { WishlistPage } from './dashboard/Wishlist';
 import { NotificationCenter } from '../components/NotificationCenter';
 import { QRCodeManager } from '../components/QRCodeManager';
 import { StoreStylist } from '../components/StoreStylist';
+import { MarketingCampaigns } from './dashboard/MarketingCampaigns';
+import { EmployeeManagement } from './dashboard/EmployeeManagement';
+import { PromotionsManager } from './dashboard/PromotionsManager';
+import { GamificationDashboard } from './dashboard/GamificationDashboard';
+import { InventoryDashboard } from './dashboard/InventoryDashboard';
 import UserProfile from './dashboard/UserProfile';
-import { Marketing } from './dashboard/Marketing';
+import Marketing from './dashboard/Marketing';
 import AiCreativeSuite from './dashboard/AiCreativeSuite';
 import AiImageStudio from './dashboard/AiImageStudio';
 import AiFittingRoom from './dashboard/AiFittingRoom';
@@ -64,9 +84,9 @@ import { DeliverySettings } from './dashboard/DeliverySettings';
 import { TariffPlan } from './dashboard/TariffPlan';
 import { Customers } from './dashboard/Customers';
 import { StoreAIBuilder } from './dashboard/StoreAIBuilder';
+import { DebtManagement } from './dashboard/DebtManagement';
 import { useStoreWebSocket } from '../hooks/useStoreWebSocket';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { Download } from 'lucide-react';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -77,242 +97,127 @@ interface DashboardProps {
   initialTab?: string;
 }
 
-
 export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore, managedStoreId, initialTab }: DashboardProps) {
   const { t, language, setStores: setGlobalStores, currentStore: globalStore, setCurrentStore: setGlobalStore, ln } = useApp();
   const { user, logout } = useAuth();
   const { canInstall, install, isIOS, isInstalled } = usePWAInstall();
-  const isCustomer = user?.role === 'customer';
   const isSuperAdmin = user?.role === 'superadmin';
 
   const [stores, setStores] = useState<StoreType[]>([]);
   const [marketplaceStores, setMarketplaceStores] = useState<StoreType[]>([]);
   const [currentStore, setCurrentStore] = useState<StoreType | null>(null);
-  const [loading, setLoading] = useState(!isCustomer || !!initialTab);
-
-  const [activeTab, setActiveTab] = useState<string>(initialTab || (isCustomer ? 'discover' : 'overview'));
-  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1024 : false);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : true);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>(initialTab || 'overview');
+  const [sidebarOpen, setSidebarOpen] = useState(() => typeof window !== 'undefined' ? window.innerWidth >= 1280 : false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1280 : true);
   const [storeDropdownOpen, setStoreDropdownOpen] = useState(false);
-  const [showNearby, setShowNearby] = useState(false);
-  const [nearbyStores, setNearbyStores] = useState<any[]>([]);
-  const [nearbyLoading, setNearbyLoading] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
 
   // WebSocket for real-time updates
-  const { status: wsStatus, reconnect: reconnectWs } = useStoreWebSocket(currentStore?.id || null, (event: any) => {
+  const { status: wsStatus } = useStoreWebSocket(currentStore?.id || null, (event: any) => {
     if (event.type === 'store_updated') {
-      console.log('Store updated via WebSocket, refreshing...', event.data);
-      // Update local state immediately if it's the current store
       if (currentStore && event.store_id === currentStore.id) {
         setCurrentStore(prev => ({ ...prev, ...event.data }));
       }
-      // Reload all stores to keep everything in sync
       loadStores();
-    } else if (event.type === 'chat_event' || (event.message && event.message.type === 'chat_event')) {
-      // Handle real-time chat notifications
-      const chatData = event.message || event;
-      if (chatData.event === 'new_message' && activeTab !== 'support') {
-        setUnreadMessages(prev => prev + 1);
-      }
+    } else if (event.type === 'order_created') {
+      const audio = new Audio('/notification.mp3');
+      audio.play().catch(() => {});
+    } else if (event.type === 'chat_event' && event.event === 'new_message' && activeTab !== 'support') {
+      setUnreadMessages(prev => prev + 1);
     }
   });
 
-  // Responsive resize handler
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 1024;
+      const mobile = window.innerWidth < 1280;
       setIsMobile(mobile);
-      if (mobile) {
-        setSidebarOpen(false);
-      }
+      if (mobile) setSidebarOpen(false);
     };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => window.removeResizeListener?.(handleResize) || window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
-    if (!isCustomer) {
-      loadStores();
-    }
-    loadMarketplace();
-  }, [isCustomer]);
+    loadStores();
+  }, []);
 
-  // Sync with global context
   useEffect(() => {
     if (currentStore && (!globalStore || globalStore.id !== currentStore.id)) {
       setGlobalStore(currentStore);
     }
   }, [currentStore, globalStore, setGlobalStore]);
 
-  // Handle initial tab changes
-  useEffect(() => {
-    if (initialTab) {
-      setActiveTab(initialTab);
-    }
-  }, [initialTab]);
-
-  useEffect(() => {
-    if (activeTab === 'support') {
-      setUnreadMessages(0);
-    }
-  }, [activeTab]);
-
-  const loadMarketplace = async () => {
-    try {
-      const response = await storeApi.getMarketplace();
-      const sorted = response.data.sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0));
-      setMarketplaceStores(sorted);
-    } catch (error) {
-      console.error('Failed to load marketplace stores:', error);
-    }
-  };
-
-  const loadNearbyStores = async () => {
-    if (!navigator.geolocation) {
-      alert(language === 'uz' ? "Sizning brauzeringiz geolokatsiyani qo'llab-quvvatlamaydi" : "Your browser doesn't support geolocation");
-      return;
-    }
-
-    setNearbyLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          const response = await storeApi.getNearby(latitude, longitude);
-          setNearbyStores(response.data);
-          setShowNearby(true);
-        } catch (error) {
-          console.error('Failed to load nearby stores:', error);
-          alert(language === 'uz' ? "Yaqin do'konlarni yuklashda xatolik" : "Failed to load nearby stores");
-        }
-        setNearbyLoading(false);
-      },
-      (error) => {
-        setNearbyLoading(false);
-        console.error('Geolocation error:', error);
-        alert(language === 'uz' ? "Joylashuvingizni aniqlab bo'lmadi" : "Could not determine your location");
-      }
-    );
-  };
-
   const loadStores = async () => {
     setLoading(true);
     try {
-      if (managedStoreId && isSuperAdmin) {
-        // Superadmin impersonating a specific store
-        const response = await storeApi.get(managedStoreId);
-        const storeData = response.data;
-        setStores([storeData]);
-        setCurrentStore(storeData);
-        if (typeof setGlobalStores === 'function') {
-           setGlobalStores([storeData]);
-        }
-      } else {
-        const response = await storeApi.list();
-        setStores(response.data);
-        if (typeof setGlobalStores === 'function') {
-          setGlobalStores(response.data);
-        }
-        if (response.data.length > 0) {
-          if (!currentStore) {
-            setCurrentStore(response.data[0]);
-          } else {
-            // Refresh the current store data if it's already selected
-            const updated = response.data.find((s: any) => s.id === currentStore.id);
-            if (updated) {
-              setCurrentStore(updated);
-            }
-          }
-        }
-      }
+      // Supabase-dan do'konlarni olish
+      const response = await supabaseApi.stores.list();
+      const storesArray = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
+      setStores(storesArray as any);
+      if (typeof setGlobalStores === 'function') setGlobalStores(storesArray as any);
+      if (storesArray.length > 0 && !currentStore) setCurrentStore(storesArray[0] as any);
     } catch (error) {
-      console.error('Failed to load stores:', error);
+      console.error('Failed to load stores from Supabase:', error);
     }
     setLoading(false);
   };
 
   const adminGroups = [
     {
-      title: t('sales') || 'Savdo',
+      title: t('commerce'),
       tabs: [
         { id: 'overview', label: t('overview'), icon: LayoutDashboard },
         { id: 'orders', label: t('orders'), icon: ShoppingCart },
-        { id: 'pos', label: 'POS Terminal', icon: CreditCard },
+        { id: 'pos', label: t('posTerminal'), icon: CreditCard },
         { id: 'products', label: t('products'), icon: Package },
-        { id: 'categories', label: t('categories') || 'Kategoriyalar', icon: FolderOpen },
-        { id: 'customers', label: t('customers') || 'Mijozlar', icon: Star },
-        { id: 'support', label: t('support') || 'Chat', icon: MessageSquare, badge: unreadMessages > 0 ? unreadMessages : undefined },
+        { id: 'categories', label: t('categories'), icon: FolderOpen },
+        { id: 'customers', label: t('customers'), icon: Users },
+        { id: 'support', label: t('supportChat'), icon: MessageSquare, badge: unreadMessages > 0 ? unreadMessages : undefined },
       ]
     },
     {
-      title: t('inventory') || 'Omborxona',
+      title: t('inventoryTitle'),
       tabs: [
-        { id: 'warehouse', label: t('warehouse') || 'Ombor', icon: Store },
-        { id: 'ikpu', label: 'IKPU', icon: QrCode },
-        { id: 'erp', label: 'ERP Boshqaruv', icon: DollarSign },
+        { id: 'inventory', label: t('warehouseHub'), icon: Package },
+        { id: 'ikpu', label: t('taxCodes'), icon: QrCode },
+        { id: 'erp', label: t('erpUltimate'), icon: DollarSign },
+        { id: 'debts', label: t('debtManagement'), icon: CreditCard },
       ]
     },
     {
-      title: t('marketing') || 'Marketing',
+      title: t('growthEngine'),
       tabs: [
-        { id: 'marketing', label: t('marketing'), icon: Send },
-        { id: 'discounts', label: t('discounts'), icon: Tag },
-        { id: 'banners', label: t('banners') || 'Bannerlar', icon: Image },
+        { id: 'marketing', label: t('marketingHub'), icon: Megaphone },
+        { id: 'campaigns', label: t('aiCampaigns'), icon: Target },
+        { id: 'promotions', label: t('flashDeals'), icon: Zap },
+        { id: 'gamification', label: t('loyaltyQuests'), icon: Trophy },
+        { id: 'discounts', label: t('vouchers'), icon: Tag },
+        { id: 'banners', label: t('visualAds'), icon: Image },
       ]
     },
     {
-      title: t('aiTools') || 'AI Imkoniyatlar',
+      title: t('aiIntelligence'),
       tabs: [
-        { id: 'ai-studio', label: t('aiStudio') || 'AI Studio', icon: Sparkles },
-        { id: 'ai-creative', label: t('aiCreative') || 'AI Creative', icon: Wand2 },
-        { id: 'ai-builder', label: 'AI Design Builder', icon: LayoutDashboard },
-        { id: 'ai-stylist', label: t('aiStylist') || 'AI Stylist', icon: Wand2 },
-        { id: 'ai-image-studio', label: t('aiImageStudio') || 'AI Image Studio', icon: Image },
-        {
-          id: 'ai-fitting-room',
-          label: t('aiFittingRoom') || 'Virtual Fitting Room',
-          icon: Layers,
-          hidden: currentStore?.business_type !== 'clothing'
-        },
+        { id: 'ai-studio', label: t('aiStudio'), icon: Sparkles },
+        { id: 'ai-creative', label: t('creativeSuite'), icon: Wand2 },
+        { id: 'ai-builder', label: t('designBuilder'), icon: LayoutGrid },
+        { id: 'ai-fitting-room', label: t('virtualFitting'), icon: Layers, hidden: currentStore?.business_type !== 'clothing' },
       ]
     },
     {
-      title: t('settings') || 'Sozlamalar',
+      title: t('infrastructure'),
       tabs: [
         { id: 'settings', label: t('settings'), icon: Settings },
-        { id: 'branches', label: t('branches') || 'Filiallar', icon: MapPin },
-        { id: 'staff', label: t('staff') || 'Xodimlar', icon: ShieldCheck },
-        { id: 'payments', label: t('payments') || 'To\'lovlar', icon: ShoppingCart },
-        { id: 'delivery', label: t('delivery') || 'Yetkazib berish', icon: Package },
-        { id: 'platforms', label: t('platforms') || 'Platformalar', icon: Send },
-        { id: 'tariff', label: t('tariff') || 'Tarif', icon: Star },
+        { id: 'employees', label: t('team'), icon: Users },
+        { id: 'branches', label: t('branches'), icon: MapPin },
+        { id: 'platforms', label: t('integration'), icon: Send },
+        { id: 'tariff', label: t('tariff'), icon: Star },
       ]
     }
-  ] as { title: string; tabs: { id: string; label: string; icon: any; badge?: any; hidden?: boolean }[] }[];
-
-  const customerTabs = [
-    { id: 'discover', label: t('discoverStores') || 'Discover', icon: Store },
-    { id: 'wishlist', label: t('wishlist'), icon: Heart },
-    { id: 'my-orders', label: t('myOrders') || 'My Orders', icon: ShoppingCart },
-    { id: 'profile', label: t('profileTitle') || 'Profile', icon: Settings },
   ];
 
-  const showAdminTabs = !isCustomer && (!isSuperAdmin || stores.length > 0);
-  
-  const getTabs = () => {
-    if (isCustomer) return customerTabs;
-    if (isSuperAdmin && !showAdminTabs) return customerTabs;
-    
-    // For admin, we flatten the groups for the tab selection logic
-    const allAdminTabs = adminGroups.flatMap(group => group.tabs);
-    if (isSuperAdmin && showAdminTabs) {
-        return [...customerTabs, { id: 'divider', label: '', icon: () => null, disabled: true }, ...allAdminTabs];
-    }
-    return allAdminTabs;
-  };
-
-  const tabs = getTabs();
+  const [showQuickActions, setShowQuickActions] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -320,197 +225,23 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
   };
 
   const renderContent = () => {
-    if (loading) {
-      return (
-        <div className="flex flex-col items-center justify-center py-20">
-          <Loader2 className="w-10 h-10 text-[var(--brand-primary)] animate-spin mb-4" />
-          <p className="text-slate-400 font-bold uppercase tracking-widest">{t('loading') || 'Yuklanmoqda...'}</p>
+    if (loading) return (
+      <div className="flex flex-col items-center justify-center py-40">
+        <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-6" />
+        <p className="text-slate-600 font-black uppercase tracking-[0.4em] text-xs">{t('syncingLinks')}</p>
+      </div>
+    );
+
+    if (stores.length === 0) return (
+      <div className="flex flex-col items-center justify-center py-40 px-6 text-center">
+        <div className="w-24 h-24 rounded-[32px] bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-10">
+           <Store size={48} />
         </div>
-      );
-    }
-
-    const customerTabIds = ['discover', 'wishlist', 'my-orders', 'profile'];
-    if (isCustomer || customerTabIds.includes(activeTab)) {
-      switch (activeTab) {
-        case 'discover':
-          return (
-            <div className="space-y-8">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                  <h1 className="text-3xl font-black text-[var(--text-main)] tracking-tight mb-2 uppercase">
-                    {t('discoverStores')}
-                  </h1>
-                  <p className="text-[var(--text-dim)] font-medium tracking-wide">
-                    {t('discoverStoresSubtitle')}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => {
-                      if (showNearby) setShowNearby(false);
-                      else loadNearbyStores();
-                    }}
-                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${showNearby ? 'bg-[var(--brand-primary)] text-[var(--primary-foreground)] shadow-lg shadow-[var(--brand-primary-glow)]' : 'bg-[var(--brand-primary)]/5 border border-[var(--glass-border)] text-[var(--text-dim)] hover:bg-[var(--brand-primary)]/10'
-                      }`}
-                  >
-                    <MapPin className="w-3.5 h-3.5" />
-                    {nearbyLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : (showNearby ? t('all') : t('nearby'))}
-                  </button>
-                  <div className="px-4 py-2 bg-[var(--brand-primary)]/5 border border-[var(--glass-border)] rounded-xl text-xs font-black uppercase tracking-widest text-[var(--brand-primary)]">
-                    {t('storesAvailable', { count: (showNearby ? nearbyStores : marketplaceStores).length })}
-                  </div>
-                </div>
-              </div>
-
-              {(showNearby ? nearbyStores : marketplaceStores).length === 0 ? (
-                <div className="text-center py-20 bg-[var(--color-surface-raised)] rounded-3xl border border-[var(--glass-border)]">
-                  <Store className="w-16 h-16 text-[var(--text-dim)] mx-auto mb-6 opacity-20" />
-                  <p className="text-[var(--text-dim)] font-bold uppercase tracking-widest">
-                    {showNearby
-                      ? t('noNearbyStores')
-                      : t('noOpenStores')}
-                  </p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {(showNearby ? nearbyStores : marketplaceStores).map((store, index) => (
-                    <motion.div
-                      key={store.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.05 }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewStore?.(store.id);
-                      }}
-                      className="group glass-card rounded-3xl overflow-hidden border-[var(--glass-border)] hover:border-[var(--brand-primary)] transition-all shadow-2xl hover:shadow-[var(--brand-primary-glow)] cursor-pointer relative z-0"
-                    >
-                      <div className="h-32 bg-gradient-to-br from-slate-800 to-slate-900 relative">
-                        {store.logo ? (
-                          <img src={getMediaUrl(store.logo) || undefined} alt={store.name} className="w-full h-full object-cover opacity-60 group-hover:scale-110 transition-transform duration-700" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Store className="w-12 h-12 text-white/10 group-hover:scale-110 transition-transform duration-700" />
-                          </div>
-                        )}
-                        {index < 3 && (
-                          <div className="absolute top-4 left-4 px-3 py-1 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg">
-                            Top Store
-                          </div>
-                        )}
-                        {store.status && store.status !== 'approved' && (
-                          <div className="absolute top-4 right-4 px-3 py-1 bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg shadow-lg z-10">
-                            {language === 'uz' ? 'Tekshirilmoqda' : 'Under Review'}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-xl font-black text-[var(--text-main)] truncate group-hover:text-[var(--brand-primary)] transition-colors uppercase tracking-tight">
-                              {ln(store, 'name')}
-                            </h3>
-                            <div className="flex items-center gap-2 mt-1">
-                              <div className="flex items-center gap-1 text-amber-500">
-                                <Star className="w-3.5 h-3.5 fill-current" />
-                                <span className="text-xs font-black">{store.rating || '5.0'}</span>
-                              </div>
-                              <span className="text-[10px] text-[var(--text-dim)] font-bold uppercase tracking-widest">
-                                ({store.rating_count || 0} reviews)
-                              </span>
-                            </div>
-                          </div>
-
-
-                          {onViewStore && (
-                            <button
-                              onClick={() => onViewStore(store.id)}
-                              className="px-4 py-2 rounded-xl bg-[var(--brand-primary)] hover:bg-[var(--brand-primary-toq,var(--brand-primary))] text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-[var(--brand-primary-glow)]"
-                            >
-                              <Eye className="w-3.5 h-3.5" />
-                              <span>View</span>
-                            </button>
-                          )}
-                        </div>
-
-                        <p className="text-[var(--text-dim)] text-sm line-clamp-2 mb-6 font-medium leading-relaxed">
-                          {ln(store, 'description') || (language === 'ru' ? "Информация об этом магазине еще не добавлена." : language === 'uz' ? "Ushbu do'kon haqida ma'lumot hali qo'shilmagan." : "No description available for this store.")}
-                        </p>
-
-                        <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-[var(--text-dim)]">
-                          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--brand-primary)]/5 border border-[var(--glass-border)]">
-                            <Package className="w-3 h-3 text-[var(--brand-primary)]" />
-                            <span>{store.business_type}</span>
-                          </div>
-                          {store.pickup_address && (
-                            <div className="flex items-center gap-1.5 truncate">
-                              <MapPin className="w-3 h-3 text-[var(--brand-secondary)]" />
-                              <span className="truncate">{store.pickup_address}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        case 'my-orders':
-          return (
-            <div className="space-y-8">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]">
-                  <ShoppingCart className="w-6 h-6" />
-                </div>
-                <h1 className="text-3xl font-black text-[var(--text-main)] tracking-tight uppercase">{t('myOrders') || 'Mening Buyurtmalarim'}</h1>
-              </div>
-              <div className="glass-card rounded-3xl p-20 text-center border-[var(--glass-border)] shadow-xl bg-[var(--color-surface-raised)] border-dashed">
-                <Package className="w-16 h-16 text-[var(--text-dim)] mx-auto mb-6 opacity-20" />
-                <p className="text-[var(--text-dim)] font-bold uppercase tracking-widest text-sm">
-                  {language === 'uz' ? "Sizda hali buyurtmalar yo'q" : language === 'ru' ? "U vas poka net zakazov" : "You don't have any orders yet"}
-                </p>
-              </div>
-            </div>
-          );
-        case 'wishlist':
-          return <WishlistPage />;
-        case 'profile':
-          return <UserProfile />;
-        default:
-          return null;
-      }
-    }
-
-    if (stores.length === 0) {
-      return (
-        <div className="text-center py-20 bg-[var(--color-surface-raised)] rounded-[2.5rem] border border-[var(--glass-border)]">
-          <Store className="w-16 h-16 text-[var(--text-dim)] mx-auto mb-6 opacity-20" />
-          <h2 className="text-2xl font-black text-[var(--text-main)] mb-2 tracking-tight uppercase">{t('noStoreFound') || "Do'kon topilmadi"}</h2>
-          <p className="text-[var(--text-dim)] mb-8 font-medium">
-            {language === 'uz' ? 'Sotishni boshlash uchun birinchi do\'koningizni yarating.' : 'Create your first store to start selling.'}
-          </p>
-          <div className="flex flex-col items-center gap-4">
-            <button
-              onClick={onCreateStore}
-              className="px-8 py-3 bg-[var(--brand-primary)] text-[var(--primary-foreground)] rounded-xl font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-lg shadow-[var(--brand-primary-glow)] active:scale-95 leading-none h-12"
-            >
-              {t('createStore')}
-            </button>
-            {user?.role === 'superadmin' && onBackToAdmin && (
-              <button
-                onClick={onBackToAdmin}
-                className="px-6 py-2 text-[var(--brand-primary)] hover:brightness-125 transition-colors font-bold text-xs uppercase tracking-widest"
-              >
-                ← {t('backToAdmin')}
-              </button>
-            )}
-          </div>
-        </div>
-      );
-    }
+        <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-4">{t('noActiveStores')}</h2>
+        <p className="text-slate-500 max-w-sm mb-12 font-medium">{t('createFirstHub')}</p>
+        <button onClick={onCreateStore} className="h-16 px-12 bg-indigo-600 text-white rounded-[24px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-indigo-600/30 hover:scale-105 transition-all">{t('createFirstStore')}</button>
+      </div>
+    );
 
     switch (activeTab) {
       case 'products': return <Products storeId={currentStore?.id} />;
@@ -521,456 +252,259 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       case 'qr': return <QRCodeManager storeId={currentStore?.id?.toString() || ''} />;
       case 'ai-studio': return <AIStudio store={currentStore} onTabChange={setActiveTab} />;
       case 'ai-creative': return <AiCreativeSuite storeId={currentStore?.id} />;
-      case 'ai-builder': return <StoreAIBuilder storeId={currentStore?.id!} />;
-      case 'ai-image-studio': return <AiImageStudio />;
+      case 'ai-builder': return <StoreAIBuilder storeId={currentStore?.id!} onReload={loadStores} />;
       case 'ai-fitting-room': return <AiFittingRoom storeId={currentStore?.id} />;
       case 'marketing': return <Marketing />;
+      case 'campaigns': return <MarketingCampaigns />;
+      case 'promotions': return <PromotionsManager />;
+      case 'gamification': return <GamificationDashboard />;
       case 'support': return <StoreChatDashboard />;
-      case 'ai-stylist': return (
-        <div className="space-y-6">
-          <div className="flex flex-col items-center justify-center py-20 bg-[var(--color-surface-raised)] rounded-3xl border border-[var(--glass-border)]">
-            <h1 className="text-3xl font-black text-[var(--text-main)] tracking-tight mb-4 uppercase text-center">
-              {t('aiStylist')}
-            </h1>
-            <p className="text-[var(--text-dim)] font-medium tracking-wide mb-8 text-center max-w-md">
-              {language === 'uz' ? "Do'koningiz ko'rinishini sun'iy intellekt yordamida yangilang. Logotipni yuklang va aqlli dizaynni qo'llang." : "Revamp your store appearance with AI. Upload your logo and apply smart designs."}
-            </p>
-            <StoreStylist
-              currentLogo={currentStore?.logo}
-              currentPrimary={currentStore?.primary_color || '#FFCE29'}
-              currentSecondary={currentStore?.secondary_color || '#1C3B65'}
-              onApply={async (primary, secondary, themeConfig, logoFile) => {
-                if (currentStore?.id) {
-                  try {
-                    const formData = new FormData();
-                    formData.append('primary_color', primary);
-                    formData.append('secondary_color', secondary);
-                    formData.append('theme_config', JSON.stringify(themeConfig));
-                    if (logoFile) {
-                      formData.append('logo', logoFile);
-                    }
-
-                    await storeApi.update(currentStore.id, formData);
-                    await loadStores();
-                    alert(t('saveSuccess'));
-                  } catch (error) {
-                    console.error('Failed to update stylist:', error);
-                  }
-                }
-              }}
-              language={language}
-            />
-          </div>
-        </div>
-      );
-      case 'settings': return (
-        <SettingsPage storeId={currentStore?.id} onUpdate={loadStores} />
-      );
+      case 'settings': return <SettingsPage storeId={currentStore?.id} onUpdate={loadStores} />;
+      case 'employees': return <EmployeeManagement storeId={currentStore?.id} />;
       case 'discounts': return <Discounts storeId={currentStore?.id} />;
       case 'banners': return <Banners />;
       case 'branches': return <Branches />;
-      case 'staff': return <Staff />;
       case 'ikpu': return <IKPU />;
-      case 'warehouse': return <Warehouse />;
+      case 'inventory': return <InventoryDashboard />;
       case 'platforms': return <PlatformSettings />;
-      case 'payments': return <PaymentSettings />;
-      case 'delivery': return <DeliverySettings />;
       case 'tariff': return <TariffPlan />;
       case 'customers': return <Customers />;
-      default: return <Overview storeId={currentStore?.id} />;
+      case 'debts': return <DebtManagement />;
+      default: return <Overview storeId={currentStore?.id} onTabChange={setActiveTab} />;
     }
   };
 
   return (
-    <div className="min-h-screen relative text-[var(--text-primary)] transition-colors duration-500 overflow-x-hidden font-body" style={{ fontFamily: 'var(--font-family)' }}>
-      {/* Visual Depth Decor */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] bg-[var(--brand-primary-glow)] blur-[120px] rounded-full opacity-40 animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] bg-[var(--brand-primary-glow)] blur-[120px] rounded-full opacity-30" />
+    <div className="min-h-screen bg-slate-50 text-slate-950 font-sans selection:bg-indigo-600 selection:text-white">
+      {/* Dynamic Background Effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none opacity-50">
+         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-200/40 blur-[120px] rounded-full animate-pulse" />
+         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-fuchsia-200/40 blur-[120px] rounded-full" />
       </div>
 
-      {/* Mobile Sidebar Overlay */}
-      <AnimatePresence>
-        {sidebarOpen && isMobile && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Sidebar */}
+      {/* Sidebar Navigation - Ultra Premium White Glass */}
       <motion.aside
         initial={false}
-        animate={{
-          width: isMobile ? 280 : (sidebarOpen ? 280 : 88),
-          x: isMobile ? (sidebarOpen ? 0 : -280) : 0
-        }}
-        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="fixed left-0 top-0 h-full bg-[var(--bg-sidebar)] backdrop-blur-3xl border-r border-[var(--glass-border)] z-50 overflow-hidden flex flex-col shadow-2xl"
-        style={{ borderRadius: sidebarOpen ? '0' : '0 var(--border-radius) var(--border-radius) 0' }}
+        animate={{ width: sidebarOpen ? 280 : 88 }}
+        className="fixed left-0 top-0 h-screen bg-white border-r border-slate-100 z-50 flex flex-col transition-all duration-500 shadow-[20px_0_60px_-15px_rgba(0,0,0,0.03)]"
       >
-        <div className="h-full flex flex-col">
-          {/* Logo Section */}
-          <div className="p-6 flex items-center justify-between gap-4 h-24 border-b border-[var(--color-border)]">
-            <button
-              onClick={() => setActiveTab(isCustomer ? 'discover' : 'overview')}
-              className="flex items-center gap-4 hover:opacity-80 transition-all outline-none group"
-            >
-              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center flex-shrink-0 shadow-sm group-hover:scale-105 transition-transform overflow-hidden p-1">
-                {currentStore?.logo ? (
-                  <img
-                    src={getMediaUrl(currentStore.logo) || undefined}
-                    alt={currentStore.name}
-                    className="w-full h-full object-cover rounded-full"
-                  />
-                ) : (
-                  <img
-                    src="/savdoon-logo.jpg"
-                    alt="Savdoon Logo"
-                    className="w-full h-full object-contain rounded-full"
-                  />
-                )}
-              </div>
-              {sidebarOpen && (
-                <motion.span
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="font-black text-2xl tracking-tight text-[var(--text-primary)] uppercase font-heading truncate"
-                >
-                  {ln(currentStore, 'name') || 'Savdoon'}
-                </motion.span>
-              )}
-            </button>
-            {sidebarOpen && isMobile && (
-              <button onClick={() => setSidebarOpen(false)} className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] lg:hidden">
-                <X className="w-6 h-6" />
-              </button>
-            )}
-
-            {/* WebSocket Refresh Button */}
-            <button
-              onClick={() => {
-                reconnectWs();
-                // Simple feedback: a quick flash or rotation is already handled by CSS if we add it
-              }}
-              className={`p-2.5 rounded-xl border border-[var(--glass-border)] transition-all flex items-center justify-center group ${wsStatus === 'connected' ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20' :
-                wsStatus === 'connecting' ? 'bg-amber-500/10 text-amber-500 animate-pulse' :
-                  'bg-rose-500/10 text-rose-500 animate-bounce'
-                }`}
-              title={wsStatus === 'connected' ? 'Connected (Click to refresh)' : 'Disconnected (Click to reconnect)'}
-            >
-              <Sparkles className={`w-4 h-4 transition-transform group-active:rotate-180 duration-500`} />
-            </button>
-          </div>
-
-          {/* Store Selector (Admin) */}
-          <div className="flex-1 overflow-y-auto px-4 py-8 space-y-8 scrollbar-hide">
-            {sidebarOpen && !isCustomer && currentStore && (
-              <div className="px-2">
-                <div className="relative group">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setStoreDropdownOpen(!storeDropdownOpen)}
-                      className="flex-1 p-4 rounded-[1.75rem] bg-gradient-to-br from-white/[0.05] to-transparent border border-white/[0.08] hover:border-[var(--brand-primary)]/40 backdrop-blur-2xl transition-all duration-300 flex items-center gap-4 group/store shadow-xl overflow-hidden relative h-[72px]"
-                    >
-                      <div className="absolute inset-0 bg-gradient-to-br from-[var(--brand-primary)]/5 to-transparent opacity-0 group-hover/store:opacity-100 transition-opacity" />
-                      <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center overflow-hidden p-1.5 shadow-xl ring-1 ring-white/10 relative z-10 transition-transform group-hover/store:scale-105 flex-shrink-0">
-                        {currentStore.logo ? (
-                          <img src={getMediaUrl(currentStore.logo) || undefined} alt={currentStore.name} className="w-full h-full object-cover rounded-xl" />
-                        ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-secondary)] flex items-center justify-center rounded-xl">
-                            <Store className="w-5 h-5 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex-1 text-left min-w-0 relative z-10 py-1">
-                        <p className="text-[9px] font-black text-[var(--brand-primary)] uppercase tracking-[0.25em] leading-tight mb-1 opacity-80 group-hover/store:opacity-100 transition-opacity">
-                          Active<br />Store
-                        </p>
-                        <p className="text-[15px] font-black text-[var(--text-primary)] truncate leading-none tracking-tight">{ln(currentStore, 'name')}</p>
-                      </div>
-                      <ChevronDown className={`w-4 h-4 text-[var(--text-muted)] transition-all duration-300 group-hover/store:text-[var(--brand-primary)] relative z-10 flex-shrink-0 ${storeDropdownOpen ? 'rotate-180' : ''}`} />
-                    </button>
-                  </div>
-                  <AnimatePresence>
-                    {storeDropdownOpen && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setStoreDropdownOpen(false)} />
-                        <motion.div
-                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                          className="absolute left-0 right-0 mt-3 bg-[var(--color-surface-raised)] backdrop-blur-2xl rounded-2xl border border-[var(--color-border-bright)] overflow-hidden z-50 p-2 shadow-2xl ring-1 ring-white/10"
-                        >
-                          {stores.map((store) => (
-                            <button
-                              key={store.id}
-                              onClick={() => {
-                                setCurrentStore(store);
-                                setStoreDropdownOpen(false);
-                                if (window.innerWidth < 1024) setSidebarOpen(false);
-                              }}
-                              className={`w-full px-4 py-3 text-left rounded-xl transition-all flex items-center gap-4 ${currentStore.id === store.id ? 'bg-[var(--brand-primary-glow)] text-[var(--brand-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--color-border)] hover:text-[var(--text-primary)]'
-                                }`}
-
-                            >
-                              {store.logo ? (
-                                <img src={getMediaUrl(store.logo) || undefined} alt={store.name} className="w-4 h-4 rounded-full object-cover" />
-                              ) : (
-                                <Store className="w-4 h-4" />
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <span className="text-sm font-bold block truncate">{ln(store, 'name')}</span>
-                                <span className="text-[9px] opacity-60 block truncate uppercase tracking-widest font-black">{store.status}</span>
-                              </div>
-                            </button>
-                          ))}
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-            )}
-
-            {/* Navigation Sections */}
-            <nav className="flex-1 py-4 overflow-y-auto no-scrollbar space-y-4">
-              {(isCustomer || (isSuperAdmin && !showAdminTabs)) ? (
-                customerTabs.map((tab: any) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                        setActiveTab(tab.id);
-                        if (window.innerWidth < 1024) setSidebarOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative ${activeTab === tab.id
-                        ? 'bg-[var(--brand-primary-glow)] text-[var(--brand-primary)] shadow-sm'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--color-border)]'
-                        }`}
-                  >
-                    <tab.icon className={`w-6 h-6 flex-shrink-0 transition-all ${activeTab === tab.id ? 'text-[var(--brand-primary)] scale-110' : 'group-hover:text-[var(--brand-primary)]'}`} />
-                    {sidebarOpen && (
-                        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px] font-bold tracking-tight">
-                            {tab.label}
-                        </motion.span>
-                    )}
-                  </button>
-                ))
-              ) : (
-                adminGroups.map((group, groupIdx) => (
-                    <div key={groupIdx} className="space-y-1">
-                        {sidebarOpen && (
-                            <div className="px-6 py-2">
-                                <h3 className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.3em] opacity-60">
-                                    {group.title}
-                                </h3>
-                            </div>
-                        )}
-                        {group.tabs.filter(tab => !tab.hidden).map((tab: any) => (
-                            <button
-                                key={tab.id}
-                                onClick={() => {
-                                    setActiveTab(tab.id);
-                                    if (window.innerWidth < 1024) setSidebarOpen(false);
-                                }}
-                                className={`w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300 group relative ${activeTab === tab.id
-                                    ? 'bg-[var(--brand-primary-glow)] text-[var(--brand-primary)] shadow-sm'
-                                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--color-border)]'
-                                    }`}
-                            >
-                                <tab.icon className={`w-6 h-6 flex-shrink-0 transition-all ${activeTab === tab.id ? 'text-[var(--brand-primary)] scale-110' : 'group-hover:text-[var(--brand-primary)]'}`} />
-                                {sidebarOpen && (
-                                    <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-[12px] font-bold tracking-tight">
-                                        {tab.label}
-                                    </motion.span>
-                                )}
-                                {tab.badge !== undefined && sidebarOpen && (
-                                    <span className="absolute right-4 bg-rose-500 text-white text-[10px] font-black h-5 w-5 rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                                        {tab.badge}
-                                    </span>
-                                )}
-                                {activeTab === tab.id && (
-                                    <motion.div layoutId="activeTabGlow" className="absolute left-0 w-1.5 h-8 bg-[var(--brand-primary)] rounded-r-full shadow-[0_0_15px_var(--brand-primary-glow)]" />
-                                )}
-                            </button>
-                        ))}
-                    </div>
-                ))
-              )}
-            </nav>
-
-            {onBackToAdmin && (
-              <div className="px-4 py-4 mt-auto border-t border-[var(--color-border)]">
-                <button
-                  onClick={onBackToAdmin}
-                  className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-orange-600/10 text-amber-600 hover:from-amber-500 hover:to-orange-600 hover:text-white transition-all duration-300 group shadow-sm border border-amber-500/20"
-                >
-                  <ShieldCheck className="w-6 h-6 flex-shrink-0 group-hover:rotate-12 transition-transform" />
-                  {sidebarOpen && (
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="text-[12px] font-black uppercase tracking-widest"
-                    >
-                      Admin Panel
-                    </motion.span>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* PWA Install Button */}
-          {canInstall && (
-            <div className="px-6 py-4">
-              <button
-                onClick={install}
-                className={`w-full flex items-center gap-4 p-4 rounded-3xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-secondary)] text-white shadow-xl shadow-[var(--brand-primary-glow)] hover:scale-[1.02] active:scale-95 transition-all group overflow-hidden relative`}
+        <div className="p-6 h-24 flex items-center justify-between border-b border-slate-50">
+           <div className="flex items-center gap-3">
+              <div 
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="w-11 h-11 bg-slate-950 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-950/20 group cursor-pointer hover:scale-105 transition-all"
               >
-                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0 backdrop-blur-md">
-                   <Download className="w-5 h-5 text-white animate-bounce" />
+                 <Zap size={20} className="group-hover:rotate-12 transition-transform" />
+              </div>
+              {sidebarOpen && (
+                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
+                   <h1 className="text-xl font-black tracking-tight uppercase font-heading leading-none text-slate-950">Savdoon</h1>
+                   <span className="text-[7px] font-black text-slate-300 uppercase tracking-[0.4em] mt-1 block">Growth v4.0</span>
+                </motion.div>
+              )}
+           </div>
+        </div>
+
+        {/* Store Selector - Redesigned for Light Mode */}
+        {sidebarOpen && currentStore && (
+          <div className="px-5 py-6">
+             <button 
+               onClick={() => setStoreDropdownOpen(!storeDropdownOpen)}
+               className="w-full p-4 rounded-2xl bg-white border border-slate-100 hover:border-slate-950 transition-all flex items-center gap-3 group relative overflow-hidden shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)]"
+             >
+                <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                   <Store size={18} className="transition-colors" />
                 </div>
+                <div className="flex-1 text-left min-w-0">
+                   <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Sector</p>
+                   <p className="text-sm font-black text-slate-950 truncate uppercase tracking-tight">{ln(currentStore, 'name')}</p>
+                </div>
+                <ChevronDown size={14} className={`text-slate-400 transition-transform ${storeDropdownOpen ? 'rotate-180' : ''}`} />
+             </button>
+             
+             <AnimatePresence>
+                {storeDropdownOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+                    className="mt-4 p-2 bg-white border-2 border-slate-100 rounded-3xl shadow-2xl overflow-hidden"
+                  >
+                    {stores.map(store => (
+                      <button 
+                        key={store.id} 
+                        onClick={() => { setCurrentStore(store); setStoreDropdownOpen(false); }}
+                        className="w-full p-4 rounded-2xl hover:bg-slate-50 flex items-center gap-4 transition-all"
+                      >
+                         <div className="w-8 h-8 rounded-lg bg-white shadow-sm overflow-hidden p-0.5 border border-slate-100">
+                            {store.logo ? <img src={getMediaUrl(store.logo)} className="w-full h-full object-cover rounded-md" /> : <Store size={14} className="text-slate-400" />}
+                         </div>
+                         <span className="text-xs font-black text-slate-400 uppercase tracking-tight hover:text-slate-950">{ln(store, 'name')}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+             </AnimatePresence>
+          </div>
+        )}
+
+        {/* Navigation Matrix */}
+        <nav className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-8 space-y-10">
+           {adminGroups.map((group, idx) => (
+             <div key={idx} className="space-y-3">
                 {sidebarOpen && (
-                  <div className="flex-1 text-left min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-widest leading-tight opacity-80">
-                      App
-                    </p>
-                    <p className="text-sm font-black truncate leading-tight">
-                      Install Now
-                    </p>
+                  <div className="px-4 flex items-center gap-3">
+                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.4em]">{group.title}</span>
+                     <div className="flex-1 h-px bg-slate-50" />
                   </div>
                 )}
-              </button>
-            </div>
-          )}
+                 <div className="space-y-1">
+                   {group.tabs.filter(t => !t.hidden).map(tab => (
+                     <button
+                       key={tab.id}
+                       onClick={() => { setActiveTab(tab.id); if (isMobile) setSidebarOpen(false); }}
+                       className={`w-full flex items-center gap-4 px-5 py-3 rounded-xl transition-all duration-300 relative group ${activeTab === tab.id ? 'bg-slate-950 text-white shadow-xl shadow-slate-950/20' : 'text-slate-400 hover:text-slate-950 hover:bg-slate-50/80 backdrop-blur-sm'}`}
+                     >
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${activeTab === tab.id ? 'bg-white/10' : 'group-hover:bg-slate-950/5'}`}>
+                           <tab.icon size={sidebarOpen ? 18 : 20} className={`shrink-0 transition-transform ${activeTab === tab.id ? 'scale-110' : 'group-hover:scale-110'}`} />
+                        </div>
+                        {sidebarOpen && <span className="text-[10px] font-black uppercase tracking-widest">{tab.label}</span>}
+                        {activeTab === tab.id && (
+                          <motion.div layoutId="navIndicator" className="absolute left-0 w-1 h-5 bg-white rounded-r-full" />
+                        )}
+                        {tab.badge && sidebarOpen && (
+                          <span className="absolute right-5 px-2 py-0.5 bg-rose-500 text-white text-[7px] font-black rounded-lg animate-pulse shadow-lg">{tab.badge}</span>
+                        )}
+                     </button>
+                   ))}
+                </div>
+             </div>
+           ))}
+        </nav>
 
-          {/* iOS Install Prompt */}
-          {isIOS && !isInstalled && (
-            <div className="px-6 py-2">
-              <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-[9px] text-slate-400 font-bold uppercase tracking-widest text-center">
-                 iOS: Add to Home Screen
-              </div>
-            </div>
-          )}
-
-          {/* User Menu Overhaul */}
-          <div className="p-6 border-t border-[var(--color-border)]">
-            <div className="flex items-center gap-4 p-4 rounded-2xl bg-[var(--color-surface-raised)] border border-[var(--color-border)] shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-secondary)] flex items-center justify-center text-white font-black shadow-lg shadow-[var(--brand-primary-glow)] flex-shrink-0 text-xl overflow-hidden ring-2 ring-white/10">
-                {user?.first_name?.[0] || user?.username?.[0] || 'U'}
+        {/* Sidebar Footer */}
+        <div className="p-4 border-t border-slate-50 bg-slate-50/20">
+           <div className={`flex items-center gap-3 ${sidebarOpen ? 'p-3 rounded-2xl bg-white border border-slate-100 shadow-sm' : 'justify-center'}`}>
+              <div className="w-10 h-10 rounded-xl bg-slate-950 flex items-center justify-center text-white font-black text-lg shadow-lg shrink-0 cursor-pointer hover:scale-105 transition-transform" onClick={() => setSidebarOpen(!sidebarOpen)}>
+                 {user?.first_name?.[0] || 'U'}
               </div>
               {sidebarOpen && (
-                <div className="flex-1 min-w-0 pr-2">
-                  <p className="text-sm font-black text-[var(--text-primary)] truncate">
-                    {user?.first_name ? `${user.first_name} ${user.last_name}` : user?.username}
-                  </p>
-                  <p className="text-[9px] text-[var(--brand-primary)] truncate uppercase tracking-[0.2em] font-black mt-1 opacity-80">
-                    {(user?.role === 'superadmin' || user?.is_superuser) ? t('superadminRole') : user?.role === 'store_admin' ? t('storeAdminRole') : t('customerRole')}
-                  </p>
+                <div className="flex-1 min-w-0">
+                   <p className="text-xs font-black text-slate-950 truncate uppercase tracking-tight">{user?.first_name || user?.username}</p>
+                   <p className="text-[7px] font-black text-indigo-600 uppercase tracking-widest mt-0.5">Admin</p>
                 </div>
               )}
               {sidebarOpen && (
-                <div className="flex flex-col gap-1">
-                  {onBackToAdmin && user?.role === 'superadmin' && (
-                    <button
-                      onClick={onBackToAdmin}
-                      className="p-2.5 hover:bg-[var(--brand-primary-glow)] rounded-xl transition-all group/admin"
-                      title={t('backToAdmin')}
-                    >
-                      <ShieldCheck className="w-5 h-5 text-[var(--brand-primary)] group-hover/admin:scale-110 transition-all" />
-                    </button>
-                  )}
-                  <button
-                    onClick={handleLogout}
-                    className="p-2.5 hover:bg-rose-500/10 rounded-xl transition-all group/logout"
-                    title="Logout"
-                  >
-                    <LogOut className="w-5 h-5 text-[var(--text-muted)] group-hover/logout:text-rose-500 group-hover/logout:rotate-12 transition-all" />
-                  </button>
-                </div>
+                <button onClick={handleLogout} className="w-8 h-8 rounded-lg hover:bg-rose-50 text-slate-300 hover:text-rose-500 transition-all flex items-center justify-center border border-transparent hover:border-rose-100">
+                   <LogOut size={16} />
+                </button>
               )}
-            </div>
-          </div>
+           </div>
         </div>
       </motion.aside>
 
-      {/* Main Content Area */}
-      <div
-        className={`transition-all duration-500 min-h-screen ml-0 ${sidebarOpen && !isMobile ? 'lg:ml-[280px]' : (!isMobile ? 'lg:ml-[88px]' : '')
-          }`}
+      {/* Main Content Hub */}
+      <main 
+        className="transition-all duration-500 min-h-screen pt-24 px-6 lg:px-12 relative z-10"
+        style={{ marginLeft: isMobile ? 0 : (sidebarOpen ? 280 : 88) }}
       >
-        <header className="sticky top-0 z-30 bg-[var(--bg-header)] backdrop-blur-2xl border-b border-[var(--glass-border)] h-16 lg:h-24">
-          <div className="flex items-center justify-between px-4 lg:px-12 h-full gap-3 lg:gap-6">
-            <div className="flex items-center gap-6">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-3 rounded-2xl bg-[var(--color-surface-raised)] hover:bg-[var(--color-border)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all border border-[var(--color-border)] shadow-sm"
+        {/* Global Control Bar */}
+        <div className="fixed top-0 right-0 left-0 h-24 px-12 z-40 pointer-events-none flex items-center justify-end gap-5" style={{ left: isMobile ? 0 : (sidebarOpen ? 280 : 88) }}>
+           <div className="pointer-events-auto flex items-center gap-3 p-2.5 bg-white/80 backdrop-blur-3xl border border-slate-50 rounded-2xl shadow-xl shadow-slate-200/40">
+              <button 
+                onClick={() => {
+                  if (currentStore?.slug) {
+                    const isLocal = window.location.hostname === 'localhost' || window.location.hostname.includes('192.168');
+                    const url = isLocal 
+                      ? `${window.location.origin}/?store=${currentStore.slug}`
+                      : `https://${currentStore.slug}.savdoon.uz`;
+                    window.open(url, '_blank');
+                  } else {
+                    alert('Do\'kon manzili topilmadi');
+                  }
+                }}
+                className="h-10 px-5 bg-indigo-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-indigo-600/20"
               >
-                {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                 <Globe size={14} />
+                 Do'konni ko'rish
               </button>
-
-              <div className="w-px h-8 bg-[var(--color-border)] hidden sm:block" />
-
+              <div className="w-px h-6 bg-slate-100 mx-1.5" />
+              <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-950 transition-all cursor-pointer shadow-sm">
+                 <Search size={18} />
+              </div>
+              <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-950 transition-all cursor-pointer relative shadow-sm">
+                 <Bell size={18} />
+                 <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
+              </div>
+              <div className="w-px h-6 bg-slate-100 mx-1.5" />
+              <LanguageSwitcher />
+              <div className="w-px h-6 bg-slate-100 mx-1.5" />
+              <ThemeToggle />
+           </div>
+           
+           <div className="pointer-events-auto flex items-center gap-3 p-2.5 bg-slate-950 rounded-2xl shadow-xl shadow-slate-950/20 px-6 h-[60px]">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 shadow-inner">
+                 <Cpu size={16} className="animate-pulse" />
+              </div>
               <div className="flex flex-col">
-                <h2 className="text-base lg:text-xl font-black text-[var(--text-primary)] tracking-tight font-heading uppercase truncate max-w-[150px] sm:max-w-none">
-                  {tabs.find(t => t.id === activeTab)?.label || 'Savdoon'}
-                </h2>
-                <div className="hidden sm:flex items-center gap-2 mt-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                  <span className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">System Active</span>
-                </div>
+                 <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest leading-tight">{t('neuralStatus')}</span>
+                 <span className="text-[9px] font-black text-white uppercase tracking-[0.2em] leading-tight">{t('systemsNominal')}</span>
               </div>
-            </div>
+           </div>
+        </div>
 
-            <div className="flex items-center gap-2 lg:gap-6">
-              {!isCustomer && currentStore && (
-                <button
-                  onClick={() => onViewStore?.(currentStore.id)}
-                  className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] text-[10px] font-black uppercase tracking-widest transition-all hover:bg-[var(--brand-primary)] hover:text-white border border-[var(--brand-primary)]/20"
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline">{t('viewStorefront') || 'View Store'}</span>
-                </button>
-              )}
-              {onBackToAdmin && (
-                <button
-                  onClick={onBackToAdmin}
-                  className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-amber-500/20 hover:scale-105 active:scale-95 group border-none"
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
-                  <span className="hidden sm:inline">Admin Panel</span>
-                </button>
-              )}
-              <div className="hidden sm:flex items-center gap-3">
-                <ThemeToggle />
-                <LanguageSwitcher />
-              </div>
-              <div className="hidden sm:block w-px h-8 bg-[var(--color-border)]" />
-              <NotificationCenter />
-            </div>
-          </div>
-        </header>
+        {/* Dynamic Page Rendering */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab + (currentStore?.id || '')}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="max-w-[1600px] mx-auto"
+          >
+            {renderContent()}
+          </motion.div>
+        </AnimatePresence>
+      </main>
 
-        <main className="p-4 sm:p-6 lg:p-12 max-w-7xl mx-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
-            >
-              {renderContent()}
-            </motion.div>
-          </AnimatePresence>
-        </main>
+      {/* Quick Access Floating Panel */}
+      <div className="fixed bottom-10 right-10 z-[60] flex flex-col gap-4">
+         <AnimatePresence>
+            {showQuickActions && (
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.8, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.8, y: 20 }}
+                className="bg-white border-2 border-slate-100 rounded-[32px] p-6 shadow-2xl mb-4 w-72"
+              >
+                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-4">{t('quickTerminal')}</h4>
+                 <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: 'POS', icon: CreditCard, tab: 'pos' },
+                      { label: 'Chat', icon: MessageSquare, tab: 'support' },
+                      { label: 'AI', icon: Sparkles, tab: 'ai-studio' },
+                      { label: 'New', icon: Plus, tab: 'products' }
+                    ].map(action => (
+                      <button 
+                        key={action.label}
+                        onClick={() => { setActiveTab(action.tab); setShowQuickActions(false); }}
+                        className="p-4 bg-slate-50 rounded-2xl hover:bg-slate-950 hover:text-white transition-all flex flex-col items-center gap-2"
+                      >
+                         <action.icon size={18} />
+                         <span className="text-[8px] font-black uppercase tracking-widest">{action.label}</span>
+                      </button>
+                    ))}
+                 </div>
+              </motion.div>
+            )}
+         </AnimatePresence>
+         <motion.button 
+           onClick={() => setShowQuickActions(!showQuickActions)}
+           whileHover={{ scale: 1.1, rotate: 10 }} whileTap={{ scale: 0.9 }}
+           className={`w-16 h-16 rounded-[24px] flex items-center justify-center border-4 border-white backdrop-blur-xl transition-all shadow-2xl ${showQuickActions ? 'bg-indigo-600 text-white rotate-90' : 'bg-slate-950 text-white'}`}
+         >
+            {showQuickActions ? <X size={24} /> : <Terminal size={24} />}
+         </motion.button>
       </div>
-
     </div>
   );
 }

@@ -1,6 +1,48 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import api from '../../services/api';
+import { 
+  Search, 
+  Barcode, 
+  ShoppingCart, 
+  Plus, 
+  Minus, 
+  Trash2, 
+  CreditCard, 
+  Wallet, 
+  QrCode,
+  X,
+  Store,
+  ChevronRight,
+  AlertCircle,
+  Loader2,
+  Box,
+  LayoutGrid,
+  Zap,
+  ArrowRight,
+  User,
+  Phone,
+  Monitor,
+  Database,
+  ShieldCheck,
+  ChevronLeft,
+  Settings,
+  History,
+  Terminal,
+  Calculator,
+  Scan,
+  RotateCcw,
+  Unlock,
+  Lock,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Receipt,
+  CircleDollarSign,
+  Filter
+} from 'lucide-react';
+import { useApp } from '../../context/AppContext';
+import { supabaseApi } from '../../services/supabaseService';
+import { GlassCard } from '../../components/GlassCard';
+import { Modal } from '../../components/Modal';
 
 interface Product {
   id: number;
@@ -25,6 +67,7 @@ interface CashRegister {
 }
 
 const POSInterface: React.FC = () => {
+  const { formatPrice, t, currentStore } = useApp();
   const [registers, setRegisters] = useState<CashRegister[]>([]);
   const [activeRegister, setActiveRegister] = useState<CashRegister | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -32,100 +75,99 @@ const POSInterface: React.FC = () => {
   const [barcodeInput, setBarcodeInput] = useState('');
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
-  const [showPayment, setShowPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'qr' | 'mixed'>('cash');
-  const [amountPaid, setAmountPaid] = useState('');
-  const [customerName, setCustomerName] = useState('');
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const [startingCash, setStartingCash] = useState('0');
+  const [activeTab, setActiveTab] = useState<'pos' | 'transactions' | 'refunds'>('pos');
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [customerPhone, setCustomerPhone] = useState('');
-  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'pos' | 'transactions'>('pos');
 
-  // Load registers
   useEffect(() => {
-    loadRegisters();
-    loadRecentTransactions();
-  }, []);
-
-  // Load products when search changes
-  useEffect(() => {
-    if (searchQuery.length >= 2) {
-      loadProducts(searchQuery);
+    if (currentStore?.id) {
+      loadRegisters();
+      loadTransactions();
     }
-  }, [searchQuery]);
+  }, [currentStore]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (currentStore?.id) loadProducts(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, currentStore]);
 
   const loadRegisters = async () => {
+    if (!currentStore?.id) return;
     try {
-      const response = await api.get('/pos/registers/');
-      setRegisters(response.data);
-      const active = response.data.find((r: CashRegister) => r.is_active);
+      const data = await supabaseApi.pos.listRegisters(currentStore.id);
+      setRegisters(data);
+      const active = data.find((r: CashRegister) => r.is_active);
       if (active) setActiveRegister(active);
     } catch (error) {
-      console.error('Failed to load registers:', error);
+      console.error('Failed to load registers from Supabase:', error);
+    }
+  };
+
+  const loadTransactions = async () => {
+    if (!currentStore?.id) return;
+    try {
+      const data = await supabaseApi.pos.listTransactions(currentStore.id);
+      setTransactions(data);
+    } catch (error) {
+      console.error('Failed to load transactions from Supabase:', error);
     }
   };
 
   const loadProducts = async (query: string) => {
+    if (!currentStore?.id) return;
     try {
-      const response = await api.get(`/products/?search=${query}`);
-      setProducts(response.data.results || response.data);
-    } catch (error) {
-      console.error('Failed to load products:', error);
-    }
-  };
-
-  const loadRecentTransactions = async () => {
-    try {
-      const response = await api.get('/pos/transactions/?limit=10');
-      setRecentTransactions(response.data.results || response.data);
-    } catch (error) {
-      console.error('Failed to load transactions:', error);
-    }
-  };
-
-  const openRegister = async () => {
-    try {
-      setLoading(true);
-      
-      // If no register exists, create one first
-      if (!activeRegister) {
-        const createResponse = await api.post('/pos/registers/', {
-          store: 1, // Get from user context
-          name: 'Main Register',
-          register_code: `REG-${Date.now()}`
-        });
-        setActiveRegister(createResponse.data);
+      const data = await supabaseApi.products.list(currentStore.id);
+      if (query) {
+          setProducts(data.filter(p => p.name.toLowerCase().includes(query.toLowerCase())));
+      } else {
+          setProducts(data);
       }
-      
-      // Open the register
-      const registerToOpen = activeRegister || (await api.post('/pos/registers/', {
-        store: 1,
-        name: 'Main Register',
-        register_code: `REG-${Date.now()}`
-      })).data;
-      
-      await api.post(`/pos/registers/${registerToOpen.id}/open/`, {
-        starting_cash: 100000
-      });
-      
-      alert('✅ Kassa muvaffaqiyatli ochildi!');
-      loadRegisters();
-    } catch (error: any) {
-      console.error('Open register error:', error);
-      alert('❌ Xatolik: ' + (error.response?.data?.detail || error.message || 'Noma\'lum xato'));
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Failed to load products from Supabase:', error);
     }
+  };
+
+  const handleOpenRegister = async () => {
+    if (!currentStore?.id) return;
+    setLoading(true);
+    try {
+      let registerId = registers[0]?.id;
+      if (!registerId) {
+          alert('No registers configured for this store.');
+          setLoading(false);
+          return;
+      }
+      await supabaseApi.pos.openRegister(registerId, parseFloat(startingCash));
+      await loadRegisters();
+      setShowSessionModal(false);
+    } catch (error) {
+      console.error('Failed to open register in Supabase:', error);
+    }
+    setLoading(false);
+  };
+
+  const handleCloseRegister = async () => {
+    if (!activeRegister) return;
+    if (!window.confirm('Sessiyani yopishni tasdiqlaysizmi?')) return;
+    setLoading(true);
+    try {
+      await supabaseApi.pos.closeRegister(activeRegister.id, calculateTotal());
+      setActiveRegister(null);
+      await loadRegisters();
+    } catch (error) {
+      console.error('Failed to close register in Supabase:', error);
+    }
+    setLoading(false);
   };
 
   const addToCart = (product: Product) => {
     const existingItem = cart.find(item => item.id === product.id);
-    
     if (existingItem) {
-      setCart(cart.map(item => 
-        item.id === product.id 
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
-      ));
+      setCart(cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
     } else {
       setCart([...cart, { ...product, quantity: 1, discount: 0 }]);
     }
@@ -141,439 +183,316 @@ const POSInterface: React.FC = () => {
     }).filter(item => item.quantity > 0));
   };
 
-  const removeFromCart = (productId: number) => {
-    setCart(cart.filter(item => item.id !== productId));
-  };
-
   const handleBarcode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!barcodeInput.trim()) return;
-
-    try {
-      const response = await api.get(`/pos/barcodes/lookup/?code=${barcodeInput}`);
-      if (response.data.product) {
-        const product = await api.get(`/products/${response.data.product}/`);
-        addToCart(product.data);
-        setBarcodeInput('');
-      }
-    } catch (error) {
-      alert('Barcode topilmadi');
-    }
-  };
-
-  const calculateSubtotal = () => {
-    return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    setBarcodeInput('');
   };
 
   const calculateTotal = () => {
-    return cart.reduce((sum, item) => {
-      const itemTotal = item.price * item.quantity - item.discount;
-      return sum + itemTotal;
-    }, 0);
+    return cart.reduce((sum, item) => sum + (item.price * item.quantity - item.discount), 0);
   };
 
-  const processPayment = async () => {
-    if (!activeRegister || cart.length === 0) return;
-
-    try {
+  const handleCheckout = async () => {
+      if (cart.length === 0 || !currentStore?.id) return;
       setLoading(true);
-      
-      const transaction = await api.post('/pos/transactions/', {
-        store: 1, // Get from user's store
-        register: activeRegister.id,
-        payment_method: paymentMethod,
-        amount_paid: parseFloat(amountPaid) || calculateTotal(),
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        items: cart.map(item => ({
-          product: item.id,
-          product_name: item.name,
-          quantity: item.quantity,
-          unit_price: item.price,
-          discount: item.discount,
-          tax_rate: 12
-        }))
-      });
-
-      // Complete transaction
-      await api.post(`/pos/transactions/${transaction.data.id}/complete/`);
-
-      alert(`To'lov muvaffaqiyatli! Chek raqami: ${transaction.data.transaction_number}`);
-      
-      // Reset
-      setCart([]);
-      setShowPayment(false);
-      setAmountPaid('');
-      setCustomerName('');
-      setCustomerPhone('');
-      loadRecentTransactions();
-    } catch (error: any) {
-      alert('To\'lov xatosi: ' + (error.response?.data?.error || 'Noma\'lum xato'));
-    } finally {
+      try {
+          const saleData = {
+              store_id: currentStore.id,
+              transaction_number: `POS-${Date.now()}`,
+              customer_name: 'Guest Customer',
+              payment_method: 'cash',
+              total: calculateTotal(),
+              items: cart.map(item => ({
+                  product_id: item.id,
+                  quantity: item.quantity,
+                  price: item.price
+              }))
+          };
+          await supabaseApi.pos.createSale(saleData);
+          setCart([]);
+          alert('Transaction Completed Successfully!');
+          loadTransactions();
+      } catch (error) {
+          console.error('POS Checkout failed in Supabase:', error);
+          alert('Checkout failed');
+      }
       setLoading(false);
-    }
-  };
-
-  const changeAmount = () => {
-    const paid = parseFloat(amountPaid) || 0;
-    return Math.max(0, paid - calculateTotal());
   };
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900 overflow-hidden">
-      {/* Header - Fixed */}
-      <div className="bg-white dark:bg-gray-800 shadow-sm flex-shrink-0">
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              💳 POS Terminal
-            </h1>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTab('pos')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'pos' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
-                }`}
-              >
-                Savdo
-              </button>
-              <button
-                onClick={() => setActiveTab('transactions')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === 'transactions' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200'
-                }`}
-              >
-                Tranzaksiyalar
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Register Status - Fixed */}
-      {activeTab === 'pos' && (
-        <div className="px-4 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <div className={`p-3 rounded-lg ${
-            activeRegister?.is_active 
-              ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800' 
-              : 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800'
-          }`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{activeRegister?.is_active ? '✅' : '❌'}</span>
-                <div>
-                  <h3 className="font-semibold text-sm">
-                    {activeRegister?.is_active ? 'Kassa ochiq' : 'Kassa yopiq'}
-                  </h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
-                    {activeRegister?.name || 'Kassa tanlanmagan'}
+    <div className="h-screen flex flex-col bg-white -m-12 p-0 overflow-hidden text-slate-950 font-sans selection:bg-slate-950 selection:text-white">
+      <header className="h-32 bg-white px-12 flex items-center justify-between border-b-2 border-slate-50 relative z-50">
+         <div className="flex items-center gap-16">
+            <div className="flex items-center gap-8 group">
+               <div className="w-12 h-12 rounded-xl bg-slate-950 flex items-center justify-center shadow-xl transition-transform duration-700 cursor-pointer hover:scale-105">
+                  <Terminal size={24} className="text-white" />
+               </div>
+               <div>
+                  <h1 className="text-2xl font-black tracking-tight uppercase font-heading leading-none">POS <span className="text-slate-300">Terminal</span></h1>
+                  <p className="text-[7px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2 flex items-center gap-2">
+                     <ShieldCheck size={10} className="text-emerald-500" /> Build 5.0 • {activeRegister?.register_code || 'STANDBY'}
                   </p>
-                </div>
-              </div>
-              {!activeRegister?.is_active && (
-                <button
-                  onClick={openRegister}
-                  disabled={loading}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm font-medium transition-all"
-                >
-                  {loading ? 'Ochilmoqda...' : 'Ochish'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content - Scrollable inside */}
-      {activeTab === 'pos' ? (
-        <div className="flex-1 overflow-hidden p-4">
-          <div className="h-full grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Products Section */}
-            <div className="lg:col-span-2 flex flex-col gap-4 overflow-hidden">
-              {/* Search & Barcode - Fixed */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 flex-shrink-0">
-                <input
-                  type="text"
-                  placeholder="🔍 Mahsulot qidirish..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full px-4 py-2.5 border rounded-lg mb-3 dark:bg-gray-700 dark:border-gray-600 text-sm"
-                />
-                <form onSubmit={handleBarcode} className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="📦 Barcode..."
-                    value={barcodeInput}
-                    onChange={(e) => setBarcodeInput(e.target.value)}
-                    className="flex-1 px-4 py-2.5 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
-                  />
-                  <button type="submit" className="px-6 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium transition-all">
-                    Qo'shish
-                  </button>
-                </form>
-              </div>
-
-              {/* Products Grid - Scrollable */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 flex-1 overflow-hidden flex flex-col">
-                <h3 className="font-semibold mb-3 text-sm">Mahsulotlar</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 overflow-y-auto flex-1">
-                  {products.map(product => (
-                    <motion.div
-                      key={product.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => addToCart(product)}
-                      className="p-3 border rounded-lg cursor-pointer hover:border-blue-500 hover:shadow-md transition-all dark:border-gray-700"
-                    >
-                      {product.image && (
-                        <img src={product.image} alt={product.name} className="w-full h-20 object-cover rounded mb-2" />
-                      )}
-                      <h4 className="font-medium text-xs truncate">{product.name}</h4>
-                      <p className="text-blue-600 font-bold text-sm mt-1">
-                        {product.price.toLocaleString()} so'm
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {product.stock_quantity} ta
-                      </p>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
+               </div>
             </div>
 
-            {/* Cart Section - Scrollable */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 flex flex-col overflow-hidden">
-              <h3 className="font-semibold text-base mb-4 flex-shrink-0">🛒 Savat</h3>
-              
-              <div className="space-y-2 flex-1 overflow-y-auto mb-4">
-                <AnimatePresence>
-                  {cart.map(item => (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      className="p-3 border rounded dark:border-gray-700"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-medium text-xs flex-1 truncate mr-2">{item.name}</h4>
-                        <button
-                          onClick={() => removeFromCart(item.id)}
-                          className="text-red-500 hover:text-red-700 flex-shrink-0"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => updateQuantity(item.id, -1)}
-                            className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 text-sm font-bold"
-                          >
-                            -
-                          </button>
-                          <span className="font-semibold w-6 text-center text-sm">{item.quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(item.id, 1)}
-                            className="w-7 h-7 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 text-sm font-bold"
-                          >
-                            +
-                          </button>
-                        </div>
-                        <span className="font-bold text-blue-600 text-sm">
-                          {(item.price * item.quantity).toLocaleString()}
-                        </span>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+            <nav className="hidden xl:flex items-center gap-4 p-2 bg-slate-50 rounded-[28px] border border-slate-100">
+               {[
+                 { id: 'pos', label: 'Sotuv', icon: ShoppingCart },
+                 { id: 'transactions', label: 'Tarix', icon: History },
+                 { id: 'refunds', label: 'Qaytarish', icon: RotateCcw }
+               ].map(tab => (
+                 <button 
+                   key={tab.id}
+                   onClick={() => setActiveTab(tab.id as any)} 
+                   className={`px-8 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all duration-500 flex items-center gap-2.5 ${activeTab === tab.id ? 'bg-white text-slate-950 border border-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+                 >
+                    <tab.icon size={12} strokeWidth={3} /> {tab.label}
+                 </button>
+               ))}
+            </nav>
+         </div>
+
+         <div className="flex items-center gap-8">
+            {activeRegister?.is_active ? (
+              <div className="flex items-center gap-4 px-8 py-4 bg-emerald-50 border-2 border-emerald-100 rounded-[24px]">
+                 <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(16,185,129,1)]" />
+                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600">Sessiya Faol</span>
+                 <button onClick={handleCloseRegister} className="ml-4 p-2 hover:bg-emerald-100 rounded-xl transition-all text-emerald-600"><Lock size={18} /></button>
               </div>
-
-              {cart.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <p className="text-center text-gray-500 text-sm">Savat bo'sh</p>
-                </div>
-              ) : (
-                <div className="flex-shrink-0 border-t pt-4 space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600 dark:text-gray-400">Oraliq jami:</span>
-                    <span className="font-medium">{calculateSubtotal().toLocaleString()} so'm</span>
-                  </div>
-                  <div className="flex justify-between text-lg font-bold">
-                    <span>Jami:</span>
-                    <span className="text-blue-600">
-                      {calculateTotal().toLocaleString()} so'm
-                    </span>
-                  </div>
-
-                  <button
-                    onClick={() => setShowPayment(true)}
-                    className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold text-base transition-all"
-                  >
-                    💳 To'lov qilish
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : (
-        /* Transactions Tab */
-        <div className="max-w-7xl mx-auto px-4 pb-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
-            <div className="p-4">
-              <h3 className="font-semibold text-lg mb-4">Oxirgi tranzaksiyalar</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="border-b dark:border-gray-700">
-                    <tr>
-                      <th className="text-left py-3 px-4">Tranzaksiya #</th>
-                      <th className="text-left py-3 px-4">Sana</th>
-                      <th className="text-left py-3 px-4">Mijoz</th>
-                      <th className="text-left py-3 px-4">To'lov</th>
-                      <th className="text-right py-3 px-4">Summa</th>
-                      <th className="text-center py-3 px-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentTransactions.map(tx => (
-                      <tr key={tx.id} className="border-b dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700">
-                        <td className="py-3 px-4 font-mono text-sm">{tx.transaction_number}</td>
-                        <td className="py-3 px-4 text-sm">
-                          {new Date(tx.created_at).toLocaleString('uz-UZ')}
-                        </td>
-                        <td className="py-3 px-4 text-sm">{tx.customer_name || '-'}</td>
-                        <td className="py-3 px-4 text-sm capitalize">{tx.payment_method}</td>
-                        <td className="py-3 px-4 text-right font-bold text-blue-600">
-                          {tx.total.toLocaleString()} so'm
-                        </td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                            tx.status === 'completed' ? 'bg-green-100 text-green-800' :
-                            tx.status === 'refunded' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {tx.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Payment Modal */}
-      {showPayment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6"
-          >
-            <h3 className="text-xl font-bold mb-4">💳 To'lov</h3>
+            ) : (
+              <button 
+                onClick={() => setShowSessionModal(true)}
+                className="h-16 px-10 bg-slate-950 text-white rounded-[24px] font-black text-[10px] uppercase tracking-[0.3em] shadow-2xl shadow-slate-950/20 hover:scale-105 transition-all flex items-center gap-4"
+              >
+                 <Unlock size={18} /> Sessiya Ochish
+              </button>
+            )}
             
-            <div className="space-y-4">
-              {/* Payment Method */}
-              <div>
-                <label className="block text-sm font-medium mb-2">To'lov turi</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['cash', 'card', 'qr', 'mixed'] as const).map(method => (
-                    <button
-                      key={method}
-                      onClick={() => setPaymentMethod(method)}
-                      className={`p-3 rounded border ${
-                        paymentMethod === method
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900'
-                          : 'border-gray-300 dark:border-gray-600'
-                      }`}
+            <div className="flex items-center gap-4">
+               <button className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-950 transition-all">
+                  <Database size={24} />
+               </button>
+               <button className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-950 transition-all">
+                  <Settings size={24} />
+               </button>
+            </div>
+         </div>
+      </header>
+
+      <main className="flex-1 flex overflow-hidden">
+         {activeTab === 'pos' && (
+           <div className="flex-1 flex overflow-hidden w-full">
+              <section className="flex-1 flex flex-col p-12 gap-12 overflow-hidden bg-white">
+                 <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+                    <div className="xl:col-span-8 relative group">
+                       <input 
+                          value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full pl-8 pr-8 h-18 bg-slate-50 border border-slate-100 rounded-2xl text-lg font-black text-slate-950 placeholder:text-slate-200 focus:border-slate-950/10 focus:bg-white transition-all outline-none shadow-sm uppercase tracking-tight"
+                          placeholder="Mahsulot Qidirish..."
+                       />
+                    </div>
+                    <form onSubmit={handleBarcode} className="xl:col-span-4 relative group">
+                       <input 
+                          value={barcodeInput} onChange={(e) => setBarcodeInput(e.target.value)}
+                          className="w-full pl-8 pr-8 h-18 bg-slate-50 border border-slate-100 rounded-2xl text-lg font-black text-slate-950 placeholder:text-slate-200 focus:border-slate-950/10 focus:bg-white transition-all outline-none shadow-sm uppercase tracking-tight"
+                          placeholder="Shtrix-kod..."
+                       />
+                    </form>
+                 </div>
+
+                 <div className="flex-1 border-2 border-slate-50 rounded-[64px] p-12 overflow-hidden flex flex-col relative">
+                    <div className="flex items-center justify-between mb-12">
+                       <div className="flex items-center gap-8">
+                          <div className="w-14 h-14 rounded-2xl bg-slate-950 flex items-center justify-center text-white">
+                             <LayoutGrid size={24} />
+                          </div>
+                          <div>
+                             <h3 className="text-xl font-black text-slate-950 tracking-tight uppercase font-heading leading-none">Mahsulotlar</h3>
+                             <p className="text-[8px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2">{products.length} Tovar topildi</p>
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto pr-4 no-scrollbar">
+                       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-10 pb-10">
+                          {products.map(product => (
+                            <motion.div 
+                              key={product.id} onClick={() => addToCart(product)}
+                              whileHover={{ y: -8 }} whileTap={{ scale: 0.98 }}
+                              className="group bg-white border-2 border-slate-50 rounded-[48px] p-8 cursor-pointer hover:border-slate-950 transition-all duration-700"
+                            >
+                               <div className="aspect-square bg-slate-50 rounded-[32px] mb-8 flex items-center justify-center overflow-hidden border border-slate-50 p-4">
+                                  {product.image ? <img src={product.image} className="w-full h-full object-cover rounded-[24px]" /> : <Box size={48} className="text-slate-200" />}
+                               </div>
+                               <div className="space-y-3">
+                                  <h4 className="text-[11px] font-black text-slate-950 uppercase tracking-tight leading-tight line-clamp-2 h-8">{product.name}</h4>
+                                  <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                                     <span className="text-base font-black text-slate-950 tabular-nums">{formatPrice(product.price)}</span>
+                                     <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">{product.stock_quantity}</span>
+                                  </div>
+                               </div>
+                            </motion.div>
+                          ))}
+                       </div>
+                    </div>
+                 </div>
+              </section>
+
+              <aside className="w-[600px] bg-white border-l-2 border-slate-50 flex flex-col relative">
+                 <div className="p-12 border-b-2 border-slate-50">
+                    <div className="flex items-center justify-between mb-12">
+                       <div className="flex items-center gap-6">
+                          <div className="w-14 h-14 rounded-2xl bg-slate-950 flex items-center justify-center shadow-lg">
+                             <ShoppingCart size={24} className="text-white" />
+                          </div>
+                          <div>
+                             <h3 className="text-2xl font-black text-slate-950 tracking-tight uppercase font-heading leading-none">Savat</h3>
+                             <p className="text-[8px] text-slate-400 font-black uppercase tracking-[0.4em] mt-2">{cart.length} Pozitsiya</p>
+                          </div>
+                       </div>
+                       {cart.length > 0 && (
+                         <button onClick={() => setCart([])} className="w-14 h-14 bg-rose-50 text-rose-500 rounded-2xl hover:bg-rose-500 hover:text-white transition-all border border-rose-100 flex items-center justify-center">
+                            <Trash2 size={24} />
+                         </button>
+                       )}
+                    </div>
+                 </div>
+
+                 <div className="flex-1 overflow-y-auto p-10 space-y-6 no-scrollbar bg-white">
+                    {cart.map(item => (
+                      <motion.div key={item.id} layout initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="bg-slate-50/50 border-2 border-slate-50 rounded-[40px] p-6 hover:border-slate-200 transition-all relative">
+                         <div className="flex gap-6">
+                            <div className="w-20 h-20 rounded-[24px] bg-white shrink-0 overflow-hidden border border-slate-100 p-2">
+                               {item.image ? <img src={item.image} className="w-full h-full object-cover rounded-[18px]" /> : <Box size={28} className="text-slate-200" />}
+                            </div>
+                            <div className="flex-1 min-w-0 flex flex-col justify-between">
+                               <div className="flex justify-between items-start gap-4">
+                                  <h4 className="text-sm font-black text-slate-950 uppercase tracking-tight truncate flex-1">{item.name}</h4>
+                                  <button onClick={() => updateQuantity(item.id, -item.quantity)} className="text-slate-300 hover:text-rose-500"><X size={18} /></button>
+                                </div>
+                                <div className="flex items-center justify-between mt-4">
+                                   <div className="flex items-center gap-4 bg-white p-1.5 rounded-xl border border-slate-100">
+                                      <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 rounded-lg hover:bg-slate-50 flex items-center justify-center text-slate-950 transition-all"><Minus size={14} /></button>
+                                      <span className="text-sm font-black text-slate-950 tabular-nums min-w-[20px] text-center tracking-tighter">{item.quantity}</span>
+                                      <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 rounded-lg hover:bg-slate-50 flex items-center justify-center text-slate-950 transition-all"><Plus size={14} /></button>
+                                   </div>
+                                   <div className="text-right">
+                                      <span className="text-lg font-black text-slate-950 tabular-nums tracking-tighter">{formatPrice(item.price * item.quantity)}</span>
+                                   </div>
+                                </div>
+                            </div>
+                         </div>
+                      </motion.div>
+                    ))}
+                    {cart.length === 0 && (
+                       <div className="h-full flex flex-col items-center justify-center py-20 opacity-10">
+                          <ShoppingCart size={80} strokeWidth={1} />
+                          <p className="mt-6 font-black uppercase tracking-[0.4em] text-[10px]">Savat Bo'sh</p>
+                       </div>
+                    )}
+                 </div>
+
+                 <div className="p-10 bg-slate-50 border-t-2 border-slate-100 space-y-8">
+                    <div className="space-y-3">
+                       <div className="flex justify-between items-center px-4">
+                          <span className="text-slate-400 font-black uppercase tracking-widest text-[9px]">Jami Summa</span>
+                          <span className="text-lg font-black text-slate-950 tabular-nums tracking-widest">{formatPrice(calculateTotal())}</span>
+                       </div>
+                       <div className="flex justify-between items-center px-4">
+                          <span className="text-slate-400 font-black uppercase tracking-widest text-[9px]">Chegirma</span>
+                          <span className="text-lg font-black text-slate-950 tabular-nums tracking-widest">0.00</span>
+                       </div>
+                       <div className="h-px bg-slate-200 w-full my-4" />
+                       <div className="flex justify-between items-end px-4">
+                          <div>
+                             <p className="text-slate-400 font-black uppercase tracking-[0.3em] text-[8px] mb-1">Yakuniy To'lov</p>
+                             <h4 className="text-3xl font-black text-slate-950 tracking-tight tabular-nums">{formatPrice(calculateTotal())}</h4>
+                          </div>
+                       </div>
+                    </div>
+
+                    <button 
+                      onClick={handleCheckout}
+                      disabled={cart.length === 0 || !activeRegister?.is_active || loading}
+                      className="w-full h-24 bg-slate-950 text-white rounded-[32px] font-black uppercase tracking-[0.5em] text-sm shadow-2xl shadow-slate-950/20 hover:scale-[1.02] active:scale-95 disabled:opacity-20 transition-all flex items-center justify-center gap-6 group"
                     >
-                      {method === 'cash' && '💵 Naqd'}
-                      {method === 'card' && '💳 Karta'}
-                      {method === 'qr' && '📱 QR'}
-                      {method === 'mixed' && '🔀 Aralash'}
+                       {loading ? <Loader2 size={28} className="animate-spin" /> : (
+                         <>
+                            <CreditCard size={28} />
+                            To'lovni Yakunlash
+                            <ArrowRight size={28} className="group-hover:translate-x-3 transition-transform" />
+                         </>
+                       )}
                     </button>
-                  ))}
-                </div>
-              </div>
+                 </div>
+              </aside>
+           </div>
+         )}
 
-              {/* Amount Paid */}
-              <div>
-                <label className="block text-sm font-medium mb-2">To'langan summa</label>
-                <input
-                  type="number"
-                  value={amountPaid}
-                  onChange={(e) => setAmountPaid(e.target.value)}
-                  placeholder="0"
-                  className="w-full px-4 py-3 border rounded-lg text-2xl font-bold dark:bg-gray-700 dark:border-gray-600"
-                  autoFocus
-                />
-              </div>
-
-              {/* Customer Info */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Mijoz ismi (ixtiyoriy)</label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-2">Mijoz telefoni (ixtiyoriy)</label>
-                <input
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                />
-              </div>
-
-              {/* Summary */}
-              <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                <div className="flex justify-between mb-2">
-                  <span>Jami:</span>
-                  <span className="font-bold">{calculateTotal().toLocaleString()} so'm</span>
-                </div>
-                <div className="flex justify-between mb-2">
-                  <span>To'landi:</span>
-                  <span className="font-bold">{(parseFloat(amountPaid) || 0).toLocaleString()} so'm</span>
-                </div>
-                {changeAmount() > 0 && (
-                  <div className="flex justify-between text-green-600 font-bold border-t pt-2 mt-2">
-                    <span>Qaytim:</span>
-                    <span>{changeAmount().toLocaleString()} so'm</span>
+         {activeTab === 'transactions' && (
+           <div className="flex-1 p-12 overflow-y-auto bg-slate-50/30">
+              <div className="bg-white border-2 border-slate-100 rounded-[56px] overflow-hidden shadow-sm">
+                  <div className="p-12 border-b-2 border-slate-100 flex items-center justify-between">
+                     <h3 className="text-3xl font-black text-slate-950 uppercase tracking-tighter">Tranzaksiyalar Tarixi</h3>
+                     <div className="flex gap-4">
+                        <button className="h-12 px-6 bg-slate-50 text-slate-950 rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-3 border border-slate-100"><ArrowDownToLine size={16} /> Eksport</button>
+                     </div>
                   </div>
-                )}
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-slate-50/50">
+                        <th className="py-8 px-12 text-[10px] font-black uppercase tracking-widest text-slate-400 text-left">ID / SANA</th>
+                        <th className="text-left py-8 px-12 text-[10px] font-black uppercase tracking-widest text-slate-400">MIJOZ</th>
+                        <th className="text-center py-8 px-12 text-[10px] font-black uppercase tracking-widest text-slate-400">TO'LOV</th>
+                        <th className="text-right py-8 px-12 text-[10px] font-black uppercase tracking-widest text-slate-400">SUMMA</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {transactions.map(t => (
+                        <tr key={t.id} className="hover:bg-slate-50 transition-all cursor-pointer">
+                           <td className="py-10 px-12">
+                              <div className="font-black text-slate-950 text-sm tracking-widest uppercase mb-1">{t.transaction_number}</div>
+                              <div className="text-[10px] text-slate-400 font-bold uppercase">{new Date(t.created_at).toLocaleString()}</div>
+                           </td>
+                           <td className="py-10 px-12">
+                              <div className="font-black text-slate-600 text-xs uppercase tracking-tight">{t.customer_name || 'Guest Customer'}</div>
+                           </td>
+                           <td className="py-10 px-12 text-center">
+                              <span className="px-5 py-2 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-600 border border-slate-100">{t.payment_method}</span>
+                           </td>
+                           <td className="py-10 px-12 text-right">
+                              <div className="font-black text-slate-950 tabular-nums text-xl tracking-tighter">{formatPrice(t.total)}</div>
+                           </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
               </div>
-            </div>
+           </div>
+         )}
+      </main>
 
-            <div className="flex gap-2 mt-6">
-              <button
-                onClick={() => setShowPayment(false)}
-                className="flex-1 py-3 border rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                Bekor qilish
-              </button>
-              <button
-                onClick={processPayment}
-                disabled={loading || !amountPaid || parseFloat(amountPaid) < calculateTotal()}
-                className="flex-1 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-              >
-                {loading ? 'Amalda...' : 'To\'lovni tasdiqlash'}
-              </button>
+      <Modal isOpen={showSessionModal} onClose={() => setShowSessionModal(false)} title="Yangi Sessiya Ochish">
+         <div className="p-12 space-y-10 bg-white">
+            <div className="w-24 h-24 rounded-[32px] bg-slate-50 border-2 border-slate-100 flex items-center justify-center mx-auto mb-6 shadow-sm">
+               <Calculator size={40} className="text-slate-950" />
             </div>
-          </motion.div>
-        </div>
-      )}
+            <div className="space-y-4">
+               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] px-2">Boshlang'ich Naqd Pul (UZS)</label>
+               <input 
+                 type="number" value={startingCash} onChange={(e) => setStartingCash(e.target.value)}
+                 className="w-full h-24 bg-slate-50 border-2 border-slate-100 rounded-[32px] px-10 font-black text-3xl text-slate-950 outline-none focus:border-slate-950 transition-all text-center tabular-nums" 
+               />
+            </div>
+            <div className="flex gap-6">
+               <button onClick={() => setShowSessionModal(false)} className="flex-1 h-20 bg-slate-50 text-slate-950 rounded-[28px] font-black uppercase tracking-widest text-[10px] border border-slate-100">Bekor Qilish</button>
+               <button onClick={handleOpenRegister} disabled={loading} className="flex-1 h-20 bg-slate-950 text-white rounded-[28px] font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-slate-950/20 hover:scale-105 active:scale-95 transition-all">
+                  {loading ? <Loader2 size={24} className="animate-spin mx-auto" /> : 'Sessiyani Boshlash'}
+               </button>
+            </div>
+         </div>
+      </Modal>
     </div>
   );
 };

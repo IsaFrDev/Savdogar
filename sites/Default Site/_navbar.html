@@ -1,0 +1,180 @@
+<!--
+  _navbar.html  — Barcha sahifalarda bir xil navbar va modal-lar.
+  Bu faylni server-side include yoki JS fetch bilan yuklang.
+  Yoki to'g'ridan to'g'ri har bir sahifaga qo'ying.
+-->
+
+<!-- ═══════════════════════════════════════
+     NAVBAR
+     ═══════════════════════════════════════ -->
+<header class="navbar">
+
+  <!-- Logo / Home -->
+  <a href="index.html" class="nav-logo-btn" aria-label="Bosh sahifa">🏠</a>
+
+  <!-- Menu -->
+  <button class="nav-menu-btn" aria-label="Menyu">☰</button>
+
+  <!-- Search -->
+  <div class="nav-search">
+    <span class="nav-search-icon">🔍</span>
+    <input
+      type="search"
+      placeholder="Mahsulotlar va toifalarni qidirish"
+      id="search-input"
+      autocomplete="off"
+    />
+  </div>
+
+  <!-- Right actions -->
+  <div class="nav-actions">
+
+    <!-- Savat -->
+    <button class="nav-action-btn" data-cart-btn aria-label="Savat">
+      🛒
+      <span class="nav-badge" data-cart-badge style="display:none">0</span>
+      <span class="nav-action-label">Savat</span>
+    </button>
+
+    <!-- Sevimlilar -->
+    <a href="favourites.html" class="nav-action-btn" aria-label="Sevimlilar">
+      🤍
+      <span class="nav-badge" data-fav-badge style="display:none">0</span>
+      <span class="nav-action-label">Sevimlilar</span>
+    </a>
+
+    <!-- Profil -->
+    <button class="nav-action-btn" data-profile-btn aria-label="Profil">
+      <span data-profile-icon>👤</span>
+      <span class="nav-action-label">Profil</span>
+    </button>
+
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════
+     CART SIDE PANEL
+     ═══════════════════════════════════════ -->
+<div class="panel-overlay" id="panel-overlay"></div>
+
+<aside class="cart-panel" id="cart-panel" aria-label="Savat">
+  <div class="cart-panel-header">
+    <span class="cart-panel-title">🛒 Mening Savatim</span>
+    <button class="cart-close-btn" id="cart-close-btn" aria-label="Yopish">✕</button>
+  </div>
+  <div class="cart-body" id="cart-body"></div>
+  <div class="cart-footer">
+    <div class="cart-total">
+      <span class="cart-total-label">Jami:</span>
+      <span class="cart-total-price" id="cart-total-price">0 UZS</span>
+    </div>
+    <button class="btn-primary">Buyurtma Berish →</button>
+  </div>
+</aside>
+
+<!-- ═══════════════════════════════════════
+     LOGIN MODAL
+     ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="login-modal" role="dialog" aria-modal="true" aria-label="Kirish">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+
+    <!-- Step 1: Phone -->
+    <div id="login-step-phone">
+      <p class="login-title">Kirish</p>
+      <p class="login-sub">Telefon raqamingizni kiriting</p>
+
+      <div class="phone-input-wrap">
+        <span class="phone-prefix">🇺🇿 +998</span>
+        <input
+          type="tel"
+          id="login-phone-input"
+          placeholder="XX XXX XX XX"
+          maxlength="12"
+        />
+      </div>
+
+      <button class="btn-primary" id="login-phone-btn" disabled>
+        Kodni Olish
+      </button>
+      <p class="otp-hint">SMS orqali tasdiqlash kodi yuboriladi</p>
+    </div>
+
+    <!-- Step 2: OTP -->
+    <div id="login-step-otp" style="display:none">
+      <p class="login-title">Kodni Kiriting</p>
+      <p class="login-sub">
+        <span id="otp-phone-hint"></span> raqamiga yuborildi
+      </p>
+
+      <div class="otp-wrap">
+        <input class="otp-input" type="tel" maxlength="1" inputmode="numeric" />
+        <input class="otp-input" type="tel" maxlength="1" inputmode="numeric" />
+        <input class="otp-input" type="tel" maxlength="1" inputmode="numeric" />
+        <input class="otp-input" type="tel" maxlength="1" inputmode="numeric" />
+      </div>
+
+      <button class="btn-primary" id="login-otp-btn" disabled>
+        Tasdiqlash
+      </button>
+      <p class="otp-hint" style="margin-top:14px">
+        Demo uchun istalgan 4 ta raqam kiriting
+      </p>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════
+     PROFILE MODAL
+     ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="profile-modal" role="dialog" aria-modal="true" aria-label="Profil">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+
+    <!-- Header -->
+    <div class="profile-sheet-header">
+      <div class="profile-avatar">👤</div>
+      <div>
+        <div class="profile-phone" id="profile-phone-display">+998 -- --- -- --</div>
+        <div class="profile-sub">Mijoz</div>
+      </div>
+    </div>
+
+    <!-- Menu list -->
+    <ul class="profile-menu-list">
+      <li class="profile-menu-item" onclick="location.href='profile.html'">
+        <div class="profile-menu-icon">👤</div>
+        <span class="profile-menu-text">Profilni tahrirlash</span>
+        <span class="profile-menu-arrow">›</span>
+      </li>
+      <li class="profile-menu-item" onclick="location.href='orders.html'">
+        <div class="profile-menu-icon">📦</div>
+        <span class="profile-menu-text">Buyurtmalarim</span>
+        <span class="profile-menu-arrow">›</span>
+      </li>
+      <li class="profile-menu-item" onclick="location.href='reviews.html'">
+        <div class="profile-menu-icon">💬</div>
+        <span class="profile-menu-text">Sharhlarim</span>
+        <span class="profile-menu-arrow">›</span>
+      </li>
+      <li class="profile-menu-item">
+        <div class="profile-menu-icon">⚙️</div>
+        <span class="profile-menu-text">Sozlamalar</span>
+        <span class="profile-menu-badge">Tez orada</span>
+      </li>
+      <li class="profile-menu-item" onclick="location.href='about.html'">
+        <div class="profile-menu-icon">ℹ️</div>
+        <span class="profile-menu-text">Biz haqimizda</span>
+        <span class="profile-menu-arrow">›</span>
+      </li>
+      <li class="profile-menu-item" onclick="location.href='contact.html'">
+        <div class="profile-menu-icon">✉️</div>
+        <span class="profile-menu-text">Biz bilan bog'lanish</span>
+        <span class="profile-menu-arrow">›</span>
+      </li>
+    </ul>
+
+    <button class="btn-logout" id="logout-btn">Chiqish</button>
+  </div>
+</div>

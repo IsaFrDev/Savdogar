@@ -16,7 +16,7 @@ import {
   CreditCard as CardIcon
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { storeApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
@@ -45,7 +45,7 @@ export function PaymentSettings() {
     setPaymentMethods(newMethods);
     if (!currentStore?.id) return;
     try {
-      await storeApi.update(currentStore.id, { payment_methods: newMethods });
+      await supabaseApi.stores.update(currentStore.id, { payment_methods: newMethods });
       loadStores?.();
     } catch (error) {
       console.error('Failed to update payment methods:', error);

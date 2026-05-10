@@ -18,14 +18,17 @@ import {
   Link2,
   ListOrdered,
   Eye,
-  EyeOff
+  EyeOff,
+  Sparkles,
+  Zap,
+  LayoutGrid,
+  MousePointer2,
+  CloudUpload,
+  ArrowRight
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { bannerApi, productApi, categoryApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import { GlassCard } from '../../components/GlassCard';
-import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
-import { getMediaUrl } from '../../utils/media';
 
 interface Banner {
   id: number;
@@ -47,7 +50,6 @@ export function Banners() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Form state
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
   const [bannerType, setBannerType] = useState<'main' | 'category'>('main');
   const [title, setTitle] = useState('');
@@ -60,7 +62,6 @@ export function Banners() {
   const [order, setOrder] = useState(0);
   const [isActive, setIsActive] = useState(true);
 
-  // Lists for link selection
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
 
@@ -68,16 +69,16 @@ export function Banners() {
     if (!currentStore?.id) return;
     setLoading(true);
     try {
-      const [bannersRes, productsRes, categoriesRes] = await Promise.all([
-        bannerApi.list(currentStore.id),
-        productApi.list({ store: currentStore.id, active: true }),
-        categoryApi.list(currentStore.id)
+      const [bannersData, productsData, categoriesData] = await Promise.all([
+        supabaseApi.banners.list(currentStore.id),
+        supabaseApi.products.list(currentStore.id),
+        supabaseApi.categories.list(currentStore.id)
       ]);
-      setBanners(bannersRes.data);
-      setProducts(productsRes.data.results || productsRes.data || []);
-      setCategories(categoriesRes.data.results || categoriesRes.data || []);
+      setBanners(bannersData);
+      setProducts(productsData);
+      setCategories(categoriesData);
     } catch (error) {
-      console.error('Failed to load banners data:', error);
+      console.error('Failed to load banners data from Supabase:', error);
     }
     setLoading(false);
   };
@@ -95,8 +96,8 @@ export function Banners() {
       setLinkValue(banner.link_value);
       setOrder(banner.order);
       setIsActive(banner.is_active);
-      setMobilePreview(banner.mobile_image ? getMediaUrl(banner.mobile_image) : null);
-      setDesktopPreview(banner.desktop_image ? getMediaUrl(banner.desktop_image) : null);
+      setMobilePreview(banner.mobile_image || null);
+      setDesktopPreview(banner.desktop_image || null);
     } else {
       setEditingBanner(null);
       setBannerType('main');
@@ -116,10 +117,6 @@ export function Banners() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'mobile' | 'desktop') => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        alert(language === 'uz' ? 'Fayl hajmi 10MB dan oshmasligi kerak' : 'File size should not exceed 10MB');
-        return;
-      }
       if (type === 'mobile') {
         setMobileFile(file);
         setMobilePreview(URL.createObjectURL(file));
@@ -134,35 +131,46 @@ export function Banners() {
     if (!currentStore?.id) return;
     setIsSaving(true);
     try {
-      const formData = new FormData();
-      formData.append('banner_type', bannerType);
-      formData.append('title', title);
-      formData.append('link_type', linkType);
-      formData.append('link_value', linkValue);
-      formData.append('order', order.toString());
-      formData.append('is_active', isActive.toString());
-      
-      if (mobileFile) formData.append('mobile_image', mobileFile);
-      if (desktopFile) formData.append('desktop_image', desktopFile);
+      let mobile_image = mobilePreview;
+      let desktop_image = desktopPreview;
+
+      if (mobileFile) {
+        const path = `${currentStore.id}/mobile_${Date.now()}`;
+        mobile_image = await supabaseApi.storage.upload('banners', path, mobileFile);
+      }
+      if (desktopFile) {
+        const path = `${currentStore.id}/desktop_${Date.now()}`;
+        desktop_image = await supabaseApi.storage.upload('banners', path, desktopFile);
+      }
+
+      const bannerData = {
+        banner_type: bannerType,
+        title,
+        link_type: linkType,
+        link_value: linkValue,
+        order: parseInt(order.toString()),
+        is_active: isActive,
+        mobile_image,
+        desktop_image
+      };
 
       if (editingBanner) {
-        await bannerApi.update(currentStore.id, editingBanner.id, formData);
+        await supabaseApi.banners.update(currentStore.id, editingBanner.id, bannerData);
       } else {
-        await bannerApi.create(currentStore.id, formData);
+        await supabaseApi.banners.create(currentStore.id, bannerData);
       }
-      
       setIsModalOpen(false);
       loadData();
     } catch (error) {
-      console.error('Failed to save banner:', error);
+      console.error('Failed to save banner to Supabase:', error);
     }
     setIsSaving(false);
   };
 
   const handleDelete = async (id: number) => {
-    if (!currentStore?.id || !confirm(language === 'uz' ? "O'chirilsinmi?" : "Delete banner?")) return;
+    if (!currentStore?.id || !confirm('O\'chirilsinmi?')) return;
     try {
-      await bannerApi.delete(currentStore.id, id);
+      await supabaseApi.banners.delete(currentStore.id, id);
       loadData();
     } catch (error) {
       console.error('Failed to delete banner:', error);
@@ -172,379 +180,281 @@ export function Banners() {
   const toggleStatus = async (banner: Banner) => {
     if (!currentStore?.id) return;
     try {
-      await bannerApi.update(currentStore.id, banner.id, { is_active: !banner.is_active });
+      await supabaseApi.banners.update(currentStore.id, banner.id, { is_active: !banner.is_active });
       loadData();
     } catch (error) {
       console.error('Failed to toggle status:', error);
     }
   };
 
-  if (loading) {
+  if (loading && banners.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-        <p className="text-slate-400 font-bold uppercase tracking-widest">{t('loading')}</p>
+      <div className="flex flex-col items-center justify-center py-24">
+        <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-6" />
+        <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-xs">{t('loading')}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-black text-[var(--text-main)] tracking-tight uppercase">
-            {language === 'uz' ? 'Bannerlar' : 'Banners'}
-          </h1>
-          <p className="text-[var(--text-dim)] mt-1 uppercase tracking-[0.2em] text-[10px] font-bold">
-            {language === 'uz' ? "Do'koningiz uchun reklama bannerlarini boshqaring" : "Manage promotional banners for your store"}
-          </p>
+    <div className="space-y-12 pb-20">
+      {/* Header Section */}
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-10">
+        <div className="flex flex-col gap-4">
+           <div className="flex items-center gap-3">
+             <div className="w-10 h-1 bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(79,70,229,0.5)]" />
+             <span className="text-xs font-black text-indigo-400 uppercase tracking-[0.4em]">Visual Merchandising</span>
+          </div>
+          <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase font-heading">Bannerlar</h1>
+          <p className="text-slate-400 uppercase tracking-[0.2em] text-[10px] font-black">Do'koningiz interfeysini vizual boyiting</p>
         </div>
-        <Button onClick={() => handleOpenModal()} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-2xl shadow-indigo-500/20">
-          <Plus className="w-5 h-5" />
-          {language === 'uz' ? "Banner qo'shish" : 'Add Banner'}
-        </Button>
+        
+        <button 
+          onClick={() => handleOpenModal()} 
+          className="h-16 px-10 bg-indigo-600 text-white rounded-[24px] font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 hover:scale-105 transition-all flex items-center gap-4"
+        >
+          <Plus size={20} />
+          Yangi Banner
+        </button>
       </div>
 
-      {banners.length === 0 ? (
-        <GlassCard className="p-20 text-center border-dashed border-2 flex flex-col items-center">
-          <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center mb-6">
-            <ImageIcon className="w-10 h-10 text-slate-400" />
+      {/* Banners Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+        {banners.map((banner, index) => (
+          <motion.div
+            key={banner.id}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+          >
+            <GlassCard className="p-0 border-slate-200 bg-white hover:border-indigo-500/30 transition-all duration-700 shadow-xl relative rounded-[48px] overflow-hidden border">
+              {/* Banner Preview Area */}
+              <div className="aspect-[16/7] relative overflow-hidden group/img">
+                {banner.desktop_image ? (
+                  <img src={banner.desktop_image} alt={banner.title} className="w-full h-full object-cover transition-transform duration-1000 group-hover/img:scale-110" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-800 bg-slate-950">
+                    <ImageIcon size={64} className="opacity-10" />
+                  </div>
+                )}
+                
+                {/* Status Overlays */}
+                <div className="absolute top-8 left-8 flex flex-col gap-3">
+                   <span className="px-4 py-1.5 rounded-xl bg-slate-950/80 backdrop-blur-xl border border-white/10 text-white text-[9px] font-black uppercase tracking-widest shadow-2xl">
+                     {banner.banner_type === 'main' ? 'Asosiy Sahifa' : 'Kategoriya'}
+                   </span>
+                   {!banner.is_active && (
+                     <span className="px-4 py-1.5 rounded-xl bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest border border-rose-400/20 shadow-2xl">
+                        Faollashtirilmagan
+                     </span>
+                   )}
+                </div>
+
+                {/* Hover Actions */}
+                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover/img:opacity-100 transition-opacity duration-500 backdrop-blur-[2px] flex items-center justify-center gap-6">
+                   <button onClick={() => handleOpenModal(banner)} className="w-14 h-14 bg-white text-slate-900 rounded-[20px] flex items-center justify-center hover:scale-110 transition-transform shadow-2xl"><Type size={24} /></button>
+                   <button onClick={() => toggleStatus(banner)} className={`w-14 h-14 rounded-[20px] flex items-center justify-center hover:scale-110 transition-transform shadow-2xl ${banner.is_active ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white'}`}>
+                      {banner.is_active ? <EyeOff size={24} /> : <Eye size={24} />}
+                   </button>
+                   <button onClick={() => handleDelete(banner.id)} className="w-14 h-14 bg-rose-500 text-white rounded-[20px] flex items-center justify-center hover:scale-110 transition-transform shadow-2xl"><Trash2 size={24} /></button>
+                </div>
+              </div>
+
+              {/* Banner Info Content */}
+              <div className="p-10 flex flex-col md:flex-row md:items-center justify-between gap-8 bg-slate-50 relative">
+                <div className="absolute top-0 right-0 p-10 opacity-[0.02] pointer-events-none">
+                   <Sparkles size={80} className="text-indigo-500" />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                   <div className="flex items-center gap-3 mb-2">
+                      <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.4em]">Banner ID: #{banner.id}</p>
+                      <div className="w-1 h-1 bg-slate-700 rounded-full" />
+                      <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest tabular-nums">Order: {banner.order}</p>
+                   </div>
+                   <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase font-heading truncate group-hover:text-indigo-600 transition-colors">
+                     {banner.title || 'Untitled Banner'}
+                   </h3>
+                </div>
+                
+                <div className="flex items-center gap-6">
+                   <div className="text-right">
+                      <p className="text-[8px] font-black text-slate-700 uppercase tracking-[0.3em] mb-1">Target Link</p>
+                      <div className="flex items-center gap-2 text-indigo-500 font-black text-[10px] uppercase tracking-widest">
+                         <Link2 size={12} />
+                         {banner.link_type === 'none' ? 'Hech qayerga' : banner.link_type}
+                      </div>
+                   </div>
+                   <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-400">
+                      <ChevronRight size={24} />
+                   </div>
+                </div>
+              </div>
+            </GlassCard>
+          </motion.div>
+        ))}
+
+        {banners.length === 0 && (
+          <div className="col-span-full empty-state-card py-40 flex flex-col items-center justify-center text-slate-400">
+            <ImageIcon className="w-24 h-24 mb-10 text-slate-200" />
+            <h2 className="text-xl font-black text-slate-900 mb-2 uppercase tracking-[0.3em]">Bannerlar mavjud emas</h2>
+            <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Do'koningizni bezash uchun yangi banner qo'shing</p>
           </div>
-          <h2 className="text-xl font-black text-slate-800 mb-2 uppercase tracking-wide">
-            {language === 'uz' ? "Bannerlar mavjud emas" : "No Banners Yet"}
-          </h2>
-          <p className="text-slate-500 max-w-sm mx-auto mb-8 font-medium">
-            {language === 'uz' ? "Kolleksiyalar, aksiyalar va yangiliklarni reklama qilish uchun bannerlar qo'shing." : "Add banners to promote collections, sales, and news."}
-          </p>
-          <Button variant="outline" onClick={() => handleOpenModal()} className="rounded-xl px-8 h-12">
-            {language === 'uz' ? "Birinchi bannerni qo'shish" : 'Add your first banner'}
-          </Button>
-        </GlassCard>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
-          {banners.map((banner) => (
-            <motion.div
-              layout
-              key={banner.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="group relative"
-            >
-              <GlassCard className={`overflow-hidden border-2 transition-all duration-500 h-full flex flex-col ${banner.is_active ? 'border-transparent' : 'border-slate-200 opacity-60'}`}>
-                {/* Banner Preview */}
-                <div className="relative aspect-[16/7] bg-slate-100 overflow-hidden">
-                  {banner.desktop_image ? (
-                    <img src={getMediaUrl(banner.desktop_image) || undefined} alt={banner.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-300">
-                      <ImageIcon className="w-12 h-12" />
-                    </div>
-                  )}
-                  
-                  {/* Overlay Tags */}
-                  <div className="absolute top-4 left-4 flex gap-2">
-                    <span className="px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest border border-white/10">
-                      {banner.banner_type === 'main' ? (language === 'uz' ? 'Asosiy' : 'Main') : (language === 'uz' ? 'Kategoriya' : 'Category')}
-                    </span>
-                    {!banner.is_active && (
-                      <span className="px-3 py-1.5 rounded-full bg-rose-500 text-white text-[9px] font-black uppercase tracking-widest border border-rose-400/20 shadow-lg">
-                        {language === 'uz' ? 'Faol emas' : 'Inactive'}
-                      </span>
-                    )}
-                  </div>
+        )}
+      </div>
 
-                  {/* Actions Overlay */}
-                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-4">
-                    <button 
-                      onClick={() => handleOpenModal(banner)}
-                      className="w-12 h-12 rounded-2xl bg-white text-slate-900 flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl"
-                    >
-                      <Type className="w-5 h-5" />
-                    </button>
-                    <button 
-                      onClick={() => toggleStatus(banner)}
-                      className={`w-12 h-12 rounded-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl ${banner.is_active ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600'}`}
-                    >
-                      {banner.is_active ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(banner.id)}
-                      className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-xl"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-6 flex-1 flex flex-col">
-                  <div className="flex items-start justify-between mb-2">
-                    <h3 className="font-black text-slate-800 text-lg uppercase tracking-tighter truncate w-full pr-8">
-                      {banner.title || (language === 'uz' ? 'Sarlavhasiz banner' : 'Untitled Banner')}
-                    </h3>
-                    <span className="text-slate-400 font-black text-xs">#{banner.order}</span>
-                  </div>
-                  
-                  <div className="space-y-3 mt-auto">
-                    <div className="flex items-center gap-3 text-[10px] uppercase font-black tracking-widest text-slate-500">
-                      <Link2 className="w-3.5 h-3.5" />
-                      <span>{banner.link_type}</span>
-                      <ChevronRight className="w-3 h-3" />
-                      <span className="text-indigo-500 max-w-[150px] truncate">{banner.link_value || 'None'}</span>
-                    </div>
-                  </div>
-                </div>
-              </GlassCard>
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {/* Banner Modal */}
+      {/* Modern Banner Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto pt-20 pb-20">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/95 backdrop-blur-3xl">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="fixed inset-0 bg-slate-950/40 backdrop-blur-md"
-            />
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 40 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-3xl bg-white rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden"
+              exit={{ opacity: 0, scale: 0.9, y: 40 }}
+              className="relative w-full max-w-4xl bg-white border border-slate-200 rounded-[56px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
               {/* Modal Header */}
-              <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="px-12 py-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">
-                    {editingBanner ? (language === 'uz' ? 'Bannerni tahrirlash' : 'Edit Banner') : (language === 'uz' ? "Yangi banner qo'shish" : 'Add New Banner')}
+                  <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase font-heading">
+                    {editingBanner ? 'Bannerni Tahrirlash' : 'Yangi Banner'}
                   </h2>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black mt-1">
-                    {language === 'uz' ? 'Barcha reklamalarni shu yerda sozlang' : 'Configure all promotional settings here'}
-                  </p>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all">
-                  <X className="w-6 h-6" />
+                <button onClick={() => setIsModalOpen(false)} className="w-14 h-14 bg-slate-100 border border-slate-200 rounded-2xl text-slate-400 hover:text-slate-900 transition-all flex items-center justify-center">
+                  <X size={28} />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div className="p-10 max-h-[70vh] overflow-y-auto no-scrollbar space-y-10">
-                {/* Banner Type Selection */}
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Banner Turi</label>
-                  <div className="grid grid-cols-2 gap-4">
-                    <button 
-                      onClick={() => setBannerType('main')}
-                      className={`p-6 rounded-3xl border-2 transition-all text-left ${bannerType === 'main' ? 'border-indigo-500 bg-indigo-50/30' : 'border-slate-100 hover:border-slate-200'}`}
-                    >
-                      <h4 className={`font-black text-sm uppercase tracking-wide mb-1 ${bannerType === 'main' ? 'text-indigo-600' : 'text-slate-700'}`}>Asosiy Banner</h4>
-                      <p className="text-[10px] font-medium text-slate-500 leading-relaxed">Bosh sahifaning eng yuqori qismida ko'rinadi.</p>
-                    </button>
-                    <button 
-                      onClick={() => setBannerType('category')}
-                      className={`p-6 rounded-3xl border-2 transition-all text-left ${bannerType === 'category' ? 'border-indigo-500 bg-indigo-50/30' : 'border-slate-100 hover:border-slate-200'}`}
-                    >
-                      <h4 className={`font-black text-sm uppercase tracking-wide mb-1 ${bannerType === 'category' ? 'text-indigo-600' : 'text-slate-700'}`}>Kategoriya Banneri</h4>
-                      <p className="text-[10px] font-medium text-slate-500 leading-relaxed">Maxsus kategoriyalar uchun reklama banneri.</p>
-                    </button>
-                  </div>
+              <div className="p-12 space-y-12 overflow-y-auto custom-scrollbar">
+                {/* Banner Type Toggle */}
+                <div className="grid grid-cols-2 gap-6">
+                   <button 
+                     onClick={() => setBannerType('main')}
+                     className={`p-10 rounded-[40px] border-2 transition-all duration-500 text-left relative overflow-hidden group ${bannerType === 'main' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 bg-slate-50 hover:border-slate-200'}`}
+                   >
+                      <div className="relative z-10">
+                        <div className={`w-14 h-14 rounded-2xl mb-6 flex items-center justify-center transition-colors ${bannerType === 'main' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                          <LayoutGrid size={24} />
+                        </div>
+                        <h4 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-2">Asosiy Banner</h4>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Bosh sahifa yuqorisida</p>
+                      </div>
+                      {bannerType === 'main' && <motion.div layoutId="activeBanner" className="absolute top-6 right-6 w-3 h-3 bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(79,70,229,1)]" />}
+                   </button>
+                   <button 
+                     onClick={() => setBannerType('category')}
+                     className={`p-10 rounded-[40px] border-2 transition-all duration-500 text-left relative overflow-hidden group ${bannerType === 'category' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 bg-slate-50 hover:border-slate-200'}`}
+                   >
+                      <div className="relative z-10">
+                        <div className={`w-14 h-14 rounded-2xl mb-6 flex items-center justify-center transition-colors ${bannerType === 'category' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                          <Zap size={24} />
+                        </div>
+                        <h4 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-2">Kategoriya Banneri</h4>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Maxsus bo'limlar uchun</p>
+                      </div>
+                      {bannerType === 'category' && <motion.div layoutId="activeBanner" className="absolute top-6 right-6 w-3 h-3 bg-indigo-500 rounded-full shadow-[0_0_15px_rgba(79,70,229,1)]" />}
+                   </button>
                 </div>
 
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Banner Sarlavhasi</label>
-                  <Input 
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Banner Sarlavhasi</label>
+                  <input 
                     value={title} 
-                    onChange={setTitle} 
-                    placeholder={language === 'uz' ? 'Masalan: Yangi yil chegirmalari' : 'e.g. New Year Deals'} 
-                    className="!rounded-2xl !bg-slate-50 !border-slate-100 focus:!border-indigo-500/50 !h-14 font-bold"
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full h-20 bg-slate-50 border border-slate-100 rounded-[28px] px-8 text-xl font-black text-slate-900 placeholder:text-slate-300 outline-none focus:border-indigo-500/50 transition-all uppercase tracking-tighter"
+                    placeholder="Masalan: Yangi Kolleksiya 2024"
                   />
                 </div>
 
-                {/* Image Upload Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Desktop Banner */}
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
-                      <Monitor className="w-3.5 h-3.5" /> Desktop Banner (1600x500)
-                    </label>
-                    <div className="relative aspect-[16/5] rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center overflow-hidden group">
-                      {desktopPreview ? (
-                        <>
-                          <img src={desktopPreview} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <label className="cursor-pointer px-6 py-2 bg-white rounded-xl text-slate-900 text-[10px] font-black uppercase tracking-widest shadow-xl">
-                              O'zgartirish
-                              <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'desktop')} />
-                            </label>
-                          </div>
-                        </>
-                      ) : (
-                        <label className="cursor-pointer flex flex-col items-center gap-2 p-6">
-                          <Plus className="w-8 h-8 text-slate-300" />
-                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Yuklash</span>
-                          <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'desktop')} />
-                        </label>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Mobile Banner */}
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
-                      <Smartphone className="w-3.5 h-3.5" /> Mobile Banner (1000x400)
-                    </label>
-                    <div className="relative aspect-[10/4] rounded-3xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center overflow-hidden group">
-                      {mobilePreview ? (
-                        <>
-                          <img src={mobilePreview} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <label className="cursor-pointer px-6 py-2 bg-white rounded-xl text-slate-900 text-[10px] font-black uppercase tracking-widest shadow-xl">
-                              O'zgartirish
-                              <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'mobile')} />
-                            </label>
-                          </div>
-                        </>
-                      ) : (
-                        <label className="cursor-pointer flex flex-col items-center gap-2 p-6">
-                          <Plus className="w-8 h-8 text-slate-300" />
-                          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Yuklash</span>
-                          <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'mobile')} />
-                        </label>
-                      )}
-                    </div>
-                  </div>
+                {/* Upload Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                   <div className="space-y-4">
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1 flex items-center gap-3">
+                         <Monitor size={14} /> Desktop Image
+                      </label>
+                      <div 
+                        onClick={() => document.getElementById('desktop-upload')?.click()}
+                        className="aspect-[16/7] rounded-[32px] bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/50 transition-all overflow-hidden relative group"
+                      >
+                         {desktopPreview ? (
+                           <img src={desktopPreview} className="w-full h-full object-cover group-hover:opacity-40 transition-opacity" />
+                         ) : (
+                           <div className="flex flex-col items-center gap-4">
+                              <CloudUpload size={40} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fayl tanlang</span>
+                           </div>
+                         )}
+                         <input id="desktop-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'desktop')} />
+                      </div>
+                   </div>
+                   <div className="space-y-4">
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1 flex items-center gap-3">
+                         <Smartphone size={14} /> Mobile Image
+                      </label>
+                      <div 
+                        onClick={() => document.getElementById('mobile-upload')?.click()}
+                        className="aspect-[16/7] rounded-[32px] bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center cursor-pointer hover:border-indigo-500/50 transition-all overflow-hidden relative group"
+                      >
+                         {mobilePreview ? (
+                           <img src={mobilePreview} className="w-full h-full object-cover group-hover:opacity-40 transition-opacity" />
+                         ) : (
+                           <div className="flex flex-col items-center gap-4">
+                              <CloudUpload size={40} className="text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fayl tanlang</span>
+                           </div>
+                         )}
+                         <input id="mobile-upload" type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'mobile')} />
+                      </div>
+                   </div>
                 </div>
 
                 {/* Link Configuration */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Link turi</label>
-                    <select 
-                      value={linkType}
-                      onChange={(e) => {
-                        setLinkType(e.target.value as any);
-                        setLinkValue('');
-                      }}
-                      className="w-full h-14 rounded-2xl bg-slate-50 border-slate-100 border px-6 font-bold text-sm outline-none focus:border-indigo-500/50 appearance-none"
-                    >
-                      <option value="none">Hech qanday havolasiz</option>
-                      <option value="category">Kategoriyaga o'tish</option>
-                      <option value="product">Maxsus mahsulotga o'tish</option>
-                      <option value="url">Tashqi havolaga o'tish</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">
-                      {linkType === 'none' ? 'Havola qiymati' : linkType === 'url' ? 'Veb-sayt manzili' : linkType === 'category' ? 'Kategoriyani tanlang' : 'Mahsulotni tanlang'}
-                    </label>
-                    
-                    {linkType === 'none' && (
-                      <Input disabled value="" onChange={() => {}} placeholder="..." className="!rounded-2xl !bg-slate-100/50 !border-slate-100 !h-14 opacity-50" />
-                    )}
-                    
-                    {linkType === 'url' && (
-                      <Input 
-                        value={linkValue} 
-                        onChange={setLinkValue} 
-                        placeholder="https://..." 
-                        className="!rounded-2xl !bg-slate-50 !border-slate-100 !h-14 font-bold"
-                      />
-                    )}
-                    
-                    {linkType === 'category' && (
-                      <select 
-                        value={linkValue}
-                        onChange={(e) => setLinkValue(e.target.value)}
-                        className="w-full h-14 rounded-2xl bg-slate-50 border-slate-100 border px-6 font-bold text-sm outline-none focus:border-indigo-500/50 appearance-none"
-                      >
-                        <option value="">Kategoriyani tanlang</option>
-                        {categories.map(cat => (
-                          <option key={cat.id} value={cat.id}>{cat.name}</option>
-                        ))}
-                      </select>
-                    )}
-                    
-                    {linkType === 'product' && (
-                      <select 
-                        value={linkValue}
-                        onChange={(e) => setLinkValue(e.target.value)}
-                        className="w-full h-14 rounded-2xl bg-slate-50 border-slate-100 border px-6 font-bold text-sm outline-none focus:border-indigo-500/50 appearance-none"
-                      >
-                        <option value="">Mahsulotni tanlang</option>
-                        {products.map(prod => (
-                          <option key={prod.id} value={prod.id}>{prod.name}</option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                </div>
-
-                {/* Additional Settings */}
-                <div className="flex flex-wrap items-center gap-10 pt-6 border-t border-slate-100">
-                  <div className="flex items-center gap-4">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Navbat tartibi:</label>
-                    <div className="flex items-center bg-slate-100 rounded-xl p-1">
-                      <button 
-                        onClick={() => setOrder(Math.max(0, order - 1))}
-                        className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-600 hover:text-indigo-600 active:scale-90 transition-all"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                      </button>
-                      <span className="w-12 text-center font-black text-slate-800 text-sm">{order}</span>
-                      <button 
-                        onClick={() => setOrder(order + 1)}
-                        className="w-8 h-8 rounded-lg bg-white shadow-sm flex items-center justify-center text-slate-600 hover:text-indigo-600 active:scale-90 transition-all"
-                      >
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <label className="flex items-center gap-4 cursor-pointer group">
-                    <div className="relative inline-flex items-center">
-                      <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="sr-only peer" />
-                      <div className="w-12 h-6 bg-slate-200 rounded-full peer-checked:bg-emerald-500 transition-all duration-300 relative">
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300 ${isActive ? 'translate-x-6' : ''}`} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                   <div className="space-y-4">
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">Link Turi</label>
+                      <div className="relative">
+                        <select 
+                          value={linkType}
+                          onChange={(e) => setLinkType(e.target.value as any)}
+                          className="w-full h-16 bg-slate-50 border border-slate-100 rounded-2xl px-8 text-slate-900 font-black outline-none focus:border-indigo-500/50 transition-all appearance-none"
+                        >
+                          <option value="none">Havolasiz</option>
+                          <option value="category">Kategoriya</option>
+                          <option value="product">Mahsulot</option>
+                          <option value="url">Tashqi URL</option>
+                        </select>
+                        <ChevronRight className="absolute right-8 top-1/2 -translate-y-1/2 rotate-90 text-slate-700 pointer-events-none" />
                       </div>
-                    </div>
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] group-hover:text-slate-800 transition-colors">
-                      {isActive ? (language === 'uz' ? 'Hozirda faol' : 'Active Now') : (language === 'uz' ? 'Faol emas' : 'Inactive')}
-                    </span>
-                  </label>
-                </div>
-
-                {/* Advice Card */}
-                <div className="p-8 rounded-[2rem] bg-indigo-50 border border-indigo-100 flex gap-6">
-                  <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0">
-                    <Info className="w-6 h-6 text-indigo-500" />
-                  </div>
-                  <div>
-                    <h5 className="font-black text-indigo-900 text-sm uppercase tracking-wide mb-1">Banner bo'yicha tavsiyalar</h5>
-                    <p className="text-[11px] text-indigo-700 leading-relaxed font-medium">
-                      Banner qisqa, tushunarli matn va aniq CTA (harakatga chorlovchi) bilan boyitilgan bo'lishi kerak. Fayl hajmi 10 MB gacha.
-                    </p>
-                  </div>
+                   </div>
+                   <div className="space-y-4">
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest px-1">Link Qiymati</label>
+                      <input 
+                        value={linkValue} 
+                        onChange={(e) => setLinkValue(e.target.value)}
+                        className="w-full h-16 bg-slate-50 border border-slate-100 rounded-2xl px-8 text-slate-900 font-bold outline-none focus:border-indigo-500/50 transition-all"
+                        placeholder="ID yoki Manzil..."
+                      />
+                   </div>
                 </div>
               </div>
 
               {/* Modal Footer */}
-              <div className="px-10 py-8 bg-slate-50/50 border-t border-slate-100 flex items-center justify-end gap-4">
-                <Button variant="outline" onClick={() => setIsModalOpen(false)} className="rounded-2xl h-14 px-10 font-black uppercase tracking-widest text-[11px]">
-                  {language === 'uz' ? 'Bekor qilish' : 'Cancel'}
-                </Button>
-                <Button 
-                  onClick={handleSave} 
-                  disabled={isSaving || (!editingBanner && !desktopFile && !mobileFile)} 
-                  className="rounded-2xl h-14 px-12 font-black uppercase tracking-widest text-[11px] bg-indigo-500 text-white shadow-2xl shadow-indigo-500/30"
+              <div className="px-12 py-10 border-t border-slate-100 bg-slate-50/50 flex items-center justify-end gap-6">
+                <button 
+                  onClick={() => setIsModalOpen(false)} 
+                  disabled={isSaving}
+                  className="h-16 px-10 border border-slate-200 text-slate-500 rounded-[24px] font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all"
                 >
-                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : editingBanner ? (language === 'uz' ? 'Saqlash' : 'Save Changes') : (language === 'uz' ? "Qo'shish" : 'Add Banner')}
-                </Button>
+                  Bekor Qilish
+                </button>
+                <button 
+                  onClick={handleSave} 
+                  disabled={isSaving || (!editingBanner && !desktopFile && !mobileFile)}
+                  className="h-16 px-16 bg-indigo-600 text-white rounded-[24px] font-black uppercase tracking-[0.3em] text-[11px] shadow-2xl shadow-indigo-600/30 hover:scale-105 transition-all flex items-center gap-4 disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> Saqlash</>}
+                </button>
               </div>
             </motion.div>
           </div>

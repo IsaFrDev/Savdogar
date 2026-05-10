@@ -14,7 +14,7 @@ export function AdminTerminal({ onClose }: AdminTerminalProps) {
     const [isMinimized, setIsMinimized] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
     const [history, setHistory] = useState<TerminalLine[]>([
-        { type: 'output', content: 'Savdoon OS v4.0.2 (LTS)' },
+        { type: 'output', content: t('terminal_os_version') || 'Savdoon OS v4.0.2 (LTS)' },
         { type: 'output', content: t('terminal_welcome') || 'Welcome back, Root. Type "help" for a list of commands.' }
     ]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -47,7 +47,7 @@ export function AdminTerminal({ onClose }: AdminTerminalProps) {
                 const result = await terminalService.parseCommand(cmd, t);
                 setHistory([...newHistory, ...result]);
             } catch (error) {
-                setHistory([...newHistory, { type: 'error', content: 'Execution error. Check server logs.' }]);
+                setHistory([...newHistory, { type: 'error', content: t('terminal_execution_error') || 'Execution error. Check server logs.' }]);
             } finally {
                 setIsProcessing(false);
             }
@@ -202,7 +202,7 @@ export function AdminTerminal({ onClose }: AdminTerminalProps) {
                     </div>
                 ))}
                 {history.length === 0 && (
-                    <div className="text-[11px] text-slate-600 uppercase tracking-widest italic">Terminal cleared.</div>
+                    <div className="text-[11px] text-slate-600 uppercase tracking-widest italic">{t('terminal_cleared') || 'Terminal cleared.'}</div>
                 )}
             </div>
 

@@ -9,7 +9,7 @@ import {
     Tooltip, ResponsiveContainer, AreaChart, Area, Line
 } from 'recharts';
 import { useApp } from '../../context/AppContext';
-import { productApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import AICompetitorMonitor from '../../components/AICompetitorMonitor';
 
 const GlassCard = ({ children, className = "" }: { children: React.ReactNode, className?: string }) => (
@@ -39,13 +39,13 @@ const AiBusinessIntelligence = () => {
         try {
             let res;
             if (activeTab === 'forecast' && currentStore) {
-                res = await productApi.getAiAnalytics(String(currentStore.id));
+                res = await supabaseApi.products.getAiAnalytics(String(currentStore.id));
                 setData(parseAiJson(res.data.forecast));
             } else if (activeTab === 'pricing' && currentStore) {
-                res = await productApi.getAiDynamicPricing(String(currentStore.id));
+                res = await supabaseApi.products.getAiDynamicPricing(String(currentStore.id));
                 setData(parseAiJson(res.data.suggestions));
             } else if (activeTab === 'customers' && currentStore) {
-                res = await productApi.getAiCustomerInsights(String(currentStore.id));
+                res = await supabaseApi.products.getAiCustomerInsights(String(currentStore.id));
                 setData(parseAiJson(res.data.insights));
             }
         } catch (error) {
@@ -58,7 +58,7 @@ const AiBusinessIntelligence = () => {
     const handleApplyPricing = async (item: any) => {
         if (!item.product_id) return;
         try {
-            await productApi.update(item.product_id, {
+            await supabaseApi.products.update(item.product_id, {
                 price: item.suggested_price || item.suggested
             });
             alert(language === 'uz' ? "Narx muvaffaqiyatli yangilandi" : "Price updated successfully");

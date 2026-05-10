@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Image as ImageIcon, Sparkles, Scissors, Download, Upload, Loader2, Check, Trash2, Zap } from 'lucide-react';
-import { aiApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
 
@@ -32,7 +32,7 @@ export default function AiImageStudio() {
         setStatus(action === 'remove_bg' ? 'Removing Background...' : action === 'polish' ? 'Polishing Image...' : 'Processing...');
 
         try {
-            const response = await aiApi.enhanceImage({
+            const response = await supabaseApi.ai.enhanceImage({
                 image: image,
                 action: action
             });

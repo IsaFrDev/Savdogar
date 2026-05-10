@@ -8,7 +8,7 @@ import {
     Eye
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { wishlistApi, recentlyViewedApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
 
@@ -26,8 +26,8 @@ export function WishlistPage() {
         setLoading(true);
         try {
             const [wishlistRes, recentRes] = await Promise.all([
-                wishlistApi.list(),
-                recentlyViewedApi.list()
+                supabaseApi.wishlist.list(),
+                supabaseApi.recentlyViewed.list()
             ]);
             setItems(wishlistRes.data);
             setRecentlyViewed(recentRes.data);
@@ -40,7 +40,7 @@ export function WishlistPage() {
 
     const handleToggle = async (productId: number) => {
         try {
-            await wishlistApi.toggle(productId);
+            await supabaseApi.wishlist.toggle(productId);
             await loadData();
         } catch (error) {
             console.error('Failed to toggle wishlist:', error);

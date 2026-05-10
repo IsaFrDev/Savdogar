@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{STORE_NAME}}</title>
+  <link rel="stylesheet" href="./main.css" />
+</head>
+<body>
+
+  <!-- ═══ NAVBAR + MODALS (shared) ═══ -->
+  <div id="navbar-placeholder"></div>
+
+  <!-- ═══ MAIN CONTENT ═══ -->
+  <main class="page">
+
+    <!-- HERO BANNER -->
+    <div class="hero-banner">
+      <div class="hero-banner-label">Yangi Kolleksiya 2024</div>
+      <h1>Zamonaviy kiyimlar<br>50% chegirma</h1>
+      <p>Eng so'nggi trendlar va eksklyuziv dizaynlar.<br>Tezkor yetkazib berish.</p>
+      <button class="btn-hero">Xarid Qilish →</button>
+    </div>
+
+    <!-- CATEGORIES -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Toifalar</h2>
+        <a href="#" class="section-link">Barchasi →</a>
+      </div>
+      <div class="categories" id="cat-list">
+        <button class="cat-chip active" data-cat="all">Barchasi</button>
+        <button class="cat-chip" data-cat="erkak">Erkaklar</button>
+        <button class="cat-chip" data-cat="ayol">Ayollar</button>
+        <button class="cat-chip" data-cat="bola">Bolalar</button>
+        <button class="cat-chip" data-cat="sport">Sport</button>
+        <button class="cat-chip" data-cat="yangi">Yangiliklar</button>
+      </div>
+    </section>
+
+    <!-- PRODUCTS -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Mashhur Mahsulotlar</h2>
+        <a href="#" class="section-link">Barchasi →</a>
+      </div>
+
+      <!-- {{PRODUCTS_GRID}} — backend shu yerga mahsulotlarni inject qiladi -->
+      <div class="products-grid" id="products-grid">
+        <!-- JS orqali render qilinadi (demo) -->
+      </div>
+    </section>
+
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script src="js/products.js"></script>
+  <script>
+    // Navbar ni dinamik yuklash
+    fetch('_navbar.html')
+      .then(r => r.text())
+      .then(html => {
+        document.getElementById('navbar-placeholder').innerHTML = html;
+        // auth.js DOMContentLoaded dan keyin ishlaydi,
+        // shuning uchun navbar yuklangandan so'ng qayta init qilamiz
+        initNavbar();
+      });
+  </script>
+</body>
+</html>

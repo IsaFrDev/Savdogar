@@ -8,20 +8,21 @@ import {
     Ticket,
     Calendar,
     X,
-    Loader2
+    Loader2,
+    ChevronRight,
+    ArrowRight,
+    Check
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { discountApi, promoCodeApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import { GlassCard } from '../../components/GlassCard';
-import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
 
 interface DiscountsProps {
     storeId?: number;
 }
 
 export function Discounts({ storeId }: DiscountsProps) {
-    const { t, ln, language } = useApp();
+    const { t, ln, language, formatPrice } = useApp();
     const [activeTab, setActiveTab] = useState<'discounts' | 'promo-codes'>('discounts');
     const [discounts, setDiscounts] = useState<any[]>([]);
     const [promoCodes, setPromoCodes] = useState<any[]>([]);
@@ -54,14 +55,14 @@ export function Discounts({ storeId }: DiscountsProps) {
         setLoading(true);
         try {
             if (activeTab === 'discounts') {
-                const response = await discountApi.list(storeId);
-                setDiscounts(Array.isArray(response.data) ? response.data : (response.data.results || []));
+                const data = await supabaseApi.discounts.list(storeId!);
+                setDiscounts(data);
             } else {
-                const response = await promoCodeApi.list(storeId);
-                setPromoCodes(Array.isArray(response.data) ? response.data : (response.data.results || []));
+                const data = await supabaseApi.promoCodes.list(storeId!);
+                setPromoCodes(data);
             }
         } catch (error) {
-            console.error('Failed to load data:', error);
+            console.error('Failed to load data from Supabase:', error);
         } finally {
             setLoading(false);
         }
@@ -103,39 +104,36 @@ export function Discounts({ storeId }: DiscountsProps) {
         try {
             if (activeTab === 'discounts') {
                 const data = {
-                    store: storeId,
                     name: formData.name,
                     discount_type: formData.discount_type,
                     value: parseFloat(formData.value) || 0,
                     min_order_amount: parseFloat(formData.min_order_amount) || 0,
                     start_date: formData.start_date || null,
                     end_date: formData.end_date || null,
-                    active: formData.is_active,
+                    is_active: formData.is_active,
                 };
                 if (editingItem) {
-                    await discountApi.update(editingItem.id, data);
+                    await supabaseApi.discounts.update(editingItem.id, data);
                 } else {
-                    await discountApi.create(data);
+                    await supabaseApi.discounts.create(storeId, data);
                 }
             } else {
-                // Promo code: backend expects valid_from/valid_to, not start_date/end_date
                 const data = {
-                    store: storeId,
                     code: formData.code,
-                    description: formData.name,
+                    name: formData.name,
                     discount_type: formData.discount_type,
                     value: parseFloat(formData.value) || 0,
                     min_order_amount: parseFloat(formData.min_order_amount) || 0,
                     max_discount_amount: formData.max_discount_amount ? parseFloat(formData.max_discount_amount) : null,
                     usage_limit: formData.usage_limit ? parseInt(formData.usage_limit) : null,
-                    valid_from: formData.start_date || null,
-                    valid_to: formData.end_date || null,
-                    active: formData.is_active,
+                    start_date: formData.start_date || null,
+                    end_date: formData.end_date || null,
+                    is_active: formData.is_active,
                 };
                 if (editingItem) {
-                    await promoCodeApi.update(editingItem.id, data);
+                    await supabaseApi.promoCodes.update(editingItem.id, data);
                 } else {
-                    await promoCodeApi.create(data);
+                    await supabaseApi.promoCodes.create(storeId, data);
                 }
             }
 
@@ -155,9 +153,9 @@ export function Discounts({ storeId }: DiscountsProps) {
         if (!confirm(t('confirmDelete') || 'Ishonchingiz komilmi?')) return;
         try {
             if (activeTab === 'discounts') {
-                await discountApi.delete(id);
+                await supabaseApi.discounts.delete(id);
             } else {
-                await promoCodeApi.delete(id);
+                await supabaseApi.promoCodes.delete(id);
             }
             await loadData();
         } catch (error) {
@@ -165,258 +163,297 @@ export function Discounts({ storeId }: DiscountsProps) {
         }
     };
 
+    if (loading) {
+        return (
+          <div className="flex flex-col items-center justify-center py-20">
+            <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-6 opacity-50" />
+            <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px]">{t('loading')}</p>
+          </div>
+        );
+    }
+
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="space-y-12 pb-20">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
                 <div>
-                    <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-tight uppercase">
+                    <div className="flex items-center gap-3 mb-4">
+                        <div className="w-10 h-1 bg-indigo-500 rounded-full" />
+                        <span className="text-xs font-black text-indigo-400 uppercase tracking-[0.4em]">Incentives</span>
+                    </div>
+                    <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase font-heading">
                         {activeTab === 'discounts' ? t('discounts') : t('promoCodes')}
                     </h1>
-                    <p className="text-[var(--text-muted)] font-black uppercase tracking-widest text-[10px] mt-1">
-                        {activeTab === 'discounts' ? discounts.length : promoCodes.length} {t('active') || 'faol'}
+                    <p className="text-slate-400 mt-2 uppercase tracking-[0.2em] text-[10px] font-black">
+                        {activeTab === 'discounts' ? discounts.length : promoCodes.length} campaigns currently active
                     </p>
                 </div>
-                <Button
-                    onClick={() => handleOpenModal()}
-                    icon={<Plus className="w-4 h-4" />}
-                    className="h-12 px-8 rounded-2xl font-black uppercase tracking-widest text-[11px]"
+                <button 
+                  onClick={() => handleOpenModal()} 
+                  className="h-16 px-10 bg-indigo-600 text-white rounded-[24px] font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-4"
                 >
-                    {activeTab === 'discounts' ? t('addDiscount') : t('addPromoCode')}
-                </Button>
+                  <Plus size={18} />
+                  {activeTab === 'discounts' ? t('addDiscount') : t('addPromoCode')}
+                </button>
             </div>
 
-            {/* Tabs */}
-            <div className="flex p-1.5 bg-white/[0.03] rounded-2xl border border-[var(--color-border)] w-fit backdrop-blur-sm">
+            {/* Navigation Tabs */}
+            <div className="flex gap-4 p-2 bg-slate-50 rounded-[24px] w-fit border border-slate-100">
                 <button
                     onClick={() => setActiveTab('discounts')}
-                    className={`flex items-center gap-2 px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'discounts' ? 'bg-[var(--brand-primary)] text-white shadow-xl shadow-[var(--brand-primary-glow)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--brand-primary)]/5'
-                        }`}
+                    className={`flex items-center gap-3 px-8 py-3.5 rounded-[18px] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 ${activeTab === 'discounts' ? 'bg-white text-slate-900 shadow-xl shadow-slate-200 border border-slate-100' : 'text-slate-500 hover:text-slate-900'}`}
                 >
-                    <Tag className="w-4 h-4" />
+                    <Tag size={16} className={activeTab === 'discounts' ? 'text-indigo-600' : 'text-slate-400'} />
                     {t('discounts')}
                 </button>
                 <button
                     onClick={() => setActiveTab('promo-codes')}
-                    className={`flex items-center gap-2 px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${activeTab === 'promo-codes' ? 'bg-[var(--brand-primary)] text-white shadow-xl shadow-[var(--brand-primary-glow)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--brand-primary)]/5'
-                        }`}
+                    className={`flex items-center gap-3 px-8 py-3.5 rounded-[18px] text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 ${activeTab === 'promo-codes' ? 'bg-white text-slate-900 shadow-xl shadow-slate-200 border border-slate-100' : 'text-slate-500 hover:text-slate-900'}`}
                 >
-                    <Ticket className="w-4 h-4" />
+                    <Ticket size={16} className={activeTab === 'promo-codes' ? 'text-indigo-600' : 'text-slate-400'} />
                     {t('promoCodes')}
                 </button>
             </div>
 
-            {/* List */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {loading ? (
-                    <div className="col-span-full py-20 flex flex-col items-center">
-                        <Loader2 className="w-10 h-10 text-[var(--brand-primary)] animate-spin mb-4" />
-                        <p className="text-slate-500 font-bold uppercase tracking-widest">{t('loading')}</p>
-                    </div>
-                ) : (
-                    (activeTab === 'discounts' ? discounts : promoCodes).map((item, index) => (
-                        <motion.div
-                            key={item.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.05 }}
-                        >
-                            <GlassCard className="p-6 h-full flex flex-col justify-between group">
-                                <div>
-                                    <div className="flex items-start justify-between mb-6">
-                                        <div className="p-3.5 rounded-2xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] group-hover:bg-[var(--brand-primary)] group-hover:text-white transition-all duration-500 shadow-sm">
-                                            {activeTab === 'discounts' ? <Tag className="w-6 h-6" /> : <Ticket className="w-6 h-6" />}
-                                        </div>
-                                        <div className="flex gap-2">
-                                            <button onClick={() => handleOpenModal(item)} className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-all border border-[var(--color-border)] shadow-sm">
-                                                <Edit2 className="w-4 h-4" />
-                                            </button>
-                                            <button onClick={() => handleDelete(item.id)} className="p-2.5 rounded-xl bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white transition-all border border-rose-100 shadow-sm">
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+            {/* Content Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
+                {(activeTab === 'discounts' ? discounts : promoCodes).map((item, index) => (
+                    <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: index * 0.05 }}
+                        className="group"
+                    >
+                        <GlassCard className={`p-10 border-slate-200 bg-white transition-all duration-700 h-full flex flex-col relative overflow-hidden rounded-[48px] border shadow-xl group-hover:border-indigo-500/30 ${!item.is_active && 'opacity-40 grayscale'}`}>
+                            <div className="absolute top-[-30px] right-[-20px] text-[160px] font-black text-slate-50 select-none pointer-events-none italic font-heading">
+                                {index + 1}
+                            </div>
+
+                            <div className="flex items-start justify-between mb-10 relative z-10">
+                                <div className="w-16 h-16 bg-indigo-600/10 text-indigo-400 rounded-[24px] border border-indigo-500/20 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-700 shadow-2xl">
+                                    {activeTab === 'discounts' ? <Tag size={28} /> : <Ticket size={28} />}
+                                </div>
+                                <div className="flex gap-3">
+                                    <button 
+                                      onClick={() => handleOpenModal(item)} 
+                                      className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-white hover:shadow-lg transition-all"
+                                    >
+                                        <Edit2 size={18} />
+                                    </button>
+                                    <button 
+                                      onClick={() => handleDelete(item.id)} 
+                                      className="w-12 h-12 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 hover:bg-rose-500 hover:text-white transition-all"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="relative z-10 flex-1 flex flex-col">
+                                <h3 className="text-2xl font-black text-slate-900 mb-2 leading-tight uppercase tracking-tighter group-hover:text-indigo-600 transition-colors">{ln(item, 'name') || item.code}</h3>
+                                {activeTab === 'promo-codes' && (
+                                    <div className="px-6 py-3 bg-indigo-50 border border-indigo-100 rounded-[20px] w-fit mb-8 shadow-sm">
+                                        <code className="text-indigo-600 font-black tracking-[0.3em] text-sm uppercase">{item.code}</code>
+                                    </div>
+                                )}
+
+                                <div className="space-y-6 mb-10">
+                                    <div className="bg-slate-50 border border-slate-100 rounded-[32px] p-8 text-center group-hover:bg-indigo-50 transition-colors duration-700">
+                                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em] mb-3">Reward Value</div>
+                                        <div className="text-5xl font-black text-slate-900 tracking-tighter group-hover:text-emerald-600 transition-colors duration-700 tabular-nums">
+                                            {item.discount_type === 'percentage' ? `${item.value}%` : formatPrice(item.value)}
                                         </div>
                                     </div>
 
-                                    <h3 className="text-xl font-black text-[var(--text-primary)] mb-3 leading-tight">{ln(item, 'name') || item.code}</h3>
-                                    {activeTab === 'promo-codes' && (
-                                        <div className="px-4 py-2 bg-[var(--brand-primary)]/[0.03] rounded-xl border border-[var(--brand-primary)]/10 inline-block mb-6">
-                                            <code className="text-[var(--brand-primary)] font-black tracking-widest text-sm">{item.code}</code>
-                                        </div>
-                                    )}
-
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60">{t('discountValue')}</span>
-                                            <span className="text-xl font-black text-emerald-500 tabular-nums">
-                                                {item.discount_type === 'percentage' ? `${item.value}%` : `${item.value.toLocaleString()} sum`}
-                                            </span>
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[10px] text-[var(--text-muted)] font-black uppercase tracking-widest opacity-60">{t('status')}</span>
-                                            <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border ${item.is_active ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
-                                                }`}>
-                                                {item.is_active ? (language === 'uz' ? 'FAOL' : t('active')) : (language === 'uz' ? 'O\'CHIK' : t('inactive'))}
-                                            </span>
-                                        </div>
+                                    <div className="flex items-center justify-between px-2">
+                                        <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Campaign Status</span>
+                                        <span className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border transition-all duration-500 ${item.is_active ? 'bg-emerald-50 text-emerald-600 border-emerald-100 shadow-sm' : 'bg-rose-50 text-rose-500 border-rose-100'
+                                            }`}>
+                                            {item.is_active ? (language === 'uz' ? 'FAOL' : 'ACTIVE') : (language === 'uz' ? 'O\'CHIK' : 'INACTIVE')}
+                                        </span>
                                     </div>
                                 </div>
 
-                                <div className="mt-6 pt-6 border-t border-[var(--color-border)] flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)] opacity-60">
-                                    <div className="flex items-center gap-2">
-                                        <Calendar className="w-3.5 h-3.5" />
-                                        <span>{item.end_date ? new Date(item.end_date).toLocaleDateString() : t('unlimited')}</span>
+                                <div className="mt-auto pt-8 border-t border-slate-100 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">
+                                    <div className="flex items-center gap-3">
+                                        <Calendar size={16} className="text-slate-300" />
+                                        <span>{item.end_date ? new Date(item.end_date).toLocaleDateString() : 'UNTIL REVOKED'}</span>
                                     </div>
                                     {activeTab === 'promo-codes' && (
                                         <div className="text-right">
-                                            {item.usage_count} / {item.usage_limit || '∞'} uses
+                                            {item.usage_count} / {item.usage_limit || '∞'} USES
                                         </div>
                                     )}
                                 </div>
-                            </GlassCard>
-                        </motion.div>
-                    ))
-                )}
+                            </div>
+                        </GlassCard>
+                    </motion.div>
+                ))}
             </div>
 
             {/* Modal */}
             <AnimatePresence>
                 {showModal && (
-                    <>
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-2xl overflow-y-auto">
                         <motion.div
-                            className="fixed inset-0 bg-black/60 backdrop-blur-md z-50"
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowModal(false)}
-                        />
-                        <motion.div
-                            className="fixed inset-4 md:inset-auto md:left-1/2 md:top-1/2 md:-translate-x-1/2 md:-translate-y-1/2 md:w-full md:max-w-xl bg-white rounded-[2.5rem] border border-[var(--color-border)] z-[60] shadow-2xl overflow-hidden flex flex-col"
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="w-full max-w-2xl bg-white border border-slate-200 rounded-[56px] shadow-2xl overflow-hidden"
                         >
-                            <div className="p-10 border-b border-[var(--color-border)] flex items-center justify-between bg-slate-50/50">
+                            <div className="px-12 py-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                                 <div>
-                                    <h2 className="text-2xl font-black text-[var(--text-primary)] tracking-tight uppercase">
+                                    <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase font-heading">
                                         {editingItem ? (activeTab === 'discounts' ? t('editDiscount') : t('editPromoCode')) : (activeTab === 'discounts' ? t('addDiscount') : t('addPromoCode'))}
                                     </h2>
+                                    <p className="text-[10px] text-slate-400 uppercase tracking-[0.3em] font-black mt-2">Configure campaign rewards and rules</p>
                                 </div>
-                                <button onClick={() => setShowModal(false)} className="p-3 hover:bg-slate-200/50 rounded-2xl transition-all border border-[var(--color-border)] shadow-sm">
-                                    <X className="w-6 h-6 text-[var(--text-muted)]" />
+                                <button onClick={() => setShowModal(false)} className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all">
+                                    <X size={24} />
                                 </button>
                             </div>
 
-                            <div className="p-10 space-y-8 overflow-y-auto max-h-[70vh]">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="space-y-1 col-span-full">
-                                        <Input
-                                            label={t('discountName')}
+                            <div className="p-12 space-y-10 max-h-[65vh] overflow-y-auto no-scrollbar">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                    <div className="space-y-4 col-span-full">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Campaign Name</label>
+                                        <input
                                             value={formData.name}
-                                            onChange={(v) => setFormData({ ...formData, name: v })}
-                                            placeholder="Masalan: Yozgi chegirma 2024"
+                                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            placeholder="e.g. Summer Sale 2024"
+                                            className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 text-white font-black outline-none focus:border-indigo-500/50 transition-all"
                                         />
                                     </div>
 
                                     {activeTab === 'promo-codes' && (
-                                        <div className="space-y-1 col-span-full">
-                                            <Input
-                                                label={t('promoCode')}
+                                        <div className="space-y-4 col-span-full">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Promotion Code</label>
+                                            <input
                                                 value={formData.code}
-                                                onChange={(v) => setFormData({ ...formData, code: v.toUpperCase() })}
+                                                onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                                                 placeholder="SUMMER50"
+                                                className="w-full bg-slate-950/50 border border-indigo-500/30 rounded-[24px] px-8 py-5 text-indigo-400 font-black outline-none focus:border-indigo-500 transition-all tracking-[0.4em] uppercase"
                                             />
                                         </div>
                                     )}
 
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest ml-1">{t('discountType')}</label>
-                                        <select
-                                            value={formData.discount_type}
-                                            onChange={(e) => setFormData({ ...formData, discount_type: e.target.value })}
-                                            className="w-full bg-white border border-[var(--color-border)] rounded-2xl px-5 py-4 text-xs font-black uppercase tracking-widest text-[var(--text-primary)] focus:outline-none focus:border-[var(--brand-primary)] shadow-sm"
-                                        >
-                                            <option value="percentage">{t('percentage')}</option>
-                                            <option value="fixed">{t('fixedAmount')}</option>
-                                        </select>
+                                    <div className="space-y-4">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Reward Logic</label>
+                                        <div className="relative">
+                                            <select
+                                                value={formData.discount_type}
+                                                onChange={(e) => setFormData({ ...formData, discount_type: e.target.value })}
+                                                className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 text-white font-black outline-none focus:border-indigo-500/50 transition-all appearance-none cursor-pointer"
+                                            >
+                                                <option value="percentage">{t('percentage')}</option>
+                                                <option value="fixed">{t('fixedAmount')}</option>
+                                            </select>
+                                            <div className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500">
+                                                <ChevronRight size={20} className="rotate-90" />
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <Input
-                                            label={t('discountValue')}
+                                    <div className="space-y-4">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Reward Value</label>
+                                        <input
                                             type="number"
                                             value={formData.value}
-                                            onChange={(v) => setFormData({ ...formData, value: v })}
+                                            onChange={(e) => setFormData({ ...formData, value: e.target.value })}
                                             placeholder={formData.discount_type === 'percentage' ? '20' : '10000'}
+                                            className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 text-white font-black outline-none focus:border-indigo-500/50 transition-all tabular-nums"
                                         />
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <Input
-                                            label={t('startDate')}
+                                    <div className="space-y-4">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Launch Date</label>
+                                        <input
                                             type="date"
                                             value={formData.start_date}
-                                            onChange={(v) => setFormData({ ...formData, start_date: v })}
+                                            onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 text-white font-black outline-none focus:border-indigo-500/50 transition-all"
                                         />
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <Input
-                                            label={t('endDate')}
+                                    <div className="space-y-4">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Expiration Date</label>
+                                        <input
                                             type="date"
                                             value={formData.end_date}
-                                            onChange={(v) => setFormData({ ...formData, end_date: v })}
+                                            onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                                            className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 text-white font-black outline-none focus:border-indigo-500/50 transition-all"
                                         />
                                     </div>
 
-                                    <div className="space-y-1">
-                                        <Input
-                                            label={t('minOrderAmount')}
+                                    <div className="space-y-4">
+                                        <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Min. Order Amount</label>
+                                        <input
                                             type="number"
                                             value={formData.min_order_amount}
-                                            onChange={(v) => setFormData({ ...formData, min_order_amount: v })}
+                                            onChange={(e) => setFormData({ ...formData, min_order_amount: e.target.value })}
                                             placeholder="0"
+                                            className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 text-white font-black outline-none focus:border-indigo-500/50 transition-all tabular-nums"
                                         />
                                     </div>
 
                                     {activeTab === 'promo-codes' && (
-                                        <div className="space-y-1">
-                                            <Input
-                                                label={t('usageLimit')}
+                                        <div className="space-y-4">
+                                            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1">Total Usage Limit</label>
+                                            <input
                                                 type="number"
                                                 value={formData.usage_limit}
-                                                onChange={(v) => setFormData({ ...formData, usage_limit: v })}
+                                                onChange={(e) => setFormData({ ...formData, usage_limit: e.target.value })}
                                                 placeholder="Unlimited"
+                                                className="w-full bg-white/5 border border-white/5 rounded-[24px] px-8 py-5 text-white font-black outline-none focus:border-indigo-500/50 transition-all tabular-nums"
                                             />
                                         </div>
                                     )}
                                 </div>
 
-                                <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-3xl border border-[var(--color-border)]">
-                                    <input
-                                        type="checkbox"
-                                        id="modal_is_active"
-                                        checked={formData.is_active}
-                                        onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                                        className="w-6 h-6 rounded-lg border-[var(--color-border)] text-[var(--brand-primary)] focus:ring-0 cursor-pointer"
-                                    />
-                                    <label htmlFor="modal_is_active" className="flex-1 cursor-pointer">
-                                        <p className="text-xs font-black text-[var(--text-primary)] uppercase tracking-widest">{t('active')}</p>
-                                        <p className="text-[10px] text-[var(--text-muted)] font-bold">
-                                            {language === 'ru' ? 'Видно клиентам' : language === 'uz' ? 'Mijozlarga ko\'rinadi' : 'Visible to customers'}
-                                        </p>
+                                <div className="pt-10 border-t border-slate-100">
+                                    <label className="flex items-center gap-6 cursor-pointer group w-fit">
+                                        <div className="relative inline-flex items-center">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={formData.is_active} 
+                                                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} 
+                                                className="sr-only peer" 
+                                            />
+                                            <div className={`w-14 h-7 rounded-full transition-all duration-500 relative cursor-pointer ${formData.is_active ? 'bg-emerald-600 shadow-xl shadow-emerald-100' : 'bg-slate-200'}`}>
+                                                <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all duration-500 shadow-lg ${formData.is_active ? 'left-[32px]' : 'left-[4px]'}`} />
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">
+                                                Campaign Visibility
+                                            </span>
+                                            <span className="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1">
+                                                {formData.is_active ? 'Live and visible to customers' : 'Paused or hidden from storefront'}
+                                            </span>
+                                        </div>
                                     </label>
                                 </div>
                             </div>
 
-                            <div className="p-8 border-t border-[var(--color-border)] bg-slate-50/50 flex justify-end gap-4">
-                                <Button variant="secondary" onClick={() => setShowModal(false)} className="rounded-2xl px-8 h-14 uppercase tracking-widest text-[11px] font-black border border-[var(--color-border)] text-[var(--text-muted)]">
+                            <div className="px-12 py-10 bg-slate-50/50 border-t border-slate-100 flex items-center justify-end gap-6">
+                                <button 
+                                    onClick={() => setShowModal(false)} 
+                                    className="h-16 px-10 border border-slate-200 text-slate-500 rounded-[24px] font-black uppercase tracking-widest text-[11px] hover:bg-white hover:text-slate-900 transition-all"
+                                >
                                     {t('cancel')}
-                                </Button>
-                                <Button onClick={handleSave} disabled={isSubmitting} className="rounded-2xl px-12 h-14 uppercase tracking-widest text-[11px] font-black shadow-xl shadow-[var(--brand-primary-glow)]">
-                                    {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : t('save')}
-                                </Button>
+                                </button>
+                                <button 
+                                    onClick={handleSave} 
+                                    disabled={isSubmitting} 
+                                    className="h-16 px-12 bg-slate-900 text-white rounded-[24px] font-black uppercase tracking-[0.2em] text-[11px] shadow-xl hover:scale-105 transition-all flex items-center gap-4 disabled:opacity-50 disabled:grayscale"
+                                >
+                                    {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : editingItem ? t('save') : t('create')}
+                                    {!isSubmitting && <ArrowRight size={18} />}
+                                </button>
                             </div>
                         </motion.div>
-                    </>
+                    </div>
                 )}
             </AnimatePresence>
         </div>

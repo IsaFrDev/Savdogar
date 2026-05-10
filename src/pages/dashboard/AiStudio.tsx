@@ -4,7 +4,7 @@ import { Sparkles, Languages, Megaphone, Image as ImageIcon, Wand2, Loader2, Arr
 
 import { Button } from '../../components/Button';
 import { useApp } from '../../context/AppContext';
-import { aiApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 
 interface AIStudioProps {
     store?: any;
@@ -34,7 +34,7 @@ const AIStudio: React.FC<AIStudioProps> = ({ store, onTabChange }) => {
         if (!selectedImage) return;
         setIsProcessing(true);
         try {
-            const response = await aiApi.enhanceImage({ image: selectedImage });
+            const response = await supabaseApi.ai.enhanceImage({ image: selectedImage });
             setStudioResult({
                 image: response.data.enhanced_image,
                 analysis: response.data.analysis

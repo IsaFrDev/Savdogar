@@ -12,13 +12,14 @@ import {
   Edit2,
   Navigation,
   Globe,
-  AlertCircle
+  AlertCircle,
+  ChevronRight
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { branchApi } from '../../services/api';
+import { supabaseApi } from '../../services/supabaseService';
 import { GlassCard } from '../../components/GlassCard';
 import { Button } from '../../components/Button';
-import { Input, TextArea } from '../../components/Input';
+import { LocationPicker } from '../../components/LocationPicker';
 
 interface Branch {
   id: number;
@@ -61,8 +62,8 @@ export function Branches() {
     if (!currentStore?.id) return;
     setLoading(true);
     try {
-      const res = await branchApi.list(currentStore.id);
-      setBranches(res.data);
+      const data = await supabaseApi.branches.list(currentStore.id);
+      setBranches(data);
     } catch (error) {
       console.error('Failed to load branches:', error);
     }
@@ -91,7 +92,6 @@ export function Branches() {
       setLat(null);
       setLng(null);
       setIsActive(true);
-      // Keep default working hours
     }
     setIsModalOpen(true);
   };
@@ -111,9 +111,9 @@ export function Branches() {
       };
       
       if (editingBranch) {
-        await branchApi.update(currentStore.id, editingBranch.id, data);
+        await supabaseApi.branches.update(currentStore.id, editingBranch.id, data);
       } else {
-        await branchApi.create(currentStore.id, data);
+        await supabaseApi.branches.create(currentStore.id, data);
       }
       
       setIsModalOpen(false);
@@ -127,7 +127,7 @@ export function Branches() {
   const handleDelete = async (id: number) => {
     if (!currentStore?.id || !confirm(language === 'uz' ? "Filial o'chirilsinmi?" : "Delete branch?")) return;
     try {
-      await branchApi.delete(currentStore.id, id);
+      await supabaseApi.branches.delete(currentStore.id, id);
       loadBranches();
     } catch (error) {
       console.error('Failed to delete branch:', error);
@@ -137,8 +137,8 @@ export function Branches() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20">
-        <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mb-4" />
-        <p className="text-slate-400 font-bold uppercase tracking-widest">{t('loading')}</p>
+        <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mb-6 opacity-50" />
+        <p className="text-slate-500 font-black uppercase tracking-[0.3em] text-[10px]">{t('loading')}</p>
       </div>
     );
   }
@@ -154,39 +154,49 @@ export function Branches() {
   ];
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div className="space-y-12 pb-20">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-black text-[var(--text-main)] tracking-tight uppercase">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-1 bg-indigo-500 rounded-full" />
+            <span className="text-xs font-black text-indigo-400 uppercase tracking-[0.4em]">Locations</span>
+          </div>
+          <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase font-heading">
             {language === 'uz' ? 'Filiallar' : 'Branches'}
           </h1>
-          <p className="text-[var(--text-dim)] mt-1 uppercase tracking-[0.2em] text-[10px] font-bold">
+          <p className="text-slate-400 mt-2 uppercase tracking-[0.2em] text-[10px] font-black">
             {language === 'uz' ? "Do'koningiz filiallarni boshqarish" : "Manage your store branches"}
           </p>
         </div>
-        <Button onClick={() => handleOpenModal()} className="rounded-2xl h-14 px-8 font-black uppercase tracking-widest text-xs flex items-center gap-3 shadow-2xl shadow-indigo-500/20">
-          <Plus className="w-5 h-5" />
+        <button 
+          onClick={() => handleOpenModal()} 
+          className="h-16 px-10 bg-indigo-600 text-white rounded-[24px] font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-indigo-600/30 hover:scale-105 transition-all flex items-center gap-4"
+        >
+          <Plus size={18} />
           {language === 'uz' ? "Filial qo'shish" : 'Add Branch'}
-        </Button>
+        </button>
       </div>
 
       {branches.length === 0 ? (
-        <GlassCard className="p-20 text-center border-dashed border-2 flex flex-col items-center">
-          <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center mb-6 text-slate-400">
-            <MapPin className="w-10 h-10" />
+        <div className="empty-state-card p-24 flex flex-col items-center">
+          <div className="w-24 h-24 rounded-[32px] bg-slate-50 flex items-center justify-center mb-8 text-slate-200 border border-slate-100 shadow-inner">
+            <MapPin size={40} />
           </div>
-          <h2 className="text-xl font-black text-slate-800 mb-2 uppercase tracking-wide">
+          <h2 className="text-2xl font-black text-slate-900 mb-3 uppercase tracking-tighter">
             {language === 'uz' ? "Filiallar mavjud emas" : "No Branches Yet"}
           </h2>
-          <p className="text-slate-500 max-w-sm mx-auto mb-8 font-medium">
+          <p className="text-slate-400 max-w-sm mx-auto mb-10 font-bold uppercase tracking-widest text-[10px] leading-relaxed">
             {language === 'uz' ? "Do'koningizning turli manzillardagi filiallarni qo'shing va boshqaring." : "Add and manage different branches and locations for your store."}
           </p>
-          <Button variant="outline" onClick={() => handleOpenModal()} className="rounded-xl px-8 h-12">
+          <button 
+            onClick={() => handleOpenModal()} 
+            className="h-14 px-10 border border-slate-200 text-slate-500 rounded-[20px] font-black uppercase tracking-widest text-[10px] hover:bg-slate-50 transition-all"
+          >
             {language === 'uz' ? "Birinchi filialni qo'shish" : 'Add your first branch'}
-          </Button>
-        </GlassCard>
+          </button>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {branches.map((branch) => (
             <motion.div
               layout
@@ -195,89 +205,95 @@ export function Branches() {
               animate={{ opacity: 1, scale: 1 }}
               className="group"
             >
-              <GlassCard className={`p-8 border-2 transition-all duration-500 h-full flex flex-col relative overflow-hidden ${branch.is_active ? 'border-transparent' : 'border-slate-200 opacity-60'}`}>
+              <GlassCard className={`p-10 border-slate-200 bg-white transition-all duration-700 h-full flex flex-col relative overflow-hidden rounded-[40px] hover:border-indigo-500/30 group ${!branch.is_active && 'opacity-50 grayscale'}`}>
                 {/* Decorative background number */}
-                <div className="absolute top-[-20px] right-[-10px] text-[120px] font-black text-slate-900/[0.03] select-none pointer-events-none italic">
+                <div className="absolute top-[-30px] right-[-20px] text-[160px] font-black text-white/[0.02] select-none pointer-events-none italic font-heading">
                   {branch.id}
                 </div>
 
-                <div className="flex items-start justify-between mb-8 relative z-10">
-                  <div className="p-4 rounded-2xl bg-indigo-50 text-indigo-500 shadow-sm border border-indigo-100/50">
-                    <MapPin className="w-6 h-6" />
+                <div className="flex items-start justify-between mb-10 relative z-10">
+                  <div className="w-16 h-16 rounded-[24px] bg-indigo-600/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shadow-2xl group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-700">
+                    <MapPin size={28} />
                   </div>
-                  <div className="flex gap-2">
+                    <div className="flex gap-3 translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500 relative z-10">
                     <button 
                       onClick={() => handleOpenModal(branch)}
-                      className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:border-indigo-100 transition-all shadow-sm"
+                      className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all shadow-sm"
                     >
-                      <Edit2 className="w-4 h-4" />
+                      <Edit2 size={18} />
                     </button>
                     <button 
                       onClick={() => handleDelete(branch.id)}
-                      className="w-10 h-10 rounded-xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-600 hover:border-rose-100 transition-all shadow-sm"
+                      className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-xl shadow-rose-500/20"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
 
-                <div className="space-y-6 relative z-10 flex-1">
+                <div className="space-y-8 relative z-10 flex-1">
                   <div>
-                    <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight mb-2 truncate">
+                    <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter mb-2 truncate group-hover:text-indigo-600 transition-colors">
                       {branch.name}
                     </h3>
-                    <div className="flex items-center gap-2 text-indigo-500 text-[10px] font-black uppercase tracking-widest">
-                      <span className={`w-2 h-2 rounded-full ${branch.is_active ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-slate-300'}`} />
-                      {branch.is_active ? (language === 'uz' ? 'Ish faoliyatida' : 'Active') : (language === 'uz' ? 'Faol emas' : 'Inactive')}
+                    <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em]">
+                      <span className={`w-2 h-2 rounded-full ${branch.is_active ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-slate-700'}`} />
+                      <span className={branch.is_active ? 'text-emerald-400' : 'text-slate-600'}>
+                        {branch.is_active ? (language === 'uz' ? 'Ish faoliyatida' : 'Active') : (language === 'uz' ? 'Faol emas' : 'Inactive')}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-4">
-                      <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
-                        <Navigation className="w-4 h-4 text-slate-400" />
+                  <div className="space-y-6">
+                    <div className="flex items-start gap-6 group/item">
+                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/5 group-hover/item:border-indigo-500/30 transition-colors">
+                        <Navigation size={18} className="text-slate-500 group-hover/item:text-indigo-400" />
                       </div>
-                      <p className="text-xs font-bold text-slate-500 leading-relaxed line-clamp-2 mt-1">
+                      <p className="text-xs font-bold text-slate-400 leading-relaxed line-clamp-2 mt-1 uppercase tracking-wider">
                         {branch.address || 'No address provided'}
                       </p>
                     </div>
 
-                    <div className="flex items-start gap-4">
-                      <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
-                        <Phone className="w-4 h-4 text-slate-400" />
+                    <div className="flex items-start gap-6 group/item">
+                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/5 group-hover/item:border-indigo-500/30 transition-colors">
+                        <Phone size={18} className="text-slate-500 group-hover/item:text-indigo-400" />
                       </div>
-                      <p className="text-xs font-black text-slate-700 mt-2 tracking-wider">
+                      <p className="text-xs font-black text-white mt-2.5 tracking-[0.2em] tabular-nums">
                         {branch.phone || 'No phone provided'}
                       </p>
                     </div>
 
-                    <div className="flex items-start gap-4">
-                      <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center shrink-0 border border-slate-100">
-                        <Clock className="w-4 h-4 text-slate-400" />
+                    <div className="flex items-start gap-6 group/item">
+                      <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 border border-white/5 group-hover/item:border-indigo-500/30 transition-colors">
+                        <Clock size={18} className="text-slate-500 group-hover/item:text-indigo-400" />
                       </div>
                       <div className="flex-1 mt-1.5">
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Dushanba - Juma</p>
-                        <p className="text-xs font-bold text-slate-800">
-                          {branch.working_hours?.mon?.closed ? 'Yopiq' : `${branch.working_hours?.mon?.open} - ${branch.working_hours?.mon?.close}`}
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1.5">Working Hours</p>
+                        <p className="text-xs font-black text-slate-900 uppercase tracking-widest">
+                          {branch.working_hours?.mon?.closed ? (
+                            <span className="text-rose-500">Closed</span>
+                          ) : (
+                            <span className="tabular-nums">{branch.working_hours?.mon?.open} - {branch.working_hours?.mon?.close}</span>
+                          )}
                         </p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    ID: {branch.id}
+                <div className="mt-10 pt-8 border-t border-slate-100 flex items-center justify-between">
+                  <div className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em]">
+                    Branch ID: {branch.id}
                   </div>
                   {branch.latitude && branch.longitude && (
                     <a 
                       href={`https://www.google.com/maps?q=${branch.latitude},${branch.longitude}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5 hover:underline"
+                      className="h-10 px-6 bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest rounded-xl flex items-center gap-3 hover:bg-slate-100 hover:text-slate-900 transition-all border border-slate-100"
                     >
-                      <Globe className="w-3 h-3" />
-                      Map view
+                      <Globe size={14} />
+                      Live Location
                     </a>
                   )}
                 </div>
@@ -290,125 +306,106 @@ export function Branches() {
       {/* Branch Modal */}
       <AnimatePresence>
         {isModalOpen && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto pt-20 pb-20">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-2xl overflow-y-auto">
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsModalOpen(false)}
-              className="fixed inset-0 bg-slate-950/40 backdrop-blur-md"
-            />
-            
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl relative z-10 overflow-hidden"
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="w-full max-w-4xl bg-white border border-slate-200 rounded-[48px] shadow-2xl overflow-hidden"
             >
               {/* Modal Header */}
-              <div className="px-10 py-8 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+              <div className="px-12 py-10 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
-                  <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase">
+                  <h2 className="text-3xl font-black text-slate-900 tracking-tighter uppercase font-heading">
                     {editingBranch ? (language === 'uz' ? 'Filialni tahrirlash' : 'Edit Branch') : (language === 'uz' ? "Yangi filial qo'shish" : 'Add New Branch')}
                   </h2>
-                  <p className="text-[10px] text-slate-500 uppercase tracking-widest font-black mt-1">
+                  <p className="text-[10px] text-slate-400 uppercase tracking-[0.3em] font-black mt-2">
                     {language === 'uz' ? "Do'koningiz filiali haqidagi ma'lumotlar" : 'Branch location and operational details'}
                   </p>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="w-12 h-12 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:border-slate-300 transition-all">
-                  <X className="w-6 h-6" />
+                <button onClick={() => setIsModalOpen(false)} className="w-14 h-14 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all">
+                  <X size={24} />
                 </button>
               </div>
 
               {/* Modal Body */}
-              <div className="p-10 max-h-[70vh] overflow-y-auto no-scrollbar space-y-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="p-12 max-h-[65vh] overflow-y-auto no-scrollbar space-y-12">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Filial Nomi</label>
-                    <Input 
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Branch Name</label>
+                    <input 
                       value={name} 
-                      onChange={setName} 
+                      onChange={(e) => setName(e.target.value)} 
                       placeholder={language === 'uz' ? "Masalan: Markaziy filial" : "e.g. Central Branch"}
-                      className="!rounded-2xl !bg-slate-50 !border-slate-100 !h-14 font-bold"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-[24px] px-8 py-5 text-slate-900 font-black outline-none focus:border-indigo-500/50 transition-all"
                     />
                   </div>
                   <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Telefon Raqami</label>
-                    <Input 
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Phone Number</label>
+                    <input 
                       value={phone} 
-                      onChange={setPhone} 
+                      onChange={(e) => setPhone(e.target.value)} 
                       placeholder="+998..." 
-                      className="!rounded-2xl !bg-slate-50 !border-slate-100 !h-14 font-bold"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-[24px] px-8 py-5 text-slate-900 font-black outline-none focus:border-indigo-500/50 transition-all tabular-nums"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Manzil</label>
-                  <TextArea 
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Address</label>
+                  <textarea 
                     value={address} 
-                    onChange={setAddress} 
+                    onChange={(e) => setAddress(e.target.value)} 
                     placeholder={language === 'uz' ? "To'liq manzil kiriting..." : "Enter full address..."}
-                    className="!rounded-2xl !bg-slate-50 !border-slate-100 font-bold !min-h-[100px]"
+                    rows={3}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-[24px] px-8 py-6 text-slate-900 font-black outline-none focus:border-indigo-500/50 transition-all resize-none"
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
-                       Kenglik (Latitude) <AlertCircle className="w-3 h-3 text-slate-300" />
-                    </label>
-                    <Input 
-                      type="number"
-                      value={lat?.toString() || ''} 
-                      onChange={(e) => setLat(parseFloat(e))} 
-                      placeholder="41.311081" 
-                      className="!rounded-2xl !bg-slate-50 !border-slate-100 !h-14 font-bold"
-                    />
-                  </div>
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
-                      Uzunlik (Longitude) <AlertCircle className="w-3 h-3 text-slate-300" />
-                    </label>
-                    <Input 
-                      type="number"
-                      value={lng?.toString() || ''} 
-                      onChange={(e) => setLng(parseFloat(e))} 
-                      placeholder="69.240562" 
-                      className="!rounded-2xl !bg-slate-50 !border-slate-100 !h-14 font-bold"
-                    />
-                  </div>
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-1 flex items-center gap-2">
+                     Kartadan manzilni tanlang <AlertCircle size={14} className="text-slate-700" />
+                  </label>
+                  <LocationPicker 
+                    initialLat={lat || undefined} 
+                    initialLng={lng || undefined} 
+                    onLocationSelect={(selectedLat, selectedLng, selectedAddr) => {
+                      setLat(selectedLat);
+                      setLng(selectedLng);
+                      if (selectedAddr) setAddress(selectedAddr);
+                    }} 
+                  />
                 </div>
 
                 {/* Working Hours Configuration */}
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5" /> Ish tartibi
+                <div className="space-y-8">
+                  <div className="flex items-center justify-between px-1">
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-3">
+                      <Clock size={16} /> Operation Schedule
                     </label>
                   </div>
                   
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {days.map((day) => (
                       <div 
                         key={day.key}
-                        className={`p-4 rounded-2xl border flex items-center justify-between transition-all ${workingHours[day.key].closed ? 'bg-slate-50 border-slate-100 opacity-60' : 'bg-white border-slate-200'}`}
+                        className={`p-6 rounded-[32px] border transition-all duration-700 flex items-center justify-between ${workingHours[day.key].closed ? 'bg-white/5 border-white/5 opacity-40' : 'bg-white/[0.03] border-white/5 hover:border-indigo-500/30'}`}
                       >
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-6">
                           <button 
                             onClick={() => setWorkingHours(prev => ({
                               ...prev,
                               [day.key]: { ...prev[day.key], closed: !prev[day.key].closed }
                             }))}
-                            className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${workingHours[day.key].closed ? 'bg-slate-200 text-slate-400' : 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'}`}
+                            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-500 ${workingHours[day.key].closed ? 'bg-slate-800 text-slate-600' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/30'}`}
                           >
-                            <Check className={`w-3.5 h-3.5 ${workingHours[day.key].closed ? 'opacity-0' : 'opacity-100'}`} />
+                            <Check size={16} className={workingHours[day.key].closed ? 'opacity-0' : 'opacity-100'} />
                           </button>
-                          <span className="text-xs font-black uppercase tracking-widest text-slate-700 w-24">{day.label}</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 w-24">{day.label}</span>
                         </div>
                         
                         {!workingHours[day.key].closed ? (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <input 
                               type="time" 
                               value={workingHours[day.key].open}
@@ -416,9 +413,9 @@ export function Branches() {
                                 ...prev,
                                 [day.key]: { ...prev[day.key], open: e.target.value }
                               }))}
-                              className="px-3 py-2 rounded-xl bg-slate-100 border-transparent text-[11px] font-bold outline-none focus:bg-white focus:border-indigo-500/50" 
+                              className="px-4 py-3 rounded-xl bg-slate-950/50 border border-white/5 text-[11px] font-black text-white outline-none focus:border-indigo-500/50 tabular-nums" 
                             />
-                            <span className="text-slate-300 font-bold">-</span>
+                            <span className="text-slate-800 font-black">-</span>
                             <input 
                               type="time"
                               value={workingHours[day.key].close}
@@ -426,44 +423,51 @@ export function Branches() {
                                 ...prev,
                                 [day.key]: { ...prev[day.key], close: e.target.value }
                               }))}
-                              className="px-3 py-2 rounded-xl bg-slate-100 border-transparent text-[11px] font-bold outline-none focus:bg-white focus:border-indigo-500/50" 
+                              className="px-4 py-3 rounded-xl bg-slate-950/50 border border-white/5 text-[11px] font-black text-white outline-none focus:border-indigo-500/50 tabular-nums" 
                             />
                           </div>
                         ) : (
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mr-4">Dam olish kuni</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 mr-4 italic">Weekend / Closed</span>
                         )}
                       </div>
                     ))}
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-slate-100">
-                  <label className="flex items-center gap-4 cursor-pointer group">
+                <div className="pt-10 border-t border-white/5">
+                  <label className="flex items-center gap-6 cursor-pointer group w-fit">
                     <div className="relative inline-flex items-center">
                       <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} className="sr-only peer" />
-                      <div className="w-12 h-6 bg-slate-200 rounded-full peer-checked:bg-emerald-500 transition-all duration-300 relative">
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300 ${isActive ? 'translate-x-6' : ''}`} />
+                      <div className={`w-14 h-7 rounded-full transition-all duration-500 relative cursor-pointer ${isActive ? 'bg-emerald-600 shadow-2xl shadow-emerald-600/30' : 'bg-slate-800'}`}>
+                        <div className={`absolute top-1 w-5 h-5 rounded-full bg-white transition-all duration-500 shadow-lg ${isActive ? 'left-[32px]' : 'left-[4px]'}`} />
                       </div>
                     </div>
-                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] group-hover:text-slate-800 transition-colors">
-                      {isActive ? (language === 'uz' ? 'Filial hozirda faol' : 'Branch Active Now') : (language === 'uz' ? 'Vaqtincha yopiq' : 'Temporarily Closed')}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black text-white uppercase tracking-widest group-hover:text-indigo-400 transition-colors">
+                        {isActive ? (language === 'uz' ? 'Filial hozirda faol' : 'Branch Active Now') : (language === 'uz' ? 'Vaqtincha yopiq' : 'Temporarily Closed')}
+                      </span>
+                      <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest mt-1">Status and Visibility</span>
+                    </div>
                   </label>
                 </div>
               </div>
 
               {/* Modal Footer */}
-              <div className="px-10 py-8 bg-slate-50/50 border-t border-slate-100 flex items-center justify-end gap-4">
-                <Button variant="outline" onClick={() => setIsModalOpen(false)} className="rounded-2xl h-14 px-10 font-black uppercase tracking-widest text-[11px]">
+              <div className="px-12 py-10 bg-slate-50/50 border-t border-slate-100 flex items-center justify-end gap-6">
+                <button 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="h-16 px-10 border border-slate-200 text-slate-500 rounded-[24px] font-black uppercase tracking-widest text-[11px] hover:bg-slate-100 transition-all"
+                >
                   {language === 'uz' ? 'Bekor qilish' : 'Cancel'}
-                </Button>
-                <Button 
+                </button>
+                <button 
                   onClick={handleSave} 
                   disabled={isSaving || !name || !address} 
-                  className="rounded-2xl h-14 px-12 font-black uppercase tracking-widest text-[11px] bg-indigo-500 text-white shadow-2xl shadow-indigo-500/30"
+                  className="h-16 px-12 bg-indigo-600 text-white rounded-[24px] font-black uppercase tracking-[0.2em] text-[11px] shadow-2xl shadow-indigo-600/30 hover:scale-105 transition-all flex items-center gap-4 disabled:opacity-50 disabled:grayscale"
                 >
-                  {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : editingBranch ? (language === 'uz' ? 'Saqlash' : 'Save Changes') : (language === 'uz' ? "Qo'shish" : 'Add Branch')}
-                </Button>
+                  {isSaving ? <Loader2 size={18} className="animate-spin" /> : editingBranch ? (language === 'uz' ? 'Saqlash' : 'Save Changes') : (language === 'uz' ? "Qo'shish" : 'Add Branch')}
+                  {!isSaving && <ChevronRight size={18} />}
+                </button>
               </div>
             </motion.div>
           </div>

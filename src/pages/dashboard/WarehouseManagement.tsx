@@ -5,7 +5,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Package, AlertTriangle, TrendingUp, TrendingDown, MapPin, ArrowRightLeft } from 'lucide-react';
-import { inventoryAPI } from '../../services/expandedAPI';
+import { supabaseApi } from '../../services/supabaseService';
 
 export function WarehouseManagement({ storeId }: { storeId: number }) {
   const [warehouses, setWarehouses] = useState([]);
@@ -18,16 +18,17 @@ export function WarehouseManagement({ storeId }: { storeId: number }) {
 
   const loadWarehouseData = async () => {
     try {
-      const [warehousesRes, alertsRes] = await Promise.all([
-        inventoryAPI.getWarehouses(storeId),
-        inventoryAPI.getAlerts(1) // Default warehouse
-      ]);
-
-      setWarehouses(warehousesRes.data);
-      setAlerts(alertsRes.data);
+      const warehousesData = await supabaseApi.warehouses.list(storeId);
+      setWarehouses(warehousesData || []);
+      
+      if (warehousesData && warehousesData.length > 0) {
+        const alertsData = await supabaseApi.warehouses.getAlerts(warehousesData[0].id);
+        setAlerts(alertsData || []);
+      }
+      
       setLoading(false);
     } catch (error) {
-      console.error('Failed to load warehouse data:', error);
+      console.error('Failed to load warehouse data from Supabase:', error);
       setLoading(false);
     }
   };

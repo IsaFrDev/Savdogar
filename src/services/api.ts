@@ -6,7 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL ||
         : `${typeof window !== 'undefined' ? window.location.origin : ''}/api`);
 
 // Create axios instance
-const api = axios.create({
+export const api = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: true,
     headers: {
@@ -292,6 +292,9 @@ export const storeApi = {
         api.post(`/stores/${storeId}/staff/${staffId}/toggle_permission/`, data),
     getExchangeRates: () => api.get('/stores/exchange-rates/'),
     acknowledgeRejection: () => api.post('/stores/acknowledge-rejection/'),
+    // Warehouses
+    listWarehouses: (storeId: number) => api.get(`/stores/${storeId}/branches/`, { params: { type: 'warehouse' } }),
+    createWarehouse: (storeId: number, data: any) => api.post(`/stores/${storeId}/branches/`, { ...data, type: 'warehouse' }),
 };
 
 // Product API
@@ -342,6 +345,63 @@ export const productApi = {
     getAiAnalytics: (storeId: string) => api.get(`/products/ai/analytics/?store=${storeId}`),
     getAiDynamicPricing: (storeId: string) => api.get(`/products/ai/dynamic-pricing/?store=${storeId}`),
     getAiCustomerInsights: (storeId: string) => api.get(`/products/ai/customer-insights/?store=${storeId}`),
+    
+    // NEW AI Features (Phase A2)
+    // Forecasting
+    getAiForecast: (storeId: number, days: number = 7) => 
+        api.get(`/products/ai/forecast/${storeId}/`, { params: { days } }),
+    getAiDemandPrediction: (productId: number) => 
+        api.get(`/products/ai/demand-prediction/${productId}/`),
+    
+    // Pricing
+    getAiPricingSuggestions: (storeId: number, productIds?: number[]) => {
+        const params = productIds ? { products: productIds.join(',') } : {};
+        return api.get(`/products/ai/pricing-suggestions/${storeId}/`, { params });
+    },
+    getAiOptimalDiscount: (productId: number, targetIncrease: number = 0.20) => 
+        api.get(`/products/ai/optimal-discount/${productId}/`, { params: { target: targetIncrease } }),
+    
+    // Recommendations
+    getAiRecommendations: (productId: number, type: 'similar' | 'cross_sell' | 'upsell' = 'similar') => 
+        api.get(`/products/ai/recommendations/${productId}/`, { params: { type } }),
+    getAiPersonalizedRecommendations: (storeId: number, limit: number = 10) => 
+        api.get(`/products/ai/personalized/${storeId}/`, { params: { limit } }),
+    getAiTrendingProducts: (storeId: number, days: number = 7, limit: number = 10) => 
+        api.get(`/products/ai/trending/${storeId}/`, { params: { days, limit } }),
+    
+    // Inventory
+    getAiInventoryHealth: (storeId: number) => 
+        api.get(`/products/ai/inventory-health/${storeId}/`),
+    getAiRestockPrediction: (productId: number, leadTime: number = 7) => 
+        api.get(`/products/ai/restock-prediction/${productId}/`, { params: { lead_time: leadTime } }),
+    getAiDeadStock: (storeId: number, threshold: number = 90) => 
+        api.get(`/products/ai/dead-stock/${storeId}/`, { params: { threshold } }),
+    getAiSafetyStock: (productId: number, serviceLevel: number = 0.95) => 
+        api.get(`/products/ai/safety-stock/${productId}/`, { params: { service_level: serviceLevel } }),
+    
+    // Customer Analytics
+    getAiCustomerSegmentation: (storeId: number) => 
+        api.get(`/products/ai/customer-segmentation/${storeId}/`),
+    getAiChurnPrediction: (customerId: number) => 
+        api.get(`/products/ai/churn-prediction/${customerId}/`),
+    getAiCustomerLTV: (customerId: number) => 
+        api.get(`/products/ai/customer-ltv/${customerId}/`),
+    getAiCustomerInsightsV2: (storeId: number) => 
+        api.get(`/products/ai/customer-insights-v2/${storeId}/`),
+    
+    // Reviews
+    getAiReviewSentimentStore: (storeId: number) => 
+        api.get(`/products/ai/review-sentiment/store/${storeId}/`),
+    getAiReviewSentimentProduct: (productId: number) => 
+        api.get(`/products/ai/review-sentiment/product/${productId}/`),
+    getAiReviewSummary: (storeId: number) => 
+        api.get(`/products/ai/review-summary/${storeId}/`),
+    
+    // Collections & Bundles
+    getAiBundleSuggestions: (productIds: number[]) => 
+        api.post('/products/ai/bundles/', { product_ids: productIds }),
+    getAiCuratedCollection: (storeId: number, theme: string = 'bestsellers', limit: number = 8) => 
+        api.get(`/products/ai/curated-collection/${storeId}/`, { params: { theme, limit } }),
     // POS
     posSale: (data: { store_id: number; items: { product_id: number; quantity: number }[]; payment_method: string }) =>
         api.post('/products/pos/sale/', data),
@@ -483,11 +543,19 @@ export const analyticsApi = {
     getTopProducts: (storeId: number, limit: number = 10) =>
         api.get('/analytics/top-products/', { params: { store_id: storeId, limit } }),
 
-    getCustomers: (storeId: number) =>
-        api.get('/analytics/customers/', { params: { store_id: storeId } }),
+    getCustomers: (storeId: number, days?: number) =>
+        api.get('/analytics/customers/', { params: { store_id: storeId, days } }),
 
     exportData: (storeId: number, type: 'orders' | 'products' | 'customers' = 'orders') =>
         api.get('/analytics/export/', { params: { store_id: storeId, type }, responseType: 'blob' }),
+    
+    // NEW Advanced Analytics (Phase A3)
+    getDashboard: (storeId: number, days: number = 30) =>
+        api.get(`/analytics/dashboard/${storeId}/`, { params: { days } }),
+    getRevenue: (storeId: number, days: number = 30) =>
+        api.get(`/analytics/revenue/${storeId}/`, { params: { days } }),
+    getProducts: (storeId: number, days: number = 30) =>
+        api.get(`/analytics/products/${storeId}/`, { params: { days } }),
 };
 
 export const aiApi = {
@@ -593,6 +661,18 @@ export const marketingApi = {
 
     generateSMMContent: (params: { product_id: number; platform: string; language: string }) =>
         api.post('/marketing/ai/generate-smm/', params),
+    
+    // Campaigns
+    listCampaigns: (storeId?: number) => api.get('/marketing/campaigns/', { params: { store: storeId } }),
+    createCampaign: (data: any) => api.post('/marketing/campaigns/', data),
+    deployCampaign: (id: number) => api.post(`/marketing/campaigns/${id}/deploy/`),
+    getAiStrategy: (storeId: number, lang: string = 'uz') => 
+        api.get('/marketing/ai/strategy/', { params: { store: storeId, lang } }),
+    
+    // Workflows & Templates
+    listWorkflows: (storeId: number) => api.get('/marketing/workflows/', { params: { store: storeId } }),
+    listEmailTemplates: (storeId: number) => api.get('/marketing/email-templates/', { params: { store: storeId } }),
+    listSmsTemplates: (storeId: number) => api.get('/marketing/sms-templates/', { params: { store: storeId } }),
 };
 
 // ============= NEW FEATURE APIS =============
@@ -699,7 +779,7 @@ export const bannerApi = {
     list: (storeId: number) => api.get(`/stores/${storeId}/banners/`),
     create: (storeId: number, data: FormData) => api.post(`/stores/${storeId}/banners/`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
     update: (storeId: number, id: number, data: any) => api.patch(`/stores/${storeId}/banners/${id}/`, data),
-    delete: (storeId: number, id: number) => api.delete(`/stores/${storeId}/banners/${id}/`),
+    deleteBanner: (storeId: number, id: number) => api.delete(`/stores/${storeId}/banners/${id}/`),
 };
 
 // Staff Roles API
@@ -742,6 +822,54 @@ export const builderApi = {
         api.post('/stores/builder/html/', { store_id: storeId, store_html }),
     saveFiles: (storeId: number, store_files: any) =>
         api.post('/stores/builder/files/', { store_id: storeId, store_files }),
+};
+
+// ERP & Finance
+export const erpApi = {
+    // Customer Debts
+    listDebts: (storeId: number) => api.get('/erp/customer-debts/', { params: { store_id: storeId } }),
+    getDebt: (id: number) => api.get(`/erp/customer-debts/${id}/`),
+    createDebt: (data: any) => api.post('/erp/customer-debts/', data),
+    updateDebt: (id: number, data: any) => api.patch(`/erp/customer-debts/${id}/`, data),
+    
+    // Debt Transactions
+    listTransactions: (debtId: number) => api.get('/erp/debt-transactions/', { params: { debt_id: debtId } }),
+    createTransaction: (data: { debt: number; amount: number; transaction_type: 'increase' | 'decrease'; description?: string; transaction_date?: string }) => 
+        api.post('/erp/debt-transactions/', data),
+
+    // Vendors
+    listVendors: (storeId: number) => api.get('/erp/vendors/', { params: { store: storeId } }),
+    createVendor: (data: any) => api.post('/erp/vendors/', data),
+    getVendorHistory: (id: number) => api.get(`/erp/vendors/${id}/purchase_history/`),
+
+    // Purchase Orders
+    listPOs: (storeId: number) => api.get('/erp/purchase-orders/', { params: { store: storeId } }),
+    createPO: (data: any) => api.post('/erp/purchase-orders/', data),
+    approvePO: (id: number) => api.post(`/erp/purchase-orders/${id}/approve/`),
+    receivePO: (id: number) => api.post(`/erp/purchase-orders/${id}/receive/`),
+    getPOAnalytics: (storeId: number) => api.get('/erp/purchase-orders/analytics/', { params: { store: storeId } }),
+
+    // Stock Rules & Warehouses
+    listReorderRules: (storeId: number) => api.get('/erp/reorder-rules/', { params: { store: storeId } }),
+    listShipments: (storeId: number) => api.get('/erp/shipments/', { params: { store: storeId } }),
+    listTransfers: (storeId: number) => api.get('/erp/warehouse-transfers/', { params: { store: storeId } }),
+    
+    // Expenses
+    listExpenses: (storeId: number) => api.get('/erp/expenses/', { params: { store: storeId } }),
+    getExpenseAnalytics: (storeId: number) => api.get('/erp/expenses/analytics/', { params: { store: storeId } }),
+};
+
+// POS Specific
+export const posApi = {
+    listRegisters: (storeId: number) => api.get('/pos/registers/', { params: { store: storeId } }),
+    openRegister: (id: number, startingCash: number) => api.post(`/pos/registers/${id}/open/`, { starting_cash: startingCash }),
+    closeRegister: (id: number, actualCash: number) => api.post(`/pos/registers/${id}/close/`, { actual_cash: actualCash }),
+    
+    listSessions: (storeId: number) => api.get('/pos/sessions/', { params: { store: storeId } }),
+    
+    listTransactions: (storeId: number) => api.get('/pos/transactions/', { params: { store: storeId } }),
+    refundTransaction: (id: number, reason: string) => api.post(`/pos/transactions/${id}/refund/`, { reason }),
+    getPosAnalytics: (storeId: number) => api.get('/pos/transactions/analytics/', { params: { store: storeId } }),
 };
 
 export default api;
