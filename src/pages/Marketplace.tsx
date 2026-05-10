@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useApp, Store as StoreType } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { storeApi } from '../services/api';
+import { supabaseApi } from '../services/supabaseService';
 import { getMediaUrl } from '../utils/media';
 import { Button } from '../components/Button';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -59,9 +59,11 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
   const loadMarketplace = async () => {
     setLoading(true);
     try {
-      const response = await storeApi.getMarketplace();
+      const response = await supabaseApi.stores.getMarketplace();
+      // Safely get data as array
+      const storesData = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
       // Sort by rating or newest
-      const sorted = response.data.sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0));
+      const sorted = storesData.sort((a: any, b: any) => (b.rating || 0) - (a.rating || 0));
       setStores(sorted);
     } catch (error) {
       console.error('Failed to load marketplace stores:', error);
@@ -76,7 +78,7 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          const response = await storeApi.getNearby(latitude, longitude);
+          const response = await supabaseApi.stores.getNearby(latitude, longitude);
           setNearbyStores(response.data);
           setShowNearby(true);
         } catch (error) {
