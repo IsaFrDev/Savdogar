@@ -31,7 +31,7 @@ const templates = [
 
 export function StoreWizard({ onComplete }: StoreWizardProps) {
     const { t, language, addStore } = useApp();
-    const { refreshUser } = useAuth();
+    const { refreshUser, user } = useAuth();
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
@@ -190,7 +190,9 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
             const storeData = {
                 name: storeName,
                 slug: slug,
-                business_type: finalBusinessType || 'other'
+                business_type: finalBusinessType || 'other',
+                owner_id: user?.id,
+                status: 'pending'
             };
 
             const createdStore = await supabaseApi.stores.create(storeData);
