@@ -1,14 +1,12 @@
 import { supabase } from '../supabase';
 
-const PROJECT_TYPE = import.meta.env.VITE_PROJECT_TYPE || 'savdoon';
 
 export const supabaseApi = {
     // Stores
     stores: {
         list: async () => {
             const { data, error } = await supabase.from('stores')
-                .select('*')
-                .eq('project_type', PROJECT_TYPE);
+                .select('*');
             if (error) throw error;
             return { data };
         },
@@ -24,7 +22,7 @@ export const supabaseApi = {
         },
         create: async (storeData: any) => {
             const { data, error } = await supabase.from('stores')
-                .insert([{ ...storeData, project_type: PROJECT_TYPE }])
+                .insert([storeData])
                 .select();
             if (error) throw error;
             return data[0];
@@ -36,7 +34,6 @@ export const supabaseApi = {
         getMarketplace: async () => {
             const { data, error } = await supabase.from('stores')
                 .select('*')
-                .eq('project_type', PROJECT_TYPE)
                 .order('rating', { ascending: false });
             if (error) throw error;
             return { data };
@@ -51,7 +48,6 @@ export const supabaseApi = {
         getPendingStores: async () => {
             const { data, error } = await supabase.from('stores')
                 .select('*, owner_details:profiles(*)')
-                .eq('project_type', PROJECT_TYPE)
                 .in('status', ['pending', 'draft']);
             if (error) throw error;
             return { data };
