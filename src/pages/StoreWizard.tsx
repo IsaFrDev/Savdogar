@@ -187,34 +187,10 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
             const rawCategory = businessCategory === 'other' ? customCategory : businessCategory;
             const finalBusinessType = backendTypeMap[rawCategory] || 'other';
 
-            const deliverySettings = {
-                enabled: !catalogMode,
-                order_fee: deliveryFee ? parseInt(deliveryFee) : 0
-            };
-
-            let logoUrl = '';
-            if (logoFile) {
-                const fileName = `${Date.now()}-${logoFile.name}`;
-                logoUrl = await supabaseApi.storage.upload('store-logos', fileName, logoFile);
-            }
-
             const storeData = {
                 name: storeName,
                 slug: slug,
-                description,
-                business_type: finalBusinessType || 'other',
-                pickup_address: pickupAddress,
-                latitude: latitude ? parseFloat(latitude) : undefined,
-                longitude: longitude ? parseFloat(longitude) : undefined,
-                branch_name: branchName,
-                branch_phone: branchPhone,
-                telegram_bot_token: botToken,
-                telegram_chat_id: chatId,
-                catalog_mode: catalogMode,
-                default_language: defaultLang,
-                signature_data: signatureData,
-                agree_to_terms: agreeToTerms,
-                telegram_username: telegramUsername
+                business_type: finalBusinessType || 'other'
             };
 
             const createdStore = await supabaseApi.stores.create(storeData);
