@@ -34,7 +34,7 @@ export const supabaseApi = {
         getMarketplace: async () => {
             const { data, error } = await supabase.from('stores')
                 .select('*')
-                .order('rating', { ascending: false });
+                .order('created_at', { ascending: false });
             if (error) throw error;
             return { data };
         },
