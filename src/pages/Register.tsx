@@ -49,8 +49,8 @@ export function Register({ onSuccess, onLogin }: RegisterProps) {
       const last_name = nameParts.slice(1).join(' ') || '';
 
       await register({
-        email,
-        username: email, // Use email as username
+        email: email.trim(),
+        username: email.trim(), // Use email as username
         password,
         password2: password,
         first_name,
