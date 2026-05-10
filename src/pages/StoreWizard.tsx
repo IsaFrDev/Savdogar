@@ -150,36 +150,8 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
         }
 
         if (step === 3) {
-            if (complianceResult) {
-                setStep(4);
-                return;
-            }
-
-            if (description.trim().length > 10) {
-                setIsAnalyzingBusiness(true);
-                setError('');
-                try {
-                    const res = await supabaseApi.ai.analyzeBusiness({
-                        description: description,
-                        business_type: selectedTemplate.type,
-                        language
-                    });
-                    setComplianceResult(res.data);
-                    if (!res.data.is_allowed) {
-                        setError(res.data.reason);
-                        return;
-                    }
-                    setStep(3);
-                } catch (err) {
-                    setStep(4);
-                } finally {
-                    setIsAnalyzingBusiness(false);
-                }
-                return;
-            } else {
-                setStep(4);
-                return;
-            }
+            setStep(4);
+            return;
         }
 
         if (step < 8) setStep(step + 1);
@@ -242,12 +214,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                 default_language: defaultLang,
                 signature_data: signatureData,
                 agree_to_terms: agreeToTerms,
-                telegram_username: telegramUsername,
-                primary_color: primaryColor,
-                secondary_color: secondaryColor,
-                delivery_settings: deliverySettings,
-                theme_config: { platform, business_main_type: businessType },
-                logo: logoUrl || undefined
+                telegram_username: telegramUsername
             };
 
             const createdStore = await supabaseApi.stores.create(storeData);
@@ -603,38 +570,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
 
 
 
-                        {step === 3 && (
-                            <div className="space-y-6">
-                                <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Sparkles className="w-6 h-6 text-[var(--brand-primary)]" />
-                                        <h2 className="text-2xl font-bold text-[var(--text-main)] w-full">{t('aiAnalysisTitle')}</h2>
-                                    </div>
-                                    <p className="text-[var(--text-dim)] text-sm">{t('aiAnalysisSubtitle')}</p>
-                                </div>
-                                {complianceResult && (
-                                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                                        <div className="p-5 rounded-2xl bg-white/5 border border-white/10 shadow-sm bg-slate-50">
-                                            <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">{t('summary')}</h3>
-                                            <p className="text-sm leading-relaxed text-slate-700 italic">"{complianceResult.summary}"</p>
-                                        </div>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            <div className="p-5 rounded-2xl bg-green-500/10 border border-green-500/20">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-green-600 mb-3">{t('suggestedCategory')}</h3>
-                                                <p className="text-xl font-bold text-green-700 capitalize">{complianceResult.suggested_category}</p>
-                                            </div>
-                                            <div className="p-5 rounded-2xl bg-blue-500/10 border border-blue-500/20">
-                                                <h3 className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-3">{t('status')}</h3>
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                                    <p className="text-sm font-bold text-blue-700">{t('verifiedAndCompliant')}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
+
 
                         {step === 4 && (
                             <div className="space-y-6">
