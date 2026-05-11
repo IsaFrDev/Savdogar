@@ -21,17 +21,13 @@ export function ContractPreview({ onAgree, agreed }: ContractPreviewProps) {
 
     const loadContract = async () => {
         setLoading(true);
+        // We use local templates for reliability and to avoid unnecessary 404s in console
+        // until a dynamic contract management system is implemented in Supabase.
         try {
-            const response = await storeApi.getContractTemplate(language);
-            const apiContent = response.data.content || '';
-            // Only use API content if it's a real, complete contract (> 200 chars)
-            if (apiContent.length > 200) {
-                setContractContent(apiContent);
-            } else {
-                setContractContent(getLocalContract(language));
-            }
+            setContractContent(getLocalContract(language));
+            // Optional: simulate small delay for better UX transition
+            await new Promise(resolve => setTimeout(resolve, 300));
         } catch (error) {
-            // Fallback to hardcoded content
             setContractContent(getLocalContract(language));
         }
         setLoading(false);

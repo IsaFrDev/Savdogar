@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Store, Settings, MapPin, MessageCircle, FileSignature, Check, ChevronRight, ChevronLeft, Upload, AlertCircle, Sparkles, Loader2, Download, LayoutTemplate, Palette, Eye, X } from 'lucide-react';
+import { Store, Settings, MapPin, MessageCircle, FileSignature, Check, ChevronRight, ChevronLeft, Upload, AlertCircle, Sparkles, Loader2, Download, LayoutTemplate, Palette, Eye, X, FolderCheck } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { supabaseApi } from '../services/supabaseService';
