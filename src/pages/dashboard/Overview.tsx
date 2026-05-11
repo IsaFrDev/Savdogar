@@ -145,7 +145,13 @@ export function Overview({ storeId, onTabChange }: OverviewProps) {
         <div className="flex flex-col gap-6 relative z-10">
            <div className="flex items-center gap-4">
               <div className="w-12 h-1 bg-slate-950 rounded-full shadow-xl shadow-slate-950/10" />
-              <span className="text-xs font-black text-slate-400 uppercase tracking-[0.5em]">{t('commandCenter')}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-black text-slate-400 uppercase tracking-[0.5em]">{t('commandCenter')}</span>
+                <div className="flex items-center gap-2 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-100">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest">Live</span>
+                </div>
+              </div>
           </div>
           <h1 className="text-4xl font-black text-slate-950 tracking-tighter uppercase font-heading leading-none">
             {t('welcomeUser')} <br />
@@ -159,9 +165,6 @@ export function Overview({ storeId, onTabChange }: OverviewProps) {
               </motion.div>
             </span>
           </h1>
-          <p className="text-slate-400 uppercase tracking-[0.3em] text-[10px] font-black max-w-lg leading-relaxed">
-            {t('businessGrowthMsg', { percent: '12.5' })}
-          </p>
         </div>
 
         <div className="flex flex-wrap gap-4 p-3 bg-white rounded-[32px] shadow-2xl shadow-slate-200/50 border-2 border-slate-50 relative z-10 items-center">
@@ -196,6 +199,29 @@ export function Overview({ storeId, onTabChange }: OverviewProps) {
         
         {/* Background Decorative Element */}
         <div className="absolute -top-20 -left-20 w-[600px] h-[600px] bg-slate-100/50 blur-[120px] rounded-full pointer-events-none" />
+      </div>
+
+      {/* Quick Actions Matrix */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        {[
+          { id: 'products', label: t('addProduct'), icon: Plus, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+          { id: 'marketing', label: t('createCampaign'), icon: Zap, color: 'text-fuchsia-600', bg: 'bg-fuchsia-50' },
+          { id: 'banners', label: t('visualAds'), icon: Image, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { id: 'orders', label: t('orders'), icon: ShoppingCart, color: 'text-amber-600', bg: 'bg-amber-50' },
+          { id: 'customers', label: t('customers'), icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { id: 'ai-studio', label: t('aiStudio'), icon: Sparkles, color: 'text-rose-600', bg: 'bg-rose-50' },
+        ].map((action, idx) => (
+          <button
+            key={idx}
+            onClick={() => onTabChange?.(action.id)}
+            className="flex flex-col items-center gap-4 p-6 rounded-[32px] bg-white border border-slate-50 hover:border-slate-950 transition-all group shadow-sm hover:shadow-xl"
+          >
+            <div className={`w-12 h-12 rounded-2xl ${action.bg} ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+              <action.icon size={20} />
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-950 text-center">{action.label}</span>
+          </button>
+        ))}
       </div>
 
       {/* Stats Grid - Ultra Premium Light Contrast */}

@@ -130,12 +130,14 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
 
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 1280;
+      const mobile = window.innerWidth < 1024;
       setIsMobile(mobile);
       if (mobile) setSidebarOpen(false);
+      else setSidebarOpen(window.innerWidth >= 1280);
     };
     window.addEventListener('resize', handleResize);
-    return () => window.removeResizeListener?.(handleResize) || window.removeEventListener('resize', handleResize);
+    handleResize();
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
@@ -285,25 +287,29 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       {/* Sidebar Navigation - Ultra Premium White Glass */}
       <motion.aside
         initial={false}
-        animate={{ width: sidebarOpen ? 280 : 88 }}
-        className="fixed left-0 top-0 h-screen bg-white border-r border-slate-100 z-50 flex flex-col transition-all duration-500 shadow-[20px_0_60px_-15px_rgba(0,0,0,0.03)]"
+        animate={{ 
+          width: isMobile ? (sidebarOpen ? '100%' : 0) : (sidebarOpen ? 280 : 88),
+          x: isMobile && !sidebarOpen ? -280 : 0
+        }}
+        className="fixed left-0 top-0 h-screen bg-white border-r border-slate-100 z-[60] flex flex-col transition-all duration-500 shadow-[20px_0_60px_-15px_rgba(0,0,0,0.03)] overflow-hidden"
       >
-        <div className="p-6 h-24 flex items-center justify-between border-b border-slate-50">
-           <div className="flex items-center gap-3">
+           <div className="flex items-center gap-3 w-full">
               <div 
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="w-11 h-11 bg-slate-950 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-950/20 group cursor-pointer hover:scale-105 transition-all"
+                className="w-11 h-11 bg-slate-950 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-950/20 group cursor-pointer hover:scale-105 transition-all shrink-0"
               >
                  <Zap size={20} className="group-hover:rotate-12 transition-transform" />
               </div>
-              {sidebarOpen && (
-                <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}>
-                   <h1 className="text-xl font-black tracking-tight uppercase font-heading leading-none text-slate-950">Savdoon</h1>
-                   <span className="text-[7px] font-black text-slate-300 uppercase tracking-[0.4em] mt-1 block">Growth v4.0</span>
-                </motion.div>
+              <div className="flex-1 overflow-hidden">
+                 <h1 className="text-xl font-black tracking-tight uppercase font-heading leading-none text-slate-950 truncate">Savdoon</h1>
+                 <span className="text-[7px] font-black text-slate-300 uppercase tracking-[0.4em] mt-1 block">Growth v4.0</span>
+              </div>
+              {isMobile && (
+                <button onClick={() => setSidebarOpen(false)} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
+                  <X size={20} />
+                </button>
               )}
            </div>
-        </div>
 
         {/* Store Selector - Redesigned for Light Mode */}
         {sidebarOpen && currentStore && (
@@ -407,8 +413,17 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
         style={{ marginLeft: isMobile ? 0 : (sidebarOpen ? 280 : 88) }}
       >
         {/* Global Control Bar */}
-        <div className="fixed top-0 right-0 left-0 h-24 px-12 z-40 pointer-events-none flex items-center justify-end gap-5" style={{ left: isMobile ? 0 : (sidebarOpen ? 280 : 88) }}>
-           <div className="pointer-events-auto flex items-center gap-3 p-2.5 bg-white/80 backdrop-blur-3xl border border-slate-50 rounded-2xl shadow-xl shadow-slate-200/40">
+        <div className="fixed top-0 right-0 left-0 h-20 px-4 lg:px-12 z-40 pointer-events-none flex items-center justify-between gap-5" style={{ left: isMobile ? 0 : (sidebarOpen ? 280 : 88) }}>
+           <div className="pointer-events-auto flex lg:hidden items-center">
+              <button 
+                onClick={() => setSidebarOpen(true)}
+                className="w-12 h-12 bg-white rounded-2xl border border-slate-100 shadow-xl flex items-center justify-center text-slate-950"
+              >
+                 <Menu size={24} />
+              </button>
+           </div>
+           
+           <div className="pointer-events-auto flex items-center gap-2 lg:gap-3 p-1.5 lg:p-2.5 bg-white/80 backdrop-blur-3xl border border-slate-50 rounded-2xl shadow-xl shadow-slate-200/40">
               <button 
                 onClick={() => {
                   if (currentStore?.slug) {
@@ -421,13 +436,13 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
                     alert('Do\'kon manzili topilmadi');
                   }
                 }}
-                className="h-10 px-5 bg-indigo-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-indigo-600/20"
+                className="h-10 px-3 lg:px-5 bg-indigo-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 lg:gap-3 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-indigo-600/20"
               >
                  <Globe size={14} />
-                 Do'konni ko'rish
+                 <span className="hidden sm:inline">Do'konni ko'rish</span>
               </button>
-              <div className="w-px h-6 bg-slate-100 mx-1.5" />
-              <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-950 transition-all cursor-pointer shadow-sm">
+              <div className="hidden sm:block w-px h-6 bg-slate-100 mx-1.5" />
+              <div className="hidden sm:flex w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 items-center justify-center text-slate-400 hover:text-slate-950 transition-all cursor-pointer shadow-sm">
                  <Search size={18} />
               </div>
               <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-950 transition-all cursor-pointer relative shadow-sm">
@@ -436,11 +451,13 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
               </div>
               <div className="w-px h-6 bg-slate-100 mx-1.5" />
               <LanguageSwitcher />
-              <div className="w-px h-6 bg-slate-100 mx-1.5" />
-              <ThemeToggle />
+              <div className="hidden xs:block w-px h-6 bg-slate-100 mx-1.5" />
+              <div className="hidden xs:block">
+                <ThemeToggle />
+              </div>
            </div>
            
-           <div className="pointer-events-auto flex items-center gap-3 p-2.5 bg-slate-950 rounded-2xl shadow-xl shadow-slate-950/20 px-6 h-[60px]">
+           <div className="pointer-events-auto hidden md:flex items-center gap-3 p-2.5 bg-slate-950 rounded-2xl shadow-xl shadow-slate-950/20 px-6 h-[60px]">
               <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 shadow-inner">
                  <Cpu size={16} className="animate-pulse" />
               </div>
