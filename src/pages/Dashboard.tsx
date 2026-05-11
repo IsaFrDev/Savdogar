@@ -235,13 +235,53 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
     );
 
     if (stores.length === 0) return (
-      <div className="flex flex-col items-center justify-center py-40 px-6 text-center">
-        <div className="w-24 h-24 rounded-[32px] bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-10">
-           <Store size={48} />
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-8 text-center relative overflow-hidden">
+        {/* Abstract Background Shapes */}
+        <div className="absolute inset-0 -z-10 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-50 blur-[120px] rounded-full opacity-60" />
+          <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-fuchsia-50 blur-[100px] rounded-full opacity-40" />
         </div>
-        <h2 className="text-3xl font-black text-white uppercase tracking-tighter mb-4">{t('noActiveStores')}</h2>
-        <p className="text-slate-500 max-w-sm mb-12 font-medium">{t('createFirstHub')}</p>
-        <button onClick={onCreateStore} className="h-16 px-12 bg-indigo-600 text-white rounded-[24px] font-black uppercase tracking-widest text-xs shadow-2xl shadow-indigo-600/30 hover:scale-105 transition-all">{t('createFirstStore')}</button>
+
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-32 h-32 rounded-[2.5rem] bg-white border border-slate-100 shadow-2xl flex items-center justify-center mb-10 group relative"
+        >
+          <div className="absolute inset-0 bg-indigo-500/5 rounded-[2.5rem] scale-125 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity" />
+          <Store className="w-12 h-12 text-indigo-500 group-hover:scale-110 transition-transform duration-500" />
+        </motion.div>
+
+        <motion.h2 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="text-4xl md:text-5xl font-black text-slate-900 mb-6 uppercase tracking-tighter"
+        >
+          Faol do'konlar <span className="text-indigo-600">mavjud emas</span>
+        </motion.h2>
+        
+        <motion.p 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-slate-500 max-w-md mb-12 text-lg font-medium leading-relaxed"
+        >
+          {t('createFirstHub') || "O'z imperiyangizni boshqarishni boshlash uchun birinchi biznes habingizni yarating."}
+        </motion.p>
+
+        <motion.button 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          onClick={onCreateStore} 
+          className="group relative h-16 px-12 bg-slate-950 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-indigo-100 hover:scale-[1.02] active:scale-[0.98] transition-all overflow-hidden"
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <span className="relative z-10 flex items-center gap-3">
+            <Plus size={18} />
+            {t('createFirstStore') || "Birinchi do'konni yaratish"}
+          </span>
+        </motion.button>
       </div>
     );
 
@@ -293,16 +333,16 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
         }}
         className="fixed left-0 top-0 h-screen bg-white border-r border-slate-100 z-[60] flex flex-col transition-all duration-500 shadow-[20px_0_60px_-15px_rgba(0,0,0,0.03)] overflow-hidden"
       >
-           <div className="flex items-center gap-3 w-full">
+           <div className="flex items-center gap-4 w-full p-4">
               <div 
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="w-11 h-11 bg-slate-950 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-950/20 group cursor-pointer hover:scale-105 transition-all shrink-0"
+                className="w-12 h-12 bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-slate-200 group cursor-pointer hover:scale-105 transition-all shrink-0"
               >
-                 <Zap size={20} className="group-hover:rotate-12 transition-transform" />
+                 <Zap size={22} className="group-hover:rotate-12 transition-transform" />
               </div>
               <div className="flex-1 overflow-hidden">
-                 <h1 className="text-xl font-black tracking-tight uppercase font-heading leading-none text-slate-950 truncate">Savdoon</h1>
-                 <span className="text-[7px] font-black text-slate-300 uppercase tracking-[0.4em] mt-1 block">Growth v4.0</span>
+                 <h1 className="text-xl font-black tracking-tighter uppercase font-heading leading-none text-slate-950 truncate">Savdoon</h1>
+                 <span className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.3em] mt-1.5 block">Growth v4.0</span>
               </div>
               {isMobile && (
                 <button onClick={() => setSidebarOpen(false)} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400">
@@ -367,12 +407,12 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
                      <button
                        key={tab.id}
                        onClick={() => { setActiveTab(tab.id); if (isMobile) setSidebarOpen(false); }}
-                       className={`w-full flex items-center gap-4 px-5 py-3 rounded-xl transition-all duration-300 relative group ${activeTab === tab.id ? 'bg-slate-950 text-white shadow-xl shadow-slate-950/20' : 'text-slate-400 hover:text-slate-950 hover:bg-slate-50/80 backdrop-blur-sm'}`}
+                       className={`w-full flex items-center gap-4 px-5 py-3.5 rounded-2xl transition-all duration-300 relative group ${activeTab === tab.id ? 'bg-slate-900 text-white shadow-2xl shadow-indigo-100' : 'text-slate-400 hover:text-slate-950 hover:bg-slate-50/80 backdrop-blur-sm'}`}
                      >
-                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${activeTab === tab.id ? 'bg-white/10' : 'group-hover:bg-slate-950/5'}`}>
-                           <tab.icon size={sidebarOpen ? 18 : 20} className={`shrink-0 transition-transform ${activeTab === tab.id ? 'scale-110' : 'group-hover:scale-110'}`} />
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${activeTab === tab.id ? 'bg-white/10' : 'group-hover:bg-slate-100'}`}>
+                           <tab.icon size={sidebarOpen ? 18 : 22} strokeWidth={activeTab === tab.id ? 2.5 : 2} className={`shrink-0 transition-transform ${activeTab === tab.id ? 'scale-110' : 'group-hover:scale-110'}`} />
                         </div>
-                        {sidebarOpen && <span className="text-[10px] font-black uppercase tracking-widest">{tab.label}</span>}
+                        {sidebarOpen && <span className="text-[11px] font-black uppercase tracking-widest">{tab.label}</span>}
                         {activeTab === tab.id && (
                           <motion.div layoutId="navIndicator" className="absolute left-0 w-1 h-5 bg-white rounded-r-full" />
                         )}
@@ -413,17 +453,17 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
         style={{ marginLeft: isMobile ? 0 : (sidebarOpen ? 280 : 88) }}
       >
         {/* Global Control Bar */}
-        <div className="fixed top-0 right-0 left-0 h-20 px-4 lg:px-12 z-40 pointer-events-none flex items-center justify-between gap-5" style={{ left: isMobile ? 0 : (sidebarOpen ? 280 : 88) }}>
+        <div className="fixed top-0 right-0 left-0 h-24 px-6 lg:px-12 z-40 pointer-events-none flex items-center justify-between gap-6" style={{ left: isMobile ? 0 : (sidebarOpen ? 280 : 88) }}>
            <div className="pointer-events-auto flex lg:hidden items-center">
               <button 
                 onClick={() => setSidebarOpen(true)}
-                className="w-12 h-12 bg-white rounded-2xl border border-slate-100 shadow-xl flex items-center justify-center text-slate-950"
+                className="w-12 h-12 bg-white rounded-2xl border border-slate-100 shadow-2xl flex items-center justify-center text-slate-950"
               >
                  <Menu size={24} />
               </button>
            </div>
            
-           <div className="pointer-events-auto flex items-center gap-2 lg:gap-3 p-1.5 lg:p-2.5 bg-white/80 backdrop-blur-3xl border border-slate-50 rounded-2xl shadow-xl shadow-slate-200/40">
+           <div className="pointer-events-auto flex items-center gap-3 p-2 bg-white/90 backdrop-blur-2xl border border-slate-100/50 rounded-2xl shadow-2xl shadow-slate-200/40">
               <button 
                 onClick={() => {
                   if (currentStore?.slug) {
@@ -436,34 +476,37 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
                     alert('Do\'kon manzili topilmadi');
                   }
                 }}
-                className="h-10 px-3 lg:px-5 bg-indigo-600 text-white rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-2 lg:gap-3 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-indigo-600/20"
+                className="h-11 px-6 bg-slate-950 text-white rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-slate-200"
               >
-                 <Globe size={14} />
+                 <Globe size={14} className="text-indigo-400" />
                  <span className="hidden sm:inline">Do'konni ko'rish</span>
               </button>
-              <div className="hidden sm:block w-px h-6 bg-slate-100 mx-1.5" />
-              <div className="hidden sm:flex w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 items-center justify-center text-slate-400 hover:text-slate-950 transition-all cursor-pointer shadow-sm">
-                 <Search size={18} />
+              
+              <div className="hidden sm:block w-px h-6 bg-slate-100 mx-1" />
+              
+              <div className="flex items-center gap-1.5">
+                <div className="hidden sm:flex w-11 h-11 rounded-xl bg-slate-50 border border-slate-100 items-center justify-center text-slate-400 hover:text-slate-950 hover:bg-white transition-all cursor-pointer shadow-sm group">
+                   <Search size={18} className="group-hover:scale-110 transition-transform" />
+                </div>
+                <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-950 hover:bg-white transition-all cursor-pointer relative shadow-sm group">
+                   <Bell size={18} className="group-hover:scale-110 transition-transform" />
+                   <div className="absolute top-3 right-3 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
+                </div>
               </div>
-              <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-950 transition-all cursor-pointer relative shadow-sm">
-                 <Bell size={18} />
-                 <div className="absolute top-2.5 right-2.5 w-2 h-2 bg-rose-500 rounded-full border-2 border-white" />
-              </div>
-              <div className="w-px h-6 bg-slate-100 mx-1.5" />
+
+              <div className="hidden sm:block w-px h-6 bg-slate-100 mx-1" />
               <LanguageSwitcher />
-              <div className="hidden xs:block w-px h-6 bg-slate-100 mx-1.5" />
-              <div className="hidden xs:block">
-                <ThemeToggle />
-              </div>
+              <div className="hidden xs:block w-px h-6 bg-slate-100 mx-1" />
+              <ThemeToggle />
            </div>
            
-           <div className="pointer-events-auto hidden md:flex items-center gap-3 p-2.5 bg-slate-950 rounded-2xl shadow-xl shadow-slate-950/20 px-6 h-[60px]">
-              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 shadow-inner">
+           <div className="pointer-events-auto hidden md:flex items-center gap-4 p-2 bg-slate-950 rounded-2xl shadow-2xl shadow-slate-900/20 px-6 h-14">
+              <div className="w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
                  <Cpu size={16} className="animate-pulse" />
               </div>
               <div className="flex flex-col">
-                 <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest leading-tight">{t('neuralStatus')}</span>
-                 <span className="text-[9px] font-black text-white uppercase tracking-[0.2em] leading-tight">{t('systemsNominal')}</span>
+                 <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest leading-tight">Neural Link</span>
+                 <span className="text-[9px] font-black text-white uppercase tracking-[0.2em] leading-tight">All Systems Optimal</span>
               </div>
            </div>
         </div>
