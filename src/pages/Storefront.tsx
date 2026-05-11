@@ -1045,10 +1045,10 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
           <div className={`flex items-center h-full gap-8 ${store.theme_config?.header_layout === 'centered' ? 'flex-col justify-center' : 'justify-between'}`}>
             <div className="flex items-center gap-6">
               <div
-                className={`flex items-center gap-3 cursor-pointer group ${store.theme_config?.header_layout === 'centered' ? 'mx-auto' : ''}`}
+                className={`flex items-center gap-2 sm:gap-3 cursor-pointer group ${store.theme_config?.header_layout === 'centered' ? 'mx-auto' : ''}`}
                 onClick={() => isPreview ? null : onBack()}
               >
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:rotate-6 transition-transform relative overflow-hidden">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-[var(--primary)] to-[var(--secondary)] flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:rotate-6 transition-transform relative overflow-hidden shrink-0">
                   {store.logo ? (
                     <img
                       src={getMediaUrl(store.logo) || undefined}
@@ -1056,12 +1056,12 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Package className="w-6 h-6 text-white" />
+                    <Package className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                   )}
                 </div>
-                <div className="flex flex-col leading-tight hidden md:flex">
-                  <span className="text-xl font-black text-slate-950 uppercase tracking-tighter">{store.name}</span>
-                  <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{store.business_type}</span>
+                <div className="flex flex-col leading-tight">
+                  <span className="text-sm sm:text-lg md:text-xl font-black text-slate-950 uppercase tracking-tighter truncate max-w-[120px] sm:max-w-none">{store.name}</span>
+                  <span className="text-[8px] sm:text-[10px] font-black text-indigo-500 uppercase tracking-widest truncate">{store.business_type}</span>
                 </div>
               </div>
 
@@ -1260,11 +1260,11 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             {(!store.banners || store.banners.length === 0) && (
-              <div className="mb-12">
-                <h2 className="text-5xl md:text-8xl font-black text-[var(--text-primary)] mb-6 uppercase tracking-tighter leading-none">
+              <div className="mb-8 md:mb-12">
+                <h2 className="text-4xl md:text-5xl lg:text-8xl font-black text-[var(--text-primary)] mb-4 md:mb-6 uppercase tracking-tighter leading-tight md:leading-none">
                   {store.name}
                 </h2>
-                <div className="h-2 w-24 bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] mx-auto rounded-full mb-8" />
+                <div className="h-1.5 md:h-2 w-16 md:w-24 bg-gradient-to-r from-[var(--primary)] to-[var(--secondary)] mx-auto rounded-full mb-6 md:mb-8" />
               </div>
             )}
             <p className="text-lg md:text-xl text-[var(--text-secondary)] max-w-2xl mx-auto font-medium leading-relaxed mb-10 px-4">
@@ -1273,13 +1273,13 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
 
             <div className="flex flex-col gap-4 p-2 md:p-3 rounded-[var(--border-radius)] bg-[var(--color-surface)] border border-[var(--color-border)] backdrop-blur-xl shadow-2xl">
               <div className="relative group flex-1">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--text-muted)] group-focus-within:text-[var(--primary)] transition-colors z-10" />
+                <Search className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 h-5 text-[var(--text-muted)] group-focus-within:text-[var(--primary)] transition-colors z-10" />
                 <input
                   type="text"
                   placeholder={t('searchPlaceholder') || 'Qidirish...'}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full !pl-16 pr-6 py-5 rounded-2xl bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none transition-all font-medium text-lg shadow-inner"
+                  className="w-full !pl-12 sm:!pl-16 pr-4 sm:pr-6 py-3.5 sm:py-5 rounded-xl sm:rounded-2xl bg-[var(--color-surface-raised)] border border-[var(--color-border)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none transition-all font-medium text-base sm:text-lg shadow-inner"
                 />
               </div>
 

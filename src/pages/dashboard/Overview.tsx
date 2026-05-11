@@ -202,7 +202,7 @@ export function Overview({ storeId, onTabChange }: OverviewProps) {
       </div>
 
       {/* Quick Actions Matrix */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 sm:gap-6">
         {[
           { id: 'products', label: t('addProduct'), icon: Plus, color: 'text-indigo-600', bg: 'bg-indigo-50' },
           { id: 'marketing', label: t('createCampaign'), icon: Zap, color: 'text-fuchsia-600', bg: 'bg-fuchsia-50' },
@@ -214,12 +214,12 @@ export function Overview({ storeId, onTabChange }: OverviewProps) {
           <button
             key={idx}
             onClick={() => onTabChange?.(action.id)}
-            className="flex flex-col items-center gap-4 p-6 rounded-[32px] bg-white border border-slate-50 hover:border-slate-950 transition-all group shadow-sm hover:shadow-xl"
+            className="flex flex-col items-center gap-3 sm:gap-4 p-4 sm:p-6 rounded-[24px] sm:rounded-[32px] bg-white border border-slate-50 hover:border-slate-950 transition-all group shadow-sm hover:shadow-xl"
           >
-            <div className={`w-12 h-12 rounded-2xl ${action.bg} ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-              <action.icon size={20} />
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl ${action.bg} ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+              <action.icon size={18} />
             </div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-950 text-center">{action.label}</span>
+            <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-400 group-hover:text-slate-950 text-center">{action.label}</span>
           </button>
         ))}
       </div>

@@ -176,7 +176,7 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="text-5xl lg:text-7xl font-black text-[var(--text-main)] tracking-tighter uppercase mb-6 leading-[0.9]"
+                className="text-4xl md:text-5xl lg:text-7xl font-black text-[var(--text-main)] tracking-tighter uppercase mb-6 leading-tight md:leading-[0.9]"
             >
                 {t('heroTitlePart1') || 'Everything you need'} <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[var(--brand-primary)] to-[var(--brand-secondary,var(--brand-primary))]">
@@ -201,17 +201,17 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                className="max-w-2xl mx-auto relative group"
             >
                 <div className="absolute inset-x-0 -bottom-2 h-12 bg-[var(--brand-primary)]/20 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                <div className="relative flex items-center bg-[var(--color-surface-raised)] border border-[var(--glass-border)] rounded-2xl h-14 px-5 focus-within:border-[var(--brand-primary)] transition-all">
-                    <Search className="w-5 h-5 text-[var(--text-dim)]" />
+                <div className="relative flex items-center bg-[var(--color-surface-raised)] border border-[var(--glass-border)] rounded-2xl h-14 px-4 sm:px-5 focus-within:border-[var(--brand-primary)] transition-all">
+                    <Search className="w-5 h-5 text-[var(--text-dim)] shrink-0" />
                     <input 
                         ref={searchInputRef}
                         type="text" 
                         placeholder={t('searchMarketplacePlaceholder') || "Search stores, products, or types..."}
-                        className="flex-1 bg-transparent border-none outline-none px-4 text-sm font-bold text-[var(--text-main)] placeholder-[var(--text-dim)]"
+                        className="flex-1 bg-transparent border-none outline-none px-3 sm:px-4 text-xs sm:text-sm font-bold text-[var(--text-main)] placeholder-[var(--text-dim)] min-w-0"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0">
                         <kbd className="hidden sm:inline-flex px-2 py-1 rounded-lg bg-[var(--brand-primary)]/10 border border-[var(--brand-primary)]/20 text-[10px] font-black uppercase text-[var(--brand-primary)]">
                             {navigator.platform.indexOf('Mac') > -1 ? '⌘' : 'Ctrl'} + K
                         </kbd>
