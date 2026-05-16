@@ -29,11 +29,19 @@ export function useStoreWebSocket(storeId: number | null, onEvent?: (event: Stor
 
         if (socketRef.current?.readyState === WebSocket.OPEN) return;
 
+        // Vercel does not support standard WebSockets in serverless functions.
+        // We only attempt to connect if we're on localhost or if a custom WS server is defined.
+        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        if (!isLocal) {
+            // Silently skip — use Supabase Realtime in production instead.
+            setStatus('disconnected');
+            return;
+        }
+
         setStatus('connecting');
 
-        // Dynamic URL construction
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host;
+        const host = 'localhost:8000';
         const wsUrl = `${protocol}//${host}/ws/store/${storeId}/`;
 
         console.log(`Attempting WebSocket connection to: ${wsUrl}`);

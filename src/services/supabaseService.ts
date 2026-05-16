@@ -187,14 +187,20 @@ export const supabaseApi = {
                 .select('*, order_items(*, products(*))')
                 .eq('store_id', storeId)
                 .order('created_at', { ascending: false });
-            if (error) throw error;
+            if (error) {
+                console.warn("orders.list error (table might be missing):", error);
+                return [];
+            }
             return data;
         },
         listAll: async (filters?: any) => {
             let query = supabase.from('orders').select('*').order('created_at', { ascending: false });
             if (filters?.status) query = query.eq('status', filters.status);
             const { data, error } = await query;
-            if (error) throw error;
+            if (error) {
+                console.warn("orders.listAll error (table might be missing):", error);
+                return { data: [] };
+            }
             return { data };
         },
         updateStatus: async (id: number, status: string) => {
@@ -204,7 +210,17 @@ export const supabaseApi = {
         },
         getStats: async (storeId: number, period: string = '7d') => {
             const { data, error } = await supabase.from('orders').select('*, order_items(*, products(category_id))').eq('store_id', storeId);
-            if (error) throw error;
+            if (error) {
+                console.warn("orders.getStats error (table might be missing):", error);
+                return {
+                    total_revenue: 0,
+                    total_orders: 0,
+                    pending: 0,
+                    completed: 0,
+                    history: [],
+                    category_stats: []
+                };
+            }
             
             // Basic aggregations
             const total_revenue = data.reduce((acc, curr) => acc + (curr.total || 0), 0);
@@ -404,7 +420,7 @@ export const supabaseApi = {
                 data: {
                     headline: "Super Chegirma!",
                     content: "Shoshiling! Bizda barcha mahsulotlarga 20% gacha chegirmalar boshlandi. Sifat va hamyonbop narx faqat bizda!",
-                    hashtags: ["#savdoon", "#chegirma", "#uzbekistan"],
+                    hashtags: ["#savdox", "#chegirma", "#uzbekistan"],
                     best_time_to_post: "20:00"
                 }
             };
@@ -756,6 +772,235 @@ export const supabaseApi = {
             const { data, error } = await supabase.from('products').update({ stock_quantity: newQty }).eq('id', productId).select();
             if (error) throw error;
             return data;
+        }
+    },
+
+    // Computer Club Management
+    club: {
+        zones: {
+            list: async (storeId: number) => {
+                const { data, error } = await supabase.from('club_zones').select('*').eq('store_id', storeId);
+                if (error) throw error;
+                return data;
+            },
+            create: async (zoneData: any) => {
+                const { data, error } = await supabase.from('club_zones').insert([zoneData]).select();
+                if (error) throw error;
+                return data[0];
+            },
+            update: async (id: number, updateData: any) => {
+                const { data, error } = await supabase.from('club_zones').update(updateData).eq('id', id).select();
+                if (error) throw error;
+                return data[0];
+            },
+            delete: async (id: number) => {
+                const { error } = await supabase.from('club_zones').delete().eq('id', id);
+                if (error) throw error;
+                return true;
+            }
+        },
+        devices: {
+            list: async (storeId: number) => {
+                const { data, error } = await supabase.from('club_devices').select('*, zone:club_zones(*)').eq('store_id', storeId);
+                if (error) throw error;
+                return data;
+            },
+            create: async (deviceData: any) => {
+                const { data, error } = await supabase.from('club_devices').insert([deviceData]).select();
+                if (error) throw error;
+                return data[0];
+            },
+            update: async (id: number, updateData: any) => {
+                const { data, error } = await supabase.from('club_devices').update(updateData).eq('id', id).select();
+                if (error) throw error;
+                return data[0];
+            },
+            delete: async (id: number) => {
+                const { error } = await supabase.from('club_devices').delete().eq('id', id);
+                if (error) throw error;
+                return true;
+            },
+            updateStatus: async (id: number, status: string) => {
+                const { data, error } = await supabase.from('club_devices').update({ status }).eq('id', id).select();
+                if (error) throw error;
+                return data[0];
+            }
+        },
+        tariffs: {
+            list: async (storeId: number) => {
+                const { data, error } = await supabase.from('club_tariffs').select('*, zone:club_zones(*)').eq('store_id', storeId);
+                if (error) throw error;
+                return data;
+            },
+            create: async (tariffData: any) => {
+                const { data, error } = await supabase.from('club_tariffs').insert([tariffData]).select();
+                if (error) throw error;
+                return data[0];
+            },
+            update: async (id: number, updateData: any) => {
+                const { data, error } = await supabase.from('club_tariffs').update(updateData).eq('id', id).select();
+                if (error) throw error;
+                return data[0];
+            },
+            delete: async (id: number) => {
+                const { error } = await supabase.from('club_tariffs').delete().eq('id', id);
+                if (error) throw error;
+                return true;
+            }
+        },
+        bookings: {
+            list: async (storeId: number) => {
+                const { data, error } = await supabase.from('club_bookings').select('*, device:club_devices(*)').eq('store_id', storeId).order('start_time', { ascending: true });
+                if (error) throw error;
+                return data;
+            },
+            create: async (bookingData: any) => {
+                const { data, error } = await supabase.from('club_bookings').insert([bookingData]).select();
+                if (error) throw error;
+                return data[0];
+            },
+            updateStatus: async (id: number, status: string) => {
+                const { data, error } = await supabase.from('club_bookings').update({ status }).eq('id', id).select();
+                if (error) throw error;
+                return data[0];
+            }
+        },
+        sessions: {
+            list: async (storeId: number) => {
+                const { data, error } = await supabase.from('club_sessions').select('*, device:club_devices(*), tariff:club_tariffs(*)').eq('store_id', storeId).order('start_time', { ascending: false });
+                if (error) throw error;
+                return data;
+            },
+            listActive: async (storeId: number) => {
+                const { data, error } = await supabase.from('club_sessions').select('*, device:club_devices(*), tariff:club_tariffs(*)').eq('store_id', storeId).eq('status', 'active');
+                if (error) throw error;
+                return data;
+            },
+            start: async (sessionData: any) => {
+                const { data, error } = await supabase.from('club_sessions').insert([sessionData]).select();
+                if (error) throw error;
+                // Update device status to busy
+                await supabase.from('club_devices').update({ status: 'busy' }).eq('id', sessionData.device_id);
+                return data[0];
+            },
+            stop: async (id: number, endData: any) => {
+                const { data, error } = await supabase.from('club_sessions').update({ ...endData, status: 'completed', end_time: new Date().toISOString() }).eq('id', id).select();
+                if (error) throw error;
+                // Update device status to available
+                await supabase.from('club_devices').update({ status: 'available' }).eq('id', data[0].device_id);
+                return data[0];
+            },
+            getStats: async (storeId: number) => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                
+                const { data, error } = await supabase.from('club_sessions')
+                    .select('*, tariff:club_tariffs(*)')
+                    .eq('store_id', storeId)
+                    .gte('created_at', today.toISOString());
+                
+                if (error) throw error;
+                return data;
+            }
+        },
+        sessionOrders: {
+            list: async (sessionId: number) => {
+                const { data, error } = await supabase.from('club_session_orders')
+                    .select('*, product:products(*)')
+                    .eq('session_id', sessionId);
+                if (error) throw error;
+                return data;
+            },
+            add: async (orderData: any) => {
+                const { data, error } = await supabase.from('club_session_orders').insert([orderData]).select();
+                if (error) throw error;
+                return data[0];
+            },
+            remove: async (id: number) => {
+                const { error } = await supabase.from('club_session_orders').delete().eq('id', id);
+                if (error) throw error;
+                return true;
+            }
+        },
+        shifts: {
+            list: async (storeId: number) => {
+                const { data, error } = await supabase.from('shifts').select('*, staff:profiles(*)').eq('store_id', storeId).order('created_at', { ascending: false });
+                if (error) throw error;
+                return data;
+            },
+            start: async (shiftData: any) => {
+                const { data, error } = await supabase.from('shifts').insert([shiftData]).select();
+                if (error) throw error;
+                return data[0];
+            },
+            end: async (id: number, endData: any) => {
+                const { data, error } = await supabase.from('shifts').update({ ...endData, status: 'closed', end_time: new Date().toISOString() }).eq('id', id).select();
+                if (error) throw error;
+                return data[0];
+            }
+        },
+        happyHours: {
+            list: async (storeId: number) => {
+                const { data, error } = await supabase.from('club_happy_hours').select('*, zone:club_zones(*)').eq('store_id', storeId);
+                if (error) throw error;
+                return data;
+            },
+            create: async (hhData: any) => {
+                const { data, error } = await supabase.from('club_happy_hours').insert([hhData]).select();
+                if (error) throw error;
+                return data[0];
+            },
+            update: async (id: number, updateData: any) => {
+                const { data, error } = await supabase.from('club_happy_hours').update(updateData).eq('id', id).select();
+                if (error) throw error;
+                return data[0];
+            },
+            delete: async (id: number) => {
+                const { error } = await supabase.from('club_happy_hours').delete().eq('id', id);
+                if (error) throw error;
+                return true;
+            }
+        },
+        customers: {
+            list: async (storeId: number) => {
+                const { data, error } = await supabase.from('customers').select('*').eq('store_id', storeId).order('created_at', { ascending: false });
+                if (error) throw error;
+                return data;
+            },
+            create: async (customerData: any) => {
+                const { data, error } = await supabase.from('customers').insert([customerData]).select();
+                if (error) throw error;
+                return data[0];
+            },
+            update: async (id: number, updateData: any) => {
+                const { data, error } = await supabase.from('customers').update(updateData).eq('id', id).select();
+                if (error) throw error;
+                return data[0];
+            }
+        },
+        settings: {
+            get: async (storeId: number) => {
+                const { data, error } = await supabase.from('stores').select('settings').eq('id', storeId).single();
+                if (error) throw error;
+                return data?.settings || {};
+            },
+            update: async (storeId: number, settings: any) => {
+                const { data, error } = await supabase.from('stores').update({ settings }).eq('id', storeId).select('settings').single();
+                if (error) throw error;
+                return data?.settings;
+            }
+        },
+        expenses: {
+            list: async (storeId: number) => {
+                const { data, error } = await supabase.from('expenses').select('*').eq('store_id', storeId).order('date', { ascending: false });
+                if (error) throw error;
+                return data;
+            },
+            add: async (expenseData: any) => {
+                const { data, error } = await supabase.from('expenses').insert([expenseData]).select();
+                if (error) throw error;
+                return data[0];
+            }
         }
     },
     admin: {

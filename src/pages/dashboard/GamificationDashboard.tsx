@@ -49,7 +49,7 @@ interface Challenge {
 }
 
 export function GamificationDashboard() {
-  const { t, language } = useApp();
+  const { t, language, currentStore } = useApp();
   const [badges, setBadges] = useState<Badge[]>([]);
   const [challenges, setChallenges] = useState<Challenge[]>([]);
   const [loading, setLoading] = useState(true);

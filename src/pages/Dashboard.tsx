@@ -85,6 +85,7 @@ import { TariffPlan } from './dashboard/TariffPlan';
 import { Customers } from './dashboard/Customers';
 import { StoreAIBuilder } from './dashboard/StoreAIBuilder';
 import { DebtManagement } from './dashboard/DebtManagement';
+import { ClubManagement } from './dashboard/ClubManagement';
 import { useStoreWebSocket } from '../hooks/useStoreWebSocket';
 import { usePWAInstall } from '../hooks/usePWAInstall';
 
@@ -176,6 +177,15 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
         { id: 'categories', label: t('categories'), icon: FolderOpen },
         { id: 'customers', label: t('customers'), icon: Users },
         { id: 'support', label: t('supportChat'), icon: MessageSquare, badge: unreadMessages > 0 ? unreadMessages : undefined },
+      ]
+    },
+    {
+      title: 'Club Control',
+      hidden: currentStore?.business_type !== 'computer_club',
+      tabs: [
+        { id: 'club-control', label: 'Devices & Live', icon: Monitor },
+        { id: 'club-bookings', label: 'Booking Queue', icon: Calendar },
+        { id: 'club-settings', label: 'Club Config', icon: Settings },
       ]
     },
     {
@@ -312,6 +322,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       case 'tariff': return <TariffPlan />;
       case 'customers': return <Customers />;
       case 'debts': return <DebtManagement />;
+      case 'club-control': return <ClubManagement storeId={currentStore?.id!} />;
       default: return <Overview storeId={currentStore?.id} onTabChange={setActiveTab} />;
     }
   };
@@ -394,7 +405,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
 
         {/* Navigation Matrix */}
         <nav className="flex-1 overflow-y-auto custom-scrollbar px-4 pb-8 space-y-10">
-           {adminGroups.map((group, idx) => (
+           {adminGroups.filter(g => !g.hidden).map((group, idx) => (
              <div key={idx} className="space-y-3">
                 {sidebarOpen && (
                   <div className="px-4 flex items-center gap-3">

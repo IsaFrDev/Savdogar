@@ -16,7 +16,9 @@ import {
   LayoutGrid,
   Calendar,
   ChevronRight,
-  ArrowRight
+  ArrowRight,
+  Plus,
+  Image as ImageIcon
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import { useApp } from '../../context/AppContext';
@@ -206,7 +208,7 @@ export function Overview({ storeId, onTabChange }: OverviewProps) {
         {[
           { id: 'products', label: t('addProduct'), icon: Plus, color: 'text-indigo-600', bg: 'bg-indigo-50' },
           { id: 'marketing', label: t('createCampaign'), icon: Zap, color: 'text-fuchsia-600', bg: 'bg-fuchsia-50' },
-          { id: 'banners', label: t('visualAds'), icon: Image, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { id: 'banners', label: t('visualAds'), icon: ImageIcon, color: 'text-blue-600', bg: 'bg-blue-50' },
           { id: 'orders', label: t('orders'), icon: ShoppingCart, color: 'text-amber-600', bg: 'bg-amber-50' },
           { id: 'customers', label: t('customers'), icon: Users, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { id: 'ai-studio', label: t('aiStudio'), icon: Sparkles, color: 'text-rose-600', bg: 'bg-rose-50' },

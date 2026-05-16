@@ -110,7 +110,7 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
             <span className="text-xl font-black text-white">S</span>
           </div>
           <span className="text-2xl font-black text-[var(--text-main)] tracking-tighter uppercase hidden sm:block">
-            Savdoon<span className="text-[var(--brand-primary)]">.</span>
+            SavdoX<span className="text-[var(--brand-primary)]">.</span>
           </span>
         </div>
 
@@ -358,11 +358,11 @@ export function Marketplace({ onLogin, onRegister, onDashboard, onViewStore }: M
                 <div className="w-8 h-8 rounded-lg bg-[var(--brand-primary)] flex items-center justify-center">
                     <span className="text-sm font-black text-white">S</span>
                 </div>
-                <span className="text-lg font-black uppercase tracking-tight text-[var(--text-main)]">Savdoon</span>
+                <span className="text-lg font-black uppercase tracking-tight text-[var(--text-main)]">SavdoX</span>
             </div>
             
             <p className="text-sm font-medium text-[var(--text-dim)]">
-                © 2026 Savdoon. {t('footerBuiltFor') || 'Built for the modern ecosystem.'}
+                © 2026 SavdoX. {t('footerBuiltFor') || 'Built for the modern ecosystem.'}
             </p>
 
             <div className="flex items-center gap-6">

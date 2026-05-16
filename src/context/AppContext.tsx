@@ -137,10 +137,24 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 
+// One-time migration: savdoon_ -> savdox_ localStorage keys
+(() => {
+  if (typeof window === 'undefined') return;
+  if (localStorage.getItem('savdox_migrated')) return;
+  const keysToMigrate = ['lan', 'maintenance', 'currency', 'exchange_rates', 'custom_colors'];
+  keysToMigrate.forEach(key => {
+    const oldVal = localStorage.getItem(`savdoon_${key}`);
+    if (oldVal && !localStorage.getItem(`savdox_${key}`)) {
+      localStorage.setItem(`savdox_${key}`, oldVal);
+    }
+    localStorage.removeItem(`savdoon_${key}`);
+  });
+  localStorage.setItem('savdox_migrated', '1');
+})();
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem('savdoon_lan');
+    const saved = localStorage.getItem('savdox_lan');
     if (saved === 'en') return 'uz';
     return (saved as Language) || 'uz';
   });
@@ -150,23 +164,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [maintenanceMode, setMaintenanceModeState] = useState(() => localStorage.getItem('savdoon_maintenance') === 'true');
-  const [currency, setCurrencyState] = useState(() => localStorage.getItem('savdoon_currency') || 'UZS');
+  const [maintenanceMode, setMaintenanceModeState] = useState(() => localStorage.getItem('savdox_maintenance') === 'true');
+  const [currency, setCurrencyState] = useState(() => localStorage.getItem('savdox_currency') || 'UZS');
   const [exchangeRates, setExchangeRatesState] = useState<{ USD: number; RUB: number }>(() => {
-    const saved = localStorage.getItem('savdoon_exchange_rates');
+    const saved = localStorage.getItem('savdox_exchange_rates');
     return saved ? JSON.parse(saved) : { USD: 12800, RUB: 140 };
   });
 
   const setExchangeRates = (rates: { USD: number; RUB: number }) => {
     setExchangeRatesState(rates);
-    localStorage.setItem('savdoon_exchange_rates', JSON.stringify(rates));
+    localStorage.setItem('savdox_exchange_rates', JSON.stringify(rates));
   };
 
   const themeMode: 'light' | 'ai' = 'light';
   const setThemeMode = () => console.warn('Theme is locked to light mode.');
 
   const [customColors, setCustomColorsState] = useState<{ primary: string; secondary: string; accent: string }>(() => {
-    const saved = localStorage.getItem('savdoon_custom_colors');
+    const saved = localStorage.getItem('savdox_custom_colors');
     return saved ? JSON.parse(saved) : { primary: '#6366f1', secondary: '#8b5cf6', accent: '#f43f5e' };
   });
 
@@ -201,12 +215,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setCustomColors = (colors: { primary: string; secondary: string; accent: string }) => {
     setCustomColorsState(colors);
-    localStorage.setItem('savdoon_custom_colors', JSON.stringify(colors));
+    localStorage.setItem('savdox_custom_colors', JSON.stringify(colors));
   };
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('savdoon_lan', lang);
+    localStorage.setItem('savdox_lan', lang);
   };
 
   const t = (key: string, params?: Record<string, any>): string => {
@@ -262,12 +276,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setMaintenanceMode = (val: boolean) => {
     setMaintenanceModeState(val);
-    localStorage.setItem('savdoon_maintenance', String(val));
+    localStorage.setItem('savdox_maintenance', String(val));
   };
 
   const setCurrency = (val: string) => {
     setCurrencyState(val);
-    localStorage.setItem('savdoon_currency', val);
+    localStorage.setItem('savdox_currency', val);
   };
 
   const formatPrice = (amount: number = 0, currencyOverride?: string) => {

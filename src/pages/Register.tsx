@@ -92,8 +92,8 @@ export function Register({ onSuccess, onLogin }: RegisterProps) {
         >
           <div className="w-24 h-24 rounded-3xl bg-white flex items-center justify-center mx-auto mb-8 shadow-2xl relative group overflow-hidden p-4">
             <img
-              src="/savdoon-logo.jpg"
-              alt="Savdoon Logo"
+              src="/logo.svg"
+              alt="SavdoX Logo"
               className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
             />
           </div>
@@ -133,7 +133,7 @@ export function Register({ onSuccess, onLogin }: RegisterProps) {
             type="email"
             value={email}
             onChange={setEmail}
-            placeholder="you@savdoon.com"
+            placeholder="you@savdox.uz"
             icon={<Mail className="w-5 h-5" />}
             required
           />

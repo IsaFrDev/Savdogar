@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Store, Settings, MapPin, MessageCircle, FileSignature, Check, ChevronRight, ChevronLeft, Upload, AlertCircle, Sparkles, Loader2, Download, LayoutTemplate, Palette, Eye, X, FolderCheck } from 'lucide-react';
+import { Store, Settings, MapPin, MessageCircle, FileSignature, Check, ChevronRight, ChevronLeft, Upload, AlertCircle, Sparkles, Loader2, Download, LayoutTemplate, Palette, Eye, X, FolderCheck, Search, ShoppingCart } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { supabaseApi } from '../services/supabaseService';
@@ -40,7 +40,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
     // Step 1: Identity & Type
-    const [businessType, setBusinessType] = useState<'restoran' | 'onlayn_dokon'>('onlayn_dokon');
+    const [businessType, setBusinessType] = useState<'restoran' | 'onlayn_dokon' | 'computer_club'>('onlayn_dokon');
     const [businessCategory, setBusinessCategory] = useState('');
     const [customCategory, setCustomCategory] = useState('');
     const [platform, setPlatform] = useState<'telegram' | 'veb_sayt'>('telegram');
@@ -75,6 +75,15 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
     const [telegramUsername, setTelegramUsername] = useState('');
     const [agreeToTerms, setAgreeToTerms] = useState(false);
     const [signatureData, setSignatureData] = useState('');
+    // Computer Club Setup
+    const [pcCount, setPcCount] = useState('20');
+    const [zoneConfig, setZoneConfig] = useState({
+        general: { price: '5000', count: '15' },
+        vip: { price: '10000', count: '5' }
+    });
+    const [morningPackage, setMorningPackage] = useState({ price: '15000', duration: '180' });
+    const [nightPackage, setNightPackage] = useState({ price: '35000', duration: '600' });
+
     const signaturePadRef = useRef<SignaturePadRef>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -145,6 +154,12 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                 return;
             }
             setError('');
+            if (businessType === 'computer_club') setStep(1.5);
+            else setStep(2);
+            return;
+        }
+
+        if (step === 1.5) {
             setStep(2);
             return;
         }
@@ -182,7 +197,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                 shoes: 'clothing', sport: 'other', furniture: 'home',
                 construction: 'other', pharmacy: 'other', toys: 'other',
                 dark_kitchen: 'restaurant', fast_food: 'restaurant', cafe: 'restaurant',
-                restoran: 'restaurant',
+                restoran: 'restaurant', computer_club: 'computer_club'
             };
             const rawCategory = businessCategory === 'other' ? customCategory : businessCategory;
             const finalBusinessType = backendTypeMap[rawCategory] || 'other';
@@ -197,6 +212,62 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
 
             const createdStore = await supabaseApi.stores.create(storeData);
             const response = { data: createdStore };
+
+            // Computer Club Provisioning
+            if (finalBusinessType === 'computer_club') {
+                // Create General Zone
+                const generalZone = await supabaseApi.club.zones.create({
+                    store_id: createdStore.id,
+                    name: 'General Hall',
+                    hourly_price: parseFloat(zoneConfig.general.price)
+                });
+                
+                // Create VIP Zone
+                const vipZone = await supabaseApi.club.zones.create({
+                    store_id: createdStore.id,
+                    name: 'VIP Zone',
+                    hourly_price: parseFloat(zoneConfig.vip.price)
+                });
+
+                // Create Devices for General Hall
+                const genCount = parseInt(zoneConfig.general.count) || 0;
+                for (let i = 1; i <= genCount; i++) {
+                    await supabaseApi.club.devices.create({
+                        store_id: createdStore.id,
+                        zone_id: generalZone.id,
+                        name: `PC-${String(i).padStart(2, '0')}`,
+                        status: 'available'
+                    });
+                }
+
+                // Create Devices for VIP Zone
+                const vipCount = parseInt(zoneConfig.vip.count) || 0;
+                for (let i = 1; i <= vipCount; i++) {
+                    await supabaseApi.club.devices.create({
+                        store_id: createdStore.id,
+                        zone_id: vipZone.id,
+                        name: `VIP-${String(i).padStart(2, '0')}`,
+                        status: 'available'
+                    });
+                }
+
+                // Create Packages
+                await supabaseApi.club.tariffs.create({
+                    store_id: createdStore.id,
+                    zone_id: generalZone.id,
+                    name: 'Morning Package',
+                    price: parseFloat(morningPackage.price),
+                    duration_minutes: parseInt(morningPackage.duration)
+                });
+
+                await supabaseApi.club.tariffs.create({
+                    store_id: createdStore.id,
+                    zone_id: generalZone.id,
+                    name: 'Night Package',
+                    price: parseFloat(nightPackage.price),
+                    duration_minutes: parseInt(nightPackage.duration)
+                });
+            }
 
             // Trigger Edge Function for provisioning
             try {
@@ -366,7 +437,8 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                     <div className="grid grid-cols-2 gap-4">
                                         {[
                                             { id: 'onlayn_dokon', label: t('onlayn_dokon') || 'Onlayn do\'kon' },
-                                            { id: 'restoran', label: t('restoran') || 'Restoran' }
+                                            { id: 'restoran', label: t('restoran') || 'Restoran' },
+                                            { id: 'computer_club', label: 'Kompyuter klub' }
                                         ].map((type) => (
                                             <button
                                                 key={type.id}
@@ -437,6 +509,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                                 <option value="shoes">{t('shoes')}</option>
                                                 <option value="sport">{t('sport')}</option>
                                                 <option value="home">{t('home')}</option>
+                                                <option value="computer_club">Kompyuter klub</option>
                                                 <option value="other">{t('other')}</option>
                                             </>
                                         )}
@@ -460,7 +533,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                     value={storeSlug}
                                     onChange={setStoreSlug}
                                     placeholder={t('storeSlugPlaceholder')}
-                                    helper={`${storeSlug || 'your-store'}.savdoon.uz`}
+                                    helper={`${storeSlug || 'your-store'}.savdox.uz`}
                                     className="font-mono text-sm"
                                     required
                                 />
@@ -768,7 +841,11 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
 
                         {step < 9 && (
                             <div className="flex justify-between mt-8 pt-6 border-t border-slate-100">
-                                <Button variant="ghost" onClick={() => setStep(step - 1)} disabled={step === 1 || isSubmitting} icon={<ChevronLeft className="w-4 h-4" />} className="text-slate-500 hover:text-slate-900 hover:bg-slate-100">
+                                <Button variant="ghost" onClick={() => {
+                                    if (step === 2 && businessType === 'computer_club') setStep(1.5);
+                                    else if (step === 1.5) setStep(1);
+                                    else setStep(step - 1);
+                                }} disabled={step === 1 || isSubmitting} icon={<ChevronLeft className="w-4 h-4" />} className="text-slate-500 hover:text-slate-900 hover:bg-slate-100">
                                     {t('back')}
                                 </Button>
                                 <Button
