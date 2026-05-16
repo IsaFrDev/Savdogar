@@ -671,7 +671,7 @@ export function ClubManagement({ storeId }: ClubManagementProps) {
         </GlassCard>
       </div>
     </motion.div>
-  ) : (
+  ) : activeView === 'reports' ? (
     <motion.div 
       key="reports"
       initial={{ opacity: 0, x: 20 }}
