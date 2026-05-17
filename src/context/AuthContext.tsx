@@ -14,6 +14,7 @@ interface User {
     avatar?: string;
     limit_date?: string;
     store_status: 'pending' | 'approved' | 'rejected' | null;
+    face_id_registered?: boolean;
 }
 
 interface AuthContextType {
@@ -30,6 +31,7 @@ interface AuthContextType {
     verifyDevice: (code: string, tempToken: string) => Promise<any>;
     verify2FA: (email: string, code: string, useBackupCode?: boolean) => Promise<any>;
     loginWithFaceId: (email?: string) => Promise<any>;
+    registerFaceId: () => Promise<void>;
     loginAsSuperAdmin: (username: string, password: string) => Promise<any>;
 }
 
@@ -95,7 +97,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     phone: data.phone,
                     avatar: data.avatar,
                     limit_date: data.limit_date,
-                    store_status: data.store_status || 'approved'
+                    store_status: data.store_status || 'approved',
+                    face_id_registered: data.face_id_registered || false
                 };
                 setUser(userData);
             } else {
@@ -109,7 +112,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     role: 'store_admin',
                     is_superuser: false,
                     is_staff: false,
-                    store_status: 'pending'
+                    store_status: 'pending',
+                    face_id_registered: false
                 });
             }
         } catch (err) {
@@ -212,6 +216,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error('FaceID login not yet configured in Supabase. Please use email/password.');
     };
 
+    const registerFaceId = async () => {
+        // WebAuthn registration placeholder
+        console.log('FaceID registration requested');
+        throw new Error('FaceID registration not yet configured in Supabase. Please use email/password.');
+    };
+
     const loginAsSuperAdmin = async (usernameInput: string, passwordInput: string) => {
         if (usernameInput === 'admin' && passwordInput === 'admin123') {
             const mockUser: User = {
@@ -223,7 +233,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 role: 'superadmin',
                 is_superuser: true,
                 is_staff: true,
-                store_status: 'approved'
+                store_status: 'approved',
+                face_id_registered: false
             };
             localStorage.setItem('local_admin_session', JSON.stringify(mockUser));
             setUser(mockUser);
@@ -259,7 +270,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 role: 'superadmin',
                 is_superuser: true,
                 is_staff: true,
-                store_status: 'approved'
+                store_status: 'approved',
+                face_id_registered: profile.face_id_registered || false
             };
             localStorage.setItem('local_admin_session', JSON.stringify(userData));
             setUser(userData);
@@ -282,6 +294,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             verifyDevice,
             verify2FA,
             loginWithFaceId,
+            registerFaceId,
             loginAsSuperAdmin,
         }}>
             {children}
