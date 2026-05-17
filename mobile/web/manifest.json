@@ -1,6 +1,6 @@
 {
-    "name": "savdoon_app",
-    "short_name": "savdoon_app",
+    "name": "savdogar_app",
+    "short_name": "savdogar_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

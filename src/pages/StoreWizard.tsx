@@ -533,7 +533,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                     value={storeSlug}
                                     onChange={setStoreSlug}
                                     placeholder={t('storeSlugPlaceholder')}
-                                    helper={`${storeSlug || 'your-store'}.savdox.uz`}
+                                    helper={`${storeSlug || 'your-store'}.savdogar.uz`}
                                     className="font-mono text-sm"
                                     required
                                 />

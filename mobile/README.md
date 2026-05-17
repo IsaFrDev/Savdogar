@@ -1,4 +1,4 @@
-# Savdoon Flutter App
+# Savdogar Flutter App
 
 Multi-vendor E-commerce Platform with POS & ERP - Flutter Mobile App
 
@@ -73,7 +73,7 @@ emulator -avd Pixel_6
 ### **Step 1: Start Backend (Django)**
 
 ```bash
-cd C:\Users\hp\Desktop\Savdoon\Savdoon-backend
+cd C:\Users\hp\Desktop\Savdogar\Savdogar-backend
 
 # Activate virtual environment (if you have one)
 # python -m venv venv
@@ -90,7 +90,7 @@ python manage.py runserver
 Open **NEW terminal** (keep backend running):
 
 ```bash
-cd C:\Users\hp\Desktop\Savdoon\savdoon_app
+cd C:\Users\hp\Desktop\Savdogar\savdogar_app
 
 # Install dependencies
 flutter pub get
@@ -194,7 +194,7 @@ flutter format .
 ## 📂 Project Structure
 
 ```
-savdoon_app/
+savdogar_app/
 ├── lib/
 │   ├── config/
 │   │   ├── constants.dart      # API endpoints
@@ -332,11 +332,11 @@ flutter doctor -v
 
 ```bash
 # Terminal 1 - Backend
-cd C:\Users\hp\Desktop\Savdoon\Savdoon-backend
+cd C:\Users\hp\Desktop\Savdogar\Savdogar-backend
 python manage.py runserver
 
 # Terminal 2 - Flutter
-cd C:\Users\hp\Desktop\Savdoon\savdoon_app
+cd C:\Users\hp\Desktop\Savdogar\savdogar_app
 flutter pub get
 flutter run -d chrome  # OR flutter run -d windows
 ```

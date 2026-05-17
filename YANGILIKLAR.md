@@ -1,4 +1,4 @@
-Savdoon - YANGI FUNKSIYALAR QO'SHILDI
+Savdogar - YANGI FUNKSIYALAR QO'SHILDI
 =========================================
 
 ✅ BAJARILGAN ISHLAR:

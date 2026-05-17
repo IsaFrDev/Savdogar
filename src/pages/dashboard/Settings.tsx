@@ -291,7 +291,7 @@ export function Settings({ storeId }: SettingsProps) {
                                 className="w-full h-16 bg-slate-50 border border-slate-100 rounded-2xl px-8 pr-32 text-indigo-600 font-black outline-none focus:border-slate-950 transition-all lowercase"
                                 placeholder="my-store"
                                />
-                               <span className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-300 font-black text-[10px] uppercase">.savdoon.uz</span>
+                               <span className="absolute right-8 top-1/2 -translate-y-1/2 text-slate-300 font-black text-[10px] uppercase">.savdogar.uz</span>
                             </div>
                          </div>
 

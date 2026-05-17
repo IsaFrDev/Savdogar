@@ -14,7 +14,7 @@ export function AdminTerminal({ onClose }: AdminTerminalProps) {
     const [isMinimized, setIsMinimized] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
     const [history, setHistory] = useState<TerminalLine[]>([
-        { type: 'output', content: t('terminal_os_version') || 'Savdoon OS v4.0.2 (LTS)' },
+        { type: 'output', content: t('terminal_os_version') || 'Savdogar OS v4.0.2 (LTS)' },
         { type: 'output', content: t('terminal_welcome') || 'Welcome back, Root. Type "help" for a list of commands.' }
     ]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -212,7 +212,7 @@ export function AdminTerminal({ onClose }: AdminTerminalProps) {
                 className="p-4 bg-white/[0.02] border-t border-white/5 flex items-center gap-4"
             >
                 <div className="flex items-center gap-2 text-indigo-400 ml-2">
-                    <span className="text-[12px] font-black tracking-widest">root@savdoon:</span>
+                    <span className="text-[12px] font-black tracking-widest">root@savdogar:</span>
                     <span className="text-emerald-400 font-black">~</span>
                     <span className="text-white">$</span>
                 </div>

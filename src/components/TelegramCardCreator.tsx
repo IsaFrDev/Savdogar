@@ -134,11 +134,11 @@ export function TelegramCardCreator() {
             // 9. Draw Telegram Footer
             ctx.fillStyle = '#ffffff';
             ctx.font = '700 36px Inter, sans-serif';
-            ctx.fillText('@SavdoonBot', width / 2, 1120);
+            ctx.fillText('@SavdogarBot', width / 2, 1120);
 
             ctx.fillStyle = '#708499';
             ctx.font = '500 24px Inter, sans-serif';
-            ctx.fillText('Powered by Savdoon.uz', width / 2, 1160);
+            ctx.fillText('Powered by Savdogar.uz', width / 2, 1160);
 
             // 10. Trigger Download
             const link = document.createElement('a');
@@ -167,7 +167,7 @@ export function TelegramCardCreator() {
         ctx.fillText('S', width / 2, logoY + logoSize / 2);
     };
 
-    const shopUrl = `https://t.me/SavdoonBot?start=${activeStoreId}`;
+    const shopUrl = `https://t.me/SavdogarBot?start=${activeStoreId}`;
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -245,7 +245,7 @@ export function TelegramCardCreator() {
                     </div>
 
                     <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-1 z-10">
-                        {storeData?.name || 'Savdoon Store'}
+                        {storeData?.name || 'Savdogar Store'}
                     </h2>
                     <p className="text-[10px] font-black text-[#708499] uppercase tracking-[0.2em] mb-8 z-10">
                         {storeData?.business_type || 'Digital Marketplace'}
@@ -263,10 +263,10 @@ export function TelegramCardCreator() {
                     <div className="w-full mt-auto flex flex-col items-center space-y-1 z-10">
                         <div className="flex items-center gap-2 text-white/90 font-black text-sm uppercase tracking-widest">
                             <Send className="w-4 h-4 text-[#2481cc]" />
-                            @SavdoonBot
+                            @SavdogarBot
                         </div>
                         <p className="text-[8px] text-[#708499] font-black uppercase tracking-[0.2em]">
-                            Powered by Savdoon.uz
+                            Powered by Savdogar.uz
                         </p>
                     </div>
 

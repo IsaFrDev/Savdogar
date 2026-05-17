@@ -28,7 +28,7 @@
 
 #### **Backend Implementation** (333 lines)
 
-**File:** `Savdoon-backend/analytics/views.py`
+**File:** `Savdogar-backend/analytics/views.py`
 
 **4 New Analytics Views:**
 

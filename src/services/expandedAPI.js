@@ -1,5 +1,5 @@
 /**
- * Savdoon API Service - Expanded Features
+ * Savdogar API Service - Expanded Features
  * Backend'dagi barcha yangi funksiyalar uchun API calls
  */
 
@@ -149,40 +149,40 @@ export const productEnhancementAPI = {
 
 export const b2bAPI = {
   // Corporate Accounts
-  getCorporateAccount: () => api.get('/savdoon/corporate-accounts/me/'),
-  requestCorporateAccount: (data) => api.post('/savdoon/corporate-accounts/', data),
+  getCorporateAccount: () => api.get('/savdogar/corporate-accounts/me/'),
+  requestCorporateAccount: (data) => api.post('/savdogar/corporate-accounts/', data),
 
   // Bulk Orders
-  getBulkOrders: () => api.get('/savdoon/bulk-orders/'),
-  createBulkOrder: (data) => api.post('/savdoon/bulk-orders/', data),
+  getBulkOrders: () => api.get('/savdogar/bulk-orders/'),
+  createBulkOrder: (data) => api.post('/savdogar/bulk-orders/', data),
 
   // Wholesale Prices
   getWholesalePrices: (productId) => 
     api.get(`/products/wholesale-prices/?product=${productId}`),
 
   // Suppliers (Admin)
-  getSuppliers: (storeId) => api.get(`/savdoon/suppliers/?store=${storeId}`),
-  createSupplier: (data) => api.post('/savdoon/suppliers/', data),
+  getSuppliers: (storeId) => api.get(`/savdogar/suppliers/?store=${storeId}`),
+  createSupplier: (data) => api.post('/savdogar/suppliers/', data),
 
   // Purchase Orders (Admin)
   getPurchaseOrders: (storeId) => 
-    api.get(`/savdoon/purchase-orders/?store=${storeId}`),
-  createPurchaseOrder: (data) => api.post('/savdoon/purchase-orders/', data),
+    api.get(`/savdogar/purchase-orders/?store=${storeId}`),
+  createPurchaseOrder: (data) => api.post('/savdogar/purchase-orders/', data),
 };
 
 // ==================== CUSTOMER SUPPORT ====================
 
 export const supportAPI = {
   // Tickets
-  getTickets: () => api.get('/savdoon/support-tickets/'),
-  createTicket: (data) => api.post('/savdoon/support-tickets/', data),
-  getTicket: (id) => api.get(`/savdoon/support-tickets/${id}/`),
+  getTickets: () => api.get('/savdogar/support-tickets/'),
+  createTicket: (data) => api.post('/savdogar/support-tickets/', data),
+  getTicket: (id) => api.get(`/savdogar/support-tickets/${id}/`),
   sendMessage: (ticketId, message) => 
-    api.post(`/savdoon/tickets/${ticketId}/messages/`, { message }),
+    api.post(`/savdogar/tickets/${ticketId}/messages/`, { message }),
 
   // FAQ
   getFAQs: (storeId, category) => 
-    api.get(`/savdoon/faqs/?store=${storeId}&category=${category || ''}`),
+    api.get(`/savdogar/faqs/?store=${storeId}&category=${category || ''}`),
 };
 
 // ==================== ANALYTICS ====================
@@ -190,35 +190,35 @@ export const supportAPI = {
 export const analyticsAPI = {
   // Sales
   getSalesReport: (storeId, startDate, endDate) => 
-    api.get(`/savdoon/analytics/sales/?store=${storeId}&start=${startDate}&end=${endDate}`),
+    api.get(`/savdogar/analytics/sales/?store=${storeId}&start=${startDate}&end=${endDate}`),
   getTopProducts: (storeId, limit = 10) => 
-    api.get(`/savdoon/analytics/top-products/?store=${storeId}&limit=${limit}`),
+    api.get(`/savdogar/analytics/top-products/?store=${storeId}&limit=${limit}`),
 
   // Customers
   getCustomerLifetimeValue: (storeId) => 
-    api.get(`/savdoon/analytics/clv/?store=${storeId}`),
+    api.get(`/savdogar/analytics/clv/?store=${storeId}`),
 
   // Inventory
   getInventoryReport: (warehouseId) => 
-    api.get(`/savdoon/analytics/inventory/?warehouse=${warehouseId}`),
+    api.get(`/savdogar/analytics/inventory/?warehouse=${warehouseId}`),
 
   // Export
   exportReport: (type, params) => 
-    api.get(`/savdoon/analytics/export/${type}/`, { params, responseType: 'blob' }),
+    api.get(`/savdogar/analytics/export/${type}/`, { params, responseType: 'blob' }),
 };
 
 // ==================== DEVELOPER TOOLS ====================
 
 export const developerAPI = {
   // API Keys
-  getAPIKeys: (storeId) => api.get(`/savdoon/api-keys/?store=${storeId}`),
-  createAPIKey: (data) => api.post('/savdoon/api-keys/', data),
-  deleteAPIKey: (id) => api.delete(`/savdoon/api-keys/${id}/`),
+  getAPIKeys: (storeId) => api.get(`/savdogar/api-keys/?store=${storeId}`),
+  createAPIKey: (data) => api.post('/savdogar/api-keys/', data),
+  deleteAPIKey: (id) => api.delete(`/savdogar/api-keys/${id}/`),
 
   // Webhooks
-  getWebhooks: (storeId) => api.get(`/savdoon/webhooks/?store=${storeId}`),
-  createWebhook: (data) => api.post('/savdoon/webhooks/', data),
-  updateWebhook: (id, data) => api.put(`/savdoon/webhooks/${id}/`, data),
+  getWebhooks: (storeId) => api.get(`/savdogar/webhooks/?store=${storeId}`),
+  createWebhook: (data) => api.post('/savdogar/webhooks/', data),
+  updateWebhook: (id, data) => api.put(`/savdogar/webhooks/${id}/`, data),
 };
 
 // ==================== QUICK WINS ====================

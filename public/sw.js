@@ -1,5 +1,5 @@
-// SavdoX Service Worker - PWA V2
-const CACHE_NAME = 'savdox-v3';
+// Savdogar Service Worker - PWA V2
+const CACHE_NAME = 'savdogar-v3';
 const STATIC_ASSETS = [
     '/',
     '/index.html',

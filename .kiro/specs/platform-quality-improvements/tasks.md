@@ -2,7 +2,7 @@
 
 ## Overview
 
-This plan covers three cross-cutting quality improvement tracks for the Savdoon platform: Responsiveness (web + mobile), Internationalization (web frontend, mobile app, backend), and Security hardening. Tasks are organized by track and build incrementally so each step integrates cleanly into the previous one.
+This plan covers three cross-cutting quality improvement tracks for the Savdogar platform: Responsiveness (web + mobile), Internationalization (web frontend, mobile app, backend), and Security hardening. Tasks are organized by track and build incrementally so each step integrates cleanly into the previous one.
 
 ## Tasks
 
@@ -268,7 +268,7 @@ This plan covers three cross-cutting quality improvement tracks for the Savdoon 
   - [ ] 12.1 Create `mobile/src/i18n/index.ts` with `useTranslation` hook
     - Export `Language` type (`'en' | 'uz' | 'ru'`) and `TranslationKey` type
     - Implement `t(key, lang)` function and `useTranslation()` hook
-    - `setLanguage` persists selection to `AsyncStorage` under key `'@savdoon_language'`
+    - `setLanguage` persists selection to `AsyncStorage` under key `'@savdogar_language'`
     - On app start, load stored language before first render (in `AuthProvider` or a dedicated `I18nProvider`)
     - Fall back to `'uz'` if `AsyncStorage` read fails; log the error
     - _Requirements: 9.1, 9.2, 9.4_
@@ -289,7 +289,7 @@ This plan covers three cross-cutting quality improvement tracks for the Savdoon 
     - _Requirements: 9.2, 9.4_
 
 - [ ] 13. Implement Backend language negotiation middleware
-  - [ ] 13.1 Create `AcceptLanguageMiddleware` in `Savdoon-backend/savdoon/middleware.py`
+  - [ ] 13.1 Create `AcceptLanguageMiddleware` in `Savdogar-backend/savdogar/middleware.py`
     - Implement `_parse()` to parse RFC 5646 language tags and return the first supported match from `{'uz', 'ru', 'en'}`
     - Default to `'uz'` for absent, unsupported, or malformed `Accept-Language` headers
     - Call `translation.activate(lang)` and set `request.LANGUAGE_CODE`; call `translation.deactivate()` after the response
@@ -342,8 +342,8 @@ This plan covers three cross-cutting quality improvement tracks for the Savdoon 
     - _Requirements: 11.3_
 
 - [ ] 16. Implement secret key and production config validators in `settings.py`
-  - [ ] 16.1 Add `_validate_secret_key()` function to `Savdoon-backend/savdoon/settings.py`
-    - Raise `ImproperlyConfigured` if `DJANGO_SECRET_KEY` is absent, empty, shorter than 50 characters, or matches a known weak value (including the `"savdoon-vibrant-premium-ai-secure-key-2026-unique-production-ready"` placeholder and any key starting with `"django-insecure"`)
+  - [ ] 16.1 Add `_validate_secret_key()` function to `Savdogar-backend/savdogar/settings.py`
+    - Raise `ImproperlyConfigured` if `DJANGO_SECRET_KEY` is absent, empty, shorter than 50 characters, or matches a known weak value (including the `"savdogar-vibrant-premium-ai-secure-key-2026-unique-production-ready"` placeholder and any key starting with `"django-insecure"`)
     - Call this function immediately after reading `DJANGO_SECRET_KEY` from the environment
     - _Requirements: 11.4, 12.1, 12.2_
 
@@ -391,28 +391,28 @@ This plan covers three cross-cutting quality improvement tracks for the Savdoon 
     - _Requirements: 14.1, 14.2_
 
 - [ ] 18. Remove the terminal endpoint and migrate to management commands
-  - [ ] 18.1 Remove the `TerminalView` URL route from `Savdoon-backend/savdoon/urls.py`
+  - [ ] 18.1 Remove the `TerminalView` URL route from `Savdogar-backend/savdogar/urls.py`
     - Delete the URL pattern that maps to `TerminalView`
     - _Requirements: 15.1_
 
-  - [ ] 18.2 Disable `TerminalView` in `Savdoon-backend/savdoon/terminal_views.py`
+  - [ ] 18.2 Disable `TerminalView` in `Savdogar-backend/savdogar/terminal_views.py`
     - Remove or comment out the class body so it cannot be re-registered accidentally
     - _Requirements: 15.2_
 
-  - [ ] 18.3 Create `Savdoon-backend/savdoon/management/commands/backup_db.py`
+  - [ ] 18.3 Create `Savdogar-backend/savdogar/management/commands/backup_db.py`
     - Implement `dumpdata` with a `--confirm` flag
     - Prompt `"Type 'yes' to confirm backup: "` and abort without writing any file if the response is not `yes`
     - _Requirements: 15.4, 15.5_
 
-  - [ ] 18.4 Create `Savdoon-backend/savdoon/management/commands/db_stats.py`
+  - [ ] 18.4 Create `Savdogar-backend/savdogar/management/commands/db_stats.py`
     - Print model counts for key models
     - _Requirements: 15.4_
 
-  - [ ] 18.5 Create `Savdoon-backend/savdoon/management/commands/clear_cache.py`
+  - [ ] 18.5 Create `Savdogar-backend/savdogar/management/commands/clear_cache.py`
     - Call `cache.clear()` and print a confirmation message
     - _Requirements: 15.4_
 
-  - [ ] 18.6 Create `Savdoon-backend/savdoon/management/commands/auth_sessions.py`
+  - [ ] 18.6 Create `Savdogar-backend/savdogar/management/commands/auth_sessions.py`
     - List active sessions
     - _Requirements: 15.4_
 
@@ -425,7 +425,7 @@ This plan covers three cross-cutting quality improvement tracks for the Savdoon 
     - _Requirements: 15.5_
 
 - [ ] 19. Add review spam and abuse protection
-  - [ ] 19.1 Create `Savdoon-backend/orders/throttles.py` with review throttle classes
+  - [ ] 19.1 Create `Savdogar-backend/orders/throttles.py` with review throttle classes
     - Implement `ReviewUserThrottle(UserRateThrottle)` with `scope = 'review_user'`
     - Implement `ReviewAnonThrottle(AnonRateThrottle)` with `scope = 'review_anon'`
     - _Requirements: 16.1, 16.2_
@@ -505,17 +505,17 @@ This plan covers three cross-cutting quality improvement tracks for the Savdoon 
     - **Validates: Requirements 17.5**
 
 - [ ] 21. Remove credential logging and extend `SensitiveDataFilter`
-  - [ ] 21.1 Remove all `print()` statements from `Savdoon-backend/accounts/views.py` `SuperAdminLoginView`
+  - [ ] 21.1 Remove all `print()` statements from `Savdogar-backend/accounts/views.py` `SuperAdminLoginView`
     - Audit the superadmin authentication code for any `print()` or log calls that output passwords, tokens, or credentials in plaintext
     - _Requirements: 18.1_
 
-  - [ ] 21.2 Extend `SensitiveDataFilter` in `Savdoon-backend/savdoon/logging_filters.py`
+  - [ ] 21.2 Extend `SensitiveDataFilter` in `Savdogar-backend/savdogar/logging_filters.py`
     - Mask any `LogRecord` attribute or `args` dict key matching `password`, `token`, `secret`, `key`, or `credential` (case-insensitive) with a redacted placeholder string
     - _Requirements: 18.3_
 
   - [ ] 21.3 Update `LOGGING` configuration in `settings.py`
     - Add the `accounts` logger to `LOGGING['loggers']` with the `mask_sensitive_data` filter
-    - Ensure the `savdoon` logger also routes through `mask_sensitive_data`
+    - Ensure the `savdogar` logger also routes through `mask_sensitive_data`
     - _Requirements: 18.2, 18.4_
 
   - [ ]* 21.4 Write property test for sensitive data log masking — Property 22

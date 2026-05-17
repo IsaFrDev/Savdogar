@@ -2,7 +2,7 @@
 
 ## 📋 UMUMIY MA'LUMOT / GENERAL OVERVIEW
 
-**Savdoon** - bu AI-driven multi-store e-commerce platformasi bo'lib, uchta asosiy rolga ega:
+**Savdogar** - bu AI-driven multi-store e-commerce platformasi bo'lib, uchta asosiy rolga ega:
 1. **Super Admin** - Platforma egasi va boshqaruvchisi
 2. **Store Admin (Do'kon Egesi)** - Do'kon administratori
 3. **User/Customer (Mijoz)** - Oddiy foydalanuvchi
@@ -1388,13 +1388,13 @@
 
 ## 📞 CONTACT & SUPPORT
 
-- **Website:** savdoon.com
-- **Email:** support@savdoon.com
-- **Telegram:** @savdoon_support
+- **Website:** savdogar.com
+- **Email:** support@savdogar.com
+- **Telegram:** @savdogar_support
 - **Phone:** +998 XX XXX XX XX
 
 ---
 
-**Savdoon** - Kelajak savdosi, bugundan boshlanadi! 🚀
+**Savdogar** - Kelajak savdosi, bugundan boshlanadi! 🚀
 
 *The future of commerce, starting today!*

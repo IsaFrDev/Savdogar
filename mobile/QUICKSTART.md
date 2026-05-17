@@ -1,4 +1,4 @@
-# 🚀 QUICK START GUIDE - Savdoon Flutter App
+# 🚀 QUICK START GUIDE - Savdogar Flutter App
 
 ## ⚡ ENG TEZ USUL (5 DAQIQADA)
 
@@ -24,7 +24,7 @@ flutter --version
 
 ```bash
 # Terminal 1 oching:
-cd C:\Users\hp\Desktop\Savdoon\Savdoon-backend
+cd C:\Users\hp\Desktop\Savdogar\Savdogar-backend
 
 # Server run:
 python manage.py runserver
@@ -38,7 +38,7 @@ python manage.py runserver
 
 ```bash
 # Terminal 2 oching (YANGI):
-cd C:\Users\hp\Desktop\Savdoon\savdoon_app
+cd C:\Users\hp\Desktop\Savdogar\savdogar_app
 
 # Dependencies install:
 flutter pub get
@@ -209,7 +209,7 @@ flutter pub get
 ## 📁 PROJECT TUZILISHI
 
 ```
-savdoon_app/
+savdogar_app/
 ├── lib/
 │   ├── config/
 │   │   ├── constants.dart       # API URL'lar
@@ -273,11 +273,11 @@ flutter run --help
 
 ```bash
 # Terminal 1:
-cd C:\Users\hp\Desktop\Savdoon\Savdoon-backend
+cd C:\Users\hp\Desktop\Savdogar\Savdogar-backend
 python manage.py runserver
 
 # Terminal 2:
-cd C:\Users\hp\Desktop\Savdoon\savdoon_app
+cd C:\Users\hp\Desktop\Savdogar\savdogar_app
 flutter pub get
 flutter run -d chrome
 ```
@@ -296,6 +296,6 @@ App ishlayapti, backend bilan ulangan!
 
 ---
 
-**Savdoon Flutter App - Tayyor!** 🚀
+**Savdogar Flutter App - Tayyor!** 🚀
 
 Backend o'zgarmaydi, faqat Flutter frontend qo'shildi!

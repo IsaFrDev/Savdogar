@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This document covers three cross-cutting quality improvement tracks for the **Savdoon** multi-vendor e-commerce platform. The platform consists of a React 19 + TypeScript + Vite + TailwindCSS web frontend, a Django 6 + DRF + PostgreSQL backend, and a React Native + Expo mobile application.
+This document covers three cross-cutting quality improvement tracks for the **Savdogar** multi-vendor e-commerce platform. The platform consists of a React 19 + TypeScript + Vite + TailwindCSS web frontend, a Django 6 + DRF + PostgreSQL backend, and a React Native + Expo mobile application.
 
 The three tracks are:
 
@@ -20,8 +20,8 @@ The three tracks are:
 - **Translation System**: The custom i18n layer consisting of `src/i18n/translations.ts` and the `t()` function exposed through `AppContext`.
 - **t() Function**: The translation lookup function provided by `AppContext` that maps a string key to the active language's value.
 - **Hardcoded String**: Any user-visible text literal embedded directly in JSX or TypeScript source code instead of being routed through the `t()` function or an equivalent i18n mechanism.
-- **Backend**: The Django 6 + DRF application located in `Savdoon-backend/`.
-- **TerminalView**: The Django REST Framework view at `/api/system/terminal/` defined in `Savdoon-backend/savdoon/terminal_views.py`.
+- **Backend**: The Django 6 + DRF application located in `Savdogar-backend/`.
+- **TerminalView**: The Django REST Framework view at `/api/system/terminal/` defined in `Savdogar-backend/savdogar/terminal_views.py`.
 - **Secret**: Any credential, API key, password, or cryptographic key that grants access to a system or service.
 - **Rate Limiter**: A mechanism that restricts the number of requests a client can make to an endpoint within a defined time window.
 - **django-axes**: The Django package configured in `settings.py` for brute-force login protection (currently commented out of `AUTHENTICATION_BACKENDS`).
@@ -200,7 +200,7 @@ The three tracks are:
 #### Acceptance Criteria
 
 1. THE Backend `settings.py` SHALL validate that `DJANGO_SECRET_KEY` is at least 50 characters long at application startup.
-2. IF `DJANGO_SECRET_KEY` is shorter than 50 characters or matches the known weak value `"savdoon-vibrant-premium-ai-secure-key-2026-unique-production-ready"`, THEN THE Backend SHALL raise `ImproperlyConfigured` and refuse to start.
+2. IF `DJANGO_SECRET_KEY` is shorter than 50 characters or matches the known weak value `"savdogar-vibrant-premium-ai-secure-key-2026-unique-production-ready"`, THEN THE Backend SHALL raise `ImproperlyConfigured` and refuse to start.
 3. THE `.env.example` file SHALL include a command or instruction for generating a cryptographically strong secret key (e.g., using `python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"`).
 
 ---
@@ -239,8 +239,8 @@ The three tracks are:
 
 #### Acceptance Criteria
 
-1. THE Backend SHALL remove the URL route that maps to `TerminalView` from `savdoon/urls.py`.
-2. THE Backend SHALL remove or disable the `TerminalView` class in `savdoon/terminal_views.py` so that it cannot be re-registered accidentally.
+1. THE Backend SHALL remove the URL route that maps to `TerminalView` from `savdogar/urls.py`.
+2. THE Backend SHALL remove or disable the `TerminalView` class in `savdogar/terminal_views.py` so that it cannot be re-registered accidentally.
 3. WHEN a request is made to `/api/system/terminal/`, THE Backend SHALL return HTTP 404.
 4. THE Backend SHALL retain the administrative utility functions previously provided by `TerminalView` (database backup, cache clearing, DB stats) as Django management commands accessible only via the server's command line, not via HTTP.
 5. THE Backend management command for database backup SHALL require explicit confirmation before writing a backup file, to prevent accidental execution.
@@ -284,4 +284,4 @@ The three tracks are:
 1. THE Backend superadmin authentication code SHALL contain no `print()` statements or log calls that output a user's password, token, or any other credential in plaintext.
 2. THE Backend logging configuration SHALL apply the existing `SensitiveDataFilter` to all loggers that handle authentication events.
 3. WHEN an authentication event is logged, THE Backend SHALL mask any field whose key matches `password`, `token`, `secret`, `key`, or `credential` with a redacted placeholder string.
-4. THE Backend `settings.py` `LOGGING` configuration SHALL route all `accounts` and `savdoon` logger output through the `mask_sensitive_data` filter.
+4. THE Backend `settings.py` `LOGGING` configuration SHALL route all `accounts` and `savdogar` logger output through the `mask_sensitive_data` filter.

@@ -76,7 +76,7 @@ export function StoreAIBuilder({ storeId, onReload }: { storeId: number; onReloa
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Key for individual store drafts
-  const DRAFT_KEY = `savdoon_builder_draft_${storeId}`;
+  const DRAFT_KEY = `savdogar_builder_draft_${storeId}`;
 
   // Persistence
   useEffect(() => {

@@ -328,7 +328,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
       }
 
       // Update page title
-      document.title = `${store.name} | SavdoX`;
+      document.title = `${store.name} | Savdogar`;
     }
   }, [store]);
 
@@ -520,7 +520,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
   // Dynamic SEO meta tags
   useEffect(() => {
     if (store) {
-      document.title = `${store.name} - SavdoX`;
+      document.title = `${store.name} - Savdogar`;
 
       const updateMeta = (name: string, content: string, property: boolean = false) => {
         let el = document.querySelector(property ? `meta[property="${name}"]` : `meta[name="${name}"]`);
@@ -1177,7 +1177,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
                         ))}
                       </div>
                       <div className="px-6 py-4 border-t border-slate-50 mt-2">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Yaratuvchi <span className="text-indigo-500">SavdoX.uz</span></p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Yaratuvchi <span className="text-indigo-500">Savdogar.uz</span></p>
                       </div>
                     </motion.div>
                   )}
@@ -1473,7 +1473,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">© 2024 {store.name}. Barcha huquqlar himoyalangan.</p>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Platforma:</span>
-              <a href="https://savdoon.uz" className="text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:underline">SavdoX.uz</a>
+              <a href="https://savdogar.uz" className="text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:underline">Savdogar.uz</a>
             </div>
           </div>
         </div>

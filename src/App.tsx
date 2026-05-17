@@ -4,7 +4,6 @@ import AuthProvider, { useAuth } from './context/AuthContext';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { StoreWizard } from './pages/StoreWizard';
-import { Marketplace } from './pages/Marketplace';
 import { StorePendingApproval } from './components/StorePendingApproval';
 
 import { Dashboard } from './pages/Dashboard';
@@ -21,14 +20,14 @@ import { motion } from 'framer-motion';
 import RejectionModal from './components/RejectionModal';
 
 
-type Page = 'login' | 'register' | 'wizard' | 'pending-approval' | 'dashboard' | 'storefront' | 'admin-login' | 'super-admin' | 'ai-intel' | 'marketplace';
+type Page = 'login' | 'register' | 'wizard' | 'pending-approval' | 'dashboard' | 'storefront' | 'admin-login' | 'super-admin' | 'ai-intel';
 
 function AppContent() {
   const { isLoading, isAuthenticated, isSuperAdmin, user, logout } = useAuth();
   const { maintenanceMode, t } = useApp();
   const [page, setPage] = useState<Page>(() => {
     const saved = sessionStorage.getItem('last_page');
-    return (saved as Page) || 'marketplace';
+    return (saved as Page) || 'login';
   });
   const [storeId, setStoreId] = useState<number | undefined>(() => {
     const saved = sessionStorage.getItem('last_store_id');
@@ -93,8 +92,8 @@ function AppContent() {
         // 2. Detect IP addresses (e.g., 192.168.x.x) and ignore them
         const isIP = /^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(hostname);
         if (isIP || hostname === 'localhost') {
-           // On main domain, if page is marketplace, ensure storeState is clean
-           if (page === 'marketplace' || !page) {
+           // On main domain, ensure storeState is clean
+           if (!page) {
              setStoreId(undefined);
              sessionStorage.removeItem('last_store_id');
            }
@@ -103,7 +102,7 @@ function AppContent() {
 
         // 3. Normal subdomain logic
         const parts = hostname.split('.');
-        // For subdomains (e.g., shop.savdox.local or shop.savdox.uz)
+        // For subdomains (e.g., shop.savdogar.local or shop.savdogar.uz)
         if (parts.length >= 3 && !hostname.includes('ngrok-free.app') && !hostname.includes('vercel.app')) {
           storeSlug = parts[0];
           if (storeSlug === 'www' || storeSlug === 'admin') storeSlug = null;
@@ -129,12 +128,12 @@ function AppContent() {
           }
         } catch (error: any) {
           console.error('Subdomain check failed:', error);
-          if (forcedSlug) setPage('marketplace');
+          if (forcedSlug) setPage('login');
         }
       } else {
         // No store slug - ensure we are not "stuck" in storefront page by saved state
         if (page === 'storefront') {
-          setPage('marketplace');
+          setPage('login');
           setStoreId(undefined);
           sessionStorage.removeItem('last_store_id');
         }
@@ -328,18 +327,6 @@ function AppContent() {
 
   const renderPage = () => {
     switch (page) {
-      case 'marketplace':
-        return (
-          <Marketplace 
-            onLogin={() => setPage('login')}
-            onRegister={() => setPage('register')}
-            onDashboard={() => setPage('dashboard')}
-            onViewStore={(id) => {
-              setStoreId(id);
-              setPage('storefront');
-            }}
-          />
-        );
       case 'login':
         return (
           <Login

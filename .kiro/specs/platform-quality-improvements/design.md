@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the technical design for three cross-cutting quality improvement tracks on the **Savdoon** multi-vendor e-commerce platform:
+This document describes the technical design for three cross-cutting quality improvement tracks on the **Savdogar** multi-vendor e-commerce platform:
 
 1. **Track 1 — Responsiveness**: Make the web dashboard and storefront fully usable on mobile and tablet viewports.
 2. **Track 2 — Internationalization (i18n)**: Eliminate all hardcoded strings from the web frontend and mobile app; add server-side language negotiation.
@@ -10,7 +10,7 @@ This document describes the technical design for three cross-cutting quality imp
 
 The platform stack is:
 - **Web frontend**: React 19 + TypeScript + Vite + TailwindCSS (`src/`)
-- **Backend**: Django 6 + DRF + PostgreSQL (`Savdoon-backend/`)
+- **Backend**: Django 6 + DRF + PostgreSQL (`Savdogar-backend/`)
 - **Mobile**: React Native + Expo (`mobile/`)
 
 ---
@@ -205,14 +205,14 @@ export function t(key: TranslationKey, lang: Language): string;
 export function useTranslation(): { t: (key: TranslationKey) => string; language: Language; setLanguage: (lang: Language) => void };
 ```
 
-- `setLanguage` persists the selection to `AsyncStorage` under the key `'@savdoon_language'`.
+- `setLanguage` persists the selection to `AsyncStorage` under the key `'@savdogar_language'`.
 - On app start, the stored language is loaded before the first render (via `useEffect` in `AuthProvider` or a dedicated `I18nProvider`).
 - Translation files (`en.json`, `uz.json`, `ru.json`) share the same key namespace as the web `translations.ts`.
 
 #### Backend Language Middleware
 
 ```python
-# Savdoon-backend/savdoon/middleware.py (new class)
+# Savdogar-backend/savdogar/middleware.py (new class)
 class AcceptLanguageMiddleware:
     SUPPORTED = {'uz', 'ru', 'en'}
     DEFAULT = 'uz'
@@ -241,7 +241,7 @@ Added to `MIDDLEWARE` in `settings.py` after `CommonMiddleware`.
 
 ```python
 KNOWN_WEAK_KEYS = {
-    'savdoon-vibrant-premium-ai-secure-key-2026-unique-production-ready',
+    'savdogar-vibrant-premium-ai-secure-key-2026-unique-production-ready',
     'django-insecure',  # prefix check
 }
 
@@ -270,7 +270,7 @@ def _validate_production_config(debug: bool, allowed_hosts: list[str]) -> None:
 #### Review Throttle Classes
 
 ```python
-# Savdoon-backend/orders/throttles.py (new file)
+# Savdogar-backend/orders/throttles.py (new file)
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 
 class ReviewUserThrottle(UserRateThrottle):
@@ -285,8 +285,8 @@ Applied to the review `ViewSet` via `throttle_classes = [ReviewUserThrottle, Rev
 #### Management Commands (replacing TerminalView)
 
 ```
-Savdoon-backend/
-  savdoon/
+Savdogar-backend/
+  savdogar/
     management/
       commands/
         backup_db.py       # dumpdata with --confirm flag
@@ -299,7 +299,7 @@ Savdoon-backend/
 
 #### `SensitiveDataFilter` Extension
 
-The existing `SensitiveDataFilter` in `savdoon/logging_filters.py` is extended to mask any `LogRecord` attribute or `args` dict key matching: `password`, `token`, `secret`, `key`, `credential` (case-insensitive). The `accounts` logger is added to `LOGGING['loggers']` with the `mask_sensitive_data` filter.
+The existing `SensitiveDataFilter` in `savdogar/logging_filters.py` is extended to mask any `LogRecord` attribute or `args` dict key matching: `password`, `token`, `secret`, `key`, `credential` (case-insensitive). The `accounts` logger is added to `LOGGING['loggers']` with the `mask_sensitive_data` filter.
 
 ---
 
@@ -311,7 +311,7 @@ No new database models are introduced by this work. The changes are:
 |-------|-------------|
 | Responsiveness | None — pure UI/hook changes |
 | i18n (web) | None — `translations.ts` is a static file |
-| i18n (mobile) | `AsyncStorage` key `'@savdoon_language'` stores a `Language` string |
+| i18n (mobile) | `AsyncStorage` key `'@savdogar_language'` stores a `Language` string |
 | i18n (backend) | No model changes; Django's built-in i18n catalog is used |
 | Security — secrets | `.env` values replaced with placeholders; no model changes |
 | Security — axes | `django-axes` already installed; `AxesStandaloneBackend` uncommented |
@@ -577,7 +577,7 @@ Tag format: `// Feature: platform-quality-improvements, Property N: <property_te
 | P10 — Translation key completeness | `translations.property.test.ts` | `fc.constantFrom(...Object.keys(translations.uz))` |
 | P11 — Translation fallback chain | `translations.property.test.ts` | `fc.constantFrom(...Object.keys(translations.uz))` |
 
-#### Backend Property Tests (`Savdoon-backend/tests/`)
+#### Backend Property Tests (`Savdogar-backend/tests/`)
 
 | Property | Test file | Hypothesis strategy |
 |----------|-----------|---------------------|
