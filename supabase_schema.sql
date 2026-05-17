@@ -314,6 +314,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Auth users manage customers" ON public.customers;
 CREATE POLICY "Auth users manage customers" ON public.customers FOR ALL USING (auth.role() = 'authenticated');
 
 -- Update club_sessions to link to customers and track cancellations
