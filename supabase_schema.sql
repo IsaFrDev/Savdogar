@@ -225,16 +225,34 @@ ALTER TABLE public.club_bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.club_sessions ENABLE ROW LEVEL SECURITY;
 
 -- Basic Policies for club tables
+DROP POLICY IF EXISTS "Public read for club_zones" ON public.club_zones;
 CREATE POLICY "Public read for club_zones" ON public.club_zones FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for club_devices" ON public.club_devices;
 CREATE POLICY "Public read for club_devices" ON public.club_devices FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for club_tariffs" ON public.club_tariffs;
 CREATE POLICY "Public read for club_tariffs" ON public.club_tariffs FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for club_bookings" ON public.club_bookings;
 CREATE POLICY "Public read for club_bookings" ON public.club_bookings FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for club_sessions" ON public.club_sessions;
 CREATE POLICY "Public read for club_sessions" ON public.club_sessions FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Authenticated users can manage club data" ON public.club_zones;
 CREATE POLICY "Authenticated users can manage club data" ON public.club_zones FOR ALL USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can manage club devices" ON public.club_devices;
 CREATE POLICY "Authenticated users can manage club devices" ON public.club_devices FOR ALL USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can manage club tariffs" ON public.club_tariffs;
 CREATE POLICY "Authenticated users can manage club tariffs" ON public.club_tariffs FOR ALL USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can manage club bookings" ON public.club_bookings;
 CREATE POLICY "Authenticated users can manage club bookings" ON public.club_bookings FOR ALL USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can manage club sessions" ON public.club_sessions;
 CREATE POLICY "Authenticated users can manage club sessions" ON public.club_sessions FOR ALL USING (auth.role() = 'authenticated');
 
 -- 13. Club Management Triggers & Helpers
