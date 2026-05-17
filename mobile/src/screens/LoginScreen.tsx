@@ -36,7 +36,7 @@ export default function LoginScreen({ navigation }: any) {
           <View style={styles.logoContainer}>
             <LogIn color="white" size={32} />
           </View>
-          <Text style={styles.title}>Savdogar</Text>
+          <Text style={styles.title}>Bozorchi AI</Text>
           <Text style={styles.subtitle}>Boshqaruv paneliga xush kelibsiz</Text>
         </View>
 

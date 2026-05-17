@@ -84,7 +84,7 @@ export default function ProfileScreen() {
           <Text style={styles.logoutText}>Hisobdan chiqish</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>Savdogar Mobile v1.0.0</Text>
+        <Text style={styles.version}>Bozorchi AI Mobile v1.0.0</Text>
 
         <View style={{ height: 40 }} />
       </ScrollView>

@@ -533,7 +533,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                     value={storeSlug}
                                     onChange={setStoreSlug}
                                     placeholder={t('storeSlugPlaceholder')}
-                                    helper={`${storeSlug || 'your-store'}.savdogar.uz`}
+                                    helper={`${storeSlug || 'your-store'}.bozorchi-ai.vercel.app`}
                                     className="font-mono text-sm"
                                     required
                                 />

@@ -148,7 +148,7 @@ export function MarketingCampaigns() {
             </div>
             <h5 className="font-black text-indigo-900 text-xl uppercase tracking-tighter mb-4 leading-none">MARKETING NIMA UCHUN KERAK?</h5>
             <p className="text-sm text-indigo-800/80 leading-relaxed font-bold uppercase tracking-tight opacity-70">
-              Marketing orqali siz mijozlar bazasini kengaytirishingiz, sotuvlarni oshirishingiz va o'z brendingizni taniqli qilishingiz mumkin. Savdogar platformasi sizga eng samarali marketing vositalarini taqdim etadi.
+              Marketing orqali siz mijozlar bazasini kengaytirishingiz, sotuvlarni oshirishingiz va o'z brendingizni taniqli qilishingiz mumkin. Bozorchi AI platformasi sizga eng samarali marketing vositalarini taqdim etadi.
             </p>
           </motion.div>
 

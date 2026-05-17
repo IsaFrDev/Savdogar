@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Use Supabase Auth Login (Secure JWT-based authentication)
 
         // 2. Try Supabase Auth Login
-        const authEmail = email.includes('@') ? email : `${email}@savdogar.local`;
+        const authEmail = email.includes('@') ? email : `${email}@bozorchi.local`;
         const { data, error } = await supabase.auth.signInWithPassword({
             email: authEmail,
             password,

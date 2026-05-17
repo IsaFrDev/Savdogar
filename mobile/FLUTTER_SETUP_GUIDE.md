@@ -73,7 +73,7 @@ Tools • Dart 3.5.0
 
 ```powershell
 # Terminal 1:
-cd C:\Users\hp\Desktop\Savdogar\Savdogar-backend
+cd C:\Users\hp\Desktop\Bozorchi AI\Bozorchi AI-backend
 python manage.py runserver
 ```
 
@@ -85,7 +85,7 @@ python manage.py runserver
 
 ```powershell
 # Terminal 2 (YANGI):
-cd C:\Users\hp\Desktop\Savdogar\savdogar_app
+cd C:\Users\hp\Desktop\Bozorchi AI\bozorchi_app
 
 # Dependencies install:
 flutter pub get
@@ -93,7 +93,7 @@ flutter pub get
 
 Natija:
 ```
-Running "flutter pub get" in savdogar_app...
+Running "flutter pub get" in bozorchi_app...
 Got dependencies!
 ```
 
@@ -217,7 +217,7 @@ flutter pub get
 ## 📂 5. FLUTTER PROJECT TUZILISHI
 
 ```
-savdogar_app/
+bozorchi_app/
 ├── lib/
 │   ├── config/
 │   │   ├── constants.dart          # API URLs
@@ -251,11 +251,11 @@ savdogar_app/
 ```powershell
 # 1. Flutter o'rnating (5 daqiqa)
 # 2. Terminal 1 - Backend:
-cd C:\Users\hp\Desktop\Savdogar\Savdogar-backend
+cd C:\Users\hp\Desktop\Bozorchi AI\Bozorchi AI-backend
 python manage.py runserver
 
 # 3. Terminal 2 - Flutter:
-cd C:\Users\hp\Desktop\Savdogar\savdogar_app
+cd C:\Users\hp\Desktop\Bozorchi AI\bozorchi_app
 flutter pub get
 flutter run -d chrome
 

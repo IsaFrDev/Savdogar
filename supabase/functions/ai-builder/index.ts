@@ -35,7 +35,7 @@ serve(async (req) => {
         messages: [
           { 
             role: 'system', 
-            content: 'You are Savdogar AI, a professional web designer and business consultant. Help the merchant build their online store. Provide creative and technical suggestions.' 
+            content: 'You are Bozorchi AI AI, a professional web designer and business consultant. Help the merchant build their online store. Provide creative and technical suggestions.' 
           },
           { role: 'user', content: message }
         ],

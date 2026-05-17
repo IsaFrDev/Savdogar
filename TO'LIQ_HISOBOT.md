@@ -125,8 +125,8 @@ POST   /api/delivery/pricing/{id}/calculate/
 ### 5. 🏢 B2B FUNKSIYALAR
 
 **Fayllar:**
-- `savdogar/advanced_models.py` (429 lines) - Qismiy
-- `savdogar/admin.py` (Updated)
+- `bozorchi/advanced_models.py` (429 lines) - Qismiy
+- `bozorchi/admin.py` (Updated)
 
 **Modellar:**
 - ✅ CorporateAccount - Korporativ hisoblar
@@ -196,13 +196,13 @@ import {
 7. ✅ `products/product_enhancement_serializers.py` (69 lines)
 8. ✅ `marketing/loyalty_models.py` (321 lines)
 9. ✅ `marketing/loyalty_serializers.py` (69 lines)
-10. ✅ `savdogar/advanced_models.py` (429 lines)
+10. ✅ `bozorchi/advanced_models.py` (429 lines)
 
 ### Admin Panels (Updated):
 11. ✅ `delivery/admin.py`
 12. ✅ `products/admin.py`
 13. ✅ `marketing/admin.py`
-14. ✅ `savdogar/admin.py`
+14. ✅ `bozorchi/admin.py`
 
 ### URLs (Updated):
 15. ✅ `delivery/urls.py`
@@ -347,7 +347,7 @@ Barcha migrations muvaffaqiyatli apply qilindi:
 ✅ delivery.0002_deliverypricing_deliveryprovider_...
 ✅ marketing.0002_coupon_customercoupon_loyaltyprogram_...
 ✅ products.0004_batch_alter_product_slug_bundleitem_...
-✅ savdogar.0001_initial.py
+✅ bozorchi.0001_initial.py
 ```
 
 ---

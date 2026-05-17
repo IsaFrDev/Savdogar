@@ -102,7 +102,7 @@ function AppContent() {
 
         // 3. Normal subdomain logic
         const parts = hostname.split('.');
-        // For subdomains (e.g., shop.savdogar.local or shop.savdogar.uz)
+        // For subdomains (e.g., shop.bozorchi.local or shop.bozorchi-ai.vercel.app)
         if (parts.length >= 3 && !hostname.includes('ngrok-free.app') && !hostname.includes('vercel.app')) {
           storeSlug = parts[0];
           if (storeSlug === 'www' || storeSlug === 'admin') storeSlug = null;

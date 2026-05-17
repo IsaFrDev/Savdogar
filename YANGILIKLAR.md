@@ -1,4 +1,4 @@
-Savdogar - YANGI FUNKSIYALAR QO'SHILDI
+Bozorchi AI - YANGI FUNKSIYALAR QO'SHILDI
 =========================================
 
 ✅ BAJARILGAN ISHLAR:

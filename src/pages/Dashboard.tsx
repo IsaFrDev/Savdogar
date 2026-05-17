@@ -354,7 +354,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
                  <Zap size={22} className="group-hover:rotate-12 transition-transform" />
               </div>
               <div className="flex-1 overflow-hidden">
-                 <h1 className="text-xl font-black tracking-tighter uppercase font-heading leading-none text-slate-950 truncate">Savdogar</h1>
+                 <h1 className="text-xl font-black tracking-tighter uppercase font-heading leading-none text-slate-950 truncate">Bozorchi AI</h1>
                  <span className="text-[8px] font-black text-indigo-500 uppercase tracking-[0.3em] mt-1.5 block">Growth v4.0</span>
               </div>
               {isMobile && (

@@ -1,6 +1,6 @@
 {
-    "name": "savdogar_app",
-    "short_name": "savdogar_app",
+    "name": "bozorchi_app",
+    "short_name": "bozorchi_app",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

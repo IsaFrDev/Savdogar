@@ -137,24 +137,24 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 
-// One-time migration: savdogar_ -> savdogar_ localStorage keys
+// One-time migration: bozorchi_ -> bozorchi_ localStorage keys
 (() => {
   if (typeof window === 'undefined') return;
-  if (localStorage.getItem('savdogar_migrated')) return;
+  if (localStorage.getItem('bozorchi_migrated')) return;
   const keysToMigrate = ['lan', 'maintenance', 'currency', 'exchange_rates', 'custom_colors'];
   keysToMigrate.forEach(key => {
-    const oldVal = localStorage.getItem(`savdogar_${key}`);
-    if (oldVal && !localStorage.getItem(`savdogar_${key}`)) {
-      localStorage.setItem(`savdogar_${key}`, oldVal);
+    const oldVal = localStorage.getItem(`bozorchi_${key}`);
+    if (oldVal && !localStorage.getItem(`bozorchi_${key}`)) {
+      localStorage.setItem(`bozorchi_${key}`, oldVal);
     }
-    localStorage.removeItem(`savdogar_${key}`);
+    localStorage.removeItem(`bozorchi_${key}`);
   });
-  localStorage.setItem('savdogar_migrated', '1');
+  localStorage.setItem('bozorchi_migrated', '1');
 })();
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
-    const saved = localStorage.getItem('savdogar_lan');
+    const saved = localStorage.getItem('bozorchi_lan');
     if (saved === 'en') return 'uz';
     return (saved as Language) || 'uz';
   });
@@ -164,23 +164,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [maintenanceMode, setMaintenanceModeState] = useState(() => localStorage.getItem('savdogar_maintenance') === 'true');
-  const [currency, setCurrencyState] = useState(() => localStorage.getItem('savdogar_currency') || 'UZS');
+  const [maintenanceMode, setMaintenanceModeState] = useState(() => localStorage.getItem('bozorchi_maintenance') === 'true');
+  const [currency, setCurrencyState] = useState(() => localStorage.getItem('bozorchi_currency') || 'UZS');
   const [exchangeRates, setExchangeRatesState] = useState<{ USD: number; RUB: number }>(() => {
-    const saved = localStorage.getItem('savdogar_exchange_rates');
+    const saved = localStorage.getItem('bozorchi_exchange_rates');
     return saved ? JSON.parse(saved) : { USD: 12800, RUB: 140 };
   });
 
   const setExchangeRates = (rates: { USD: number; RUB: number }) => {
     setExchangeRatesState(rates);
-    localStorage.setItem('savdogar_exchange_rates', JSON.stringify(rates));
+    localStorage.setItem('bozorchi_exchange_rates', JSON.stringify(rates));
   };
 
   const themeMode: 'light' | 'ai' = 'light';
   const setThemeMode = () => console.warn('Theme is locked to light mode.');
 
   const [customColors, setCustomColorsState] = useState<{ primary: string; secondary: string; accent: string }>(() => {
-    const saved = localStorage.getItem('savdogar_custom_colors');
+    const saved = localStorage.getItem('bozorchi_custom_colors');
     return saved ? JSON.parse(saved) : { primary: '#6366f1', secondary: '#8b5cf6', accent: '#f43f5e' };
   });
 
@@ -215,12 +215,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setCustomColors = (colors: { primary: string; secondary: string; accent: string }) => {
     setCustomColorsState(colors);
-    localStorage.setItem('savdogar_custom_colors', JSON.stringify(colors));
+    localStorage.setItem('bozorchi_custom_colors', JSON.stringify(colors));
   };
 
   const setLanguage = (lang: Language) => {
     setLanguageState(lang);
-    localStorage.setItem('savdogar_lan', lang);
+    localStorage.setItem('bozorchi_lan', lang);
   };
 
   const t = (key: string, params?: Record<string, any>): string => {
@@ -276,12 +276,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setMaintenanceMode = (val: boolean) => {
     setMaintenanceModeState(val);
-    localStorage.setItem('savdogar_maintenance', String(val));
+    localStorage.setItem('bozorchi_maintenance', String(val));
   };
 
   const setCurrency = (val: string) => {
     setCurrencyState(val);
-    localStorage.setItem('savdogar_currency', val);
+    localStorage.setItem('bozorchi_currency', val);
   };
 
   const formatPrice = (amount: number = 0, currencyOverride?: string) => {

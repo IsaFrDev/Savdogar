@@ -277,7 +277,7 @@ export function Staff() {
                   <div className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10">
                     <ShieldAlert size={14} className="text-amber-500 mt-0.5 shrink-0" />
                     <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest leading-relaxed">
-                      User must be already registered on Savdogar platform to be added as a staff member.
+                      User must be already registered on Bozorchi AI platform to be added as a staff member.
                     </p>
                   </div>
                 </div>

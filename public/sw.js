@@ -1,5 +1,5 @@
-// Savdogar Service Worker - PWA V2
-const CACHE_NAME = 'savdogar-v3';
+// Bozorchi AI Service Worker - PWA V2
+const CACHE_NAME = 'bozorchi-v3';
 const STATIC_ASSETS = [
     '/',
     '/index.html',

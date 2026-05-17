@@ -218,4 +218,4 @@ const churn = await productApi.getAiChurnPrediction(customerId);
 ---
 
 **Phase A2 Status: ✅ COMPLETE**
-All AI features are production-ready and integrated with the Savdogar platform!
+All AI features are production-ready and integrated with the Bozorchi AI platform!

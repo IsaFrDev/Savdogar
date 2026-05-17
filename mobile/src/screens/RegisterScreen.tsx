@@ -53,7 +53,7 @@ export default function RegisterScreen({ navigation }: any) {
               <UserPlus color="white" size={32} />
             </View>
             <Text style={styles.title}>Ro'yxatdan o'tish</Text>
-            <Text style={styles.subtitle}>Savdogar bilan o'z biznesingizni boshlang</Text>
+            <Text style={styles.subtitle}>Bozorchi AI bilan o'z biznesingizni boshlang</Text>
           </View>
 
           <View style={styles.form}>

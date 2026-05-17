@@ -195,7 +195,7 @@ serve(async (req) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${store.name} | Savdogar Storefront</title>
+    <title>${store.name} | Bozorchi AI Storefront</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>

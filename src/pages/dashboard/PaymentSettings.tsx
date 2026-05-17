@@ -158,7 +158,7 @@ export function PaymentSettings() {
                 </div>
                 <div className="flex items-center gap-3 text-xs font-bold text-slate-300">
                   <Check className="w-4 h-4 text-emerald-500" />
-                  <span>Xizmat haqi - 0% (Savdogar tomonidan)</span>
+                  <span>Xizmat haqi - 0% (Bozorchi AI tomonidan)</span>
                 </div>
               </div>
               <Button className="w-full mt-10 rounded-2xl h-14 bg-white text-slate-900 font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 hover:bg-slate-100">

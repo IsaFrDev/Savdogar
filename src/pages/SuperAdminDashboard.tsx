@@ -308,7 +308,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                         className="flex items-center gap-4 hover:scale-105 active:scale-95 transition-all outline-none"
                     >
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)] to-[var(--brand-accent)] flex items-center justify-center shadow-lg shadow-[var(--brand-primary-glow)] flex-shrink-0 overflow-hidden">
-                            <img src="/savdogar-logo.jpg" alt="Savdogar" className="w-full h-full object-cover p-1" />
+                            <img src="/bozorchi-logo.jpg" alt="Bozorchi AI" className="w-full h-full object-cover p-1" />
                         </div>
                         {isSidebarOpen && (
                             <motion.span
@@ -601,7 +601,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                         </div>
                                         <h3 className="text-xl font-black text-[var(--text-primary)] uppercase tracking-widest mb-2">System Secure</h3>
                                         <p className="text-xs text-[var(--text-muted)] font-bold uppercase tracking-[0.2em] leading-relaxed">
-                                            Savdogar Enterprise Protection Active.<br /> All systems operational.
+                                            Bozorchi AI Enterprise Protection Active.<br /> All systems operational.
                                         </p>
                                     </div>
                                 </GlassCard>
@@ -663,7 +663,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                                             className="min-w-0 cursor-pointer group/name"
                                                         >
                                                             <p className="text-[15px] font-black text-[var(--text-primary)] truncate tracking-tight group-hover/name:text-[var(--brand-primary)] transition-colors">{store.name}</p>
-                                                            <p className="text-[10px] text-[var(--text-muted)] font-bold lowercase tracking-wider truncate mt-1">{store.slug}.savdogar.uz</p>
+                                                            <p className="text-[10px] text-[var(--text-muted)] font-bold lowercase tracking-wider truncate mt-1">{store.slug}.bozorchi-ai.vercel.app</p>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -732,7 +732,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                                             </>
                                                         )}
                                                         <button
-                                                            onClick={() => window.open(`http://${store.slug}.savdogar.uz`, '_blank')}
+                                                            onClick={() => window.open(`http://${store.slug}.bozorchi-ai.vercel.app`, '_blank')}
                                                             className="p-3 rounded-xl bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white transition-all border border-[var(--brand-primary)]/20 shadow-sm hover:shadow-[var(--brand-primary-glow)]"
                                                             title={t('viewStorefront')}
                                                         >

@@ -2,7 +2,7 @@
 
 ## 📋 UMUMIY MA'LUMOT / GENERAL OVERVIEW
 
-**Savdogar** - bu AI-driven multi-store e-commerce platformasi bo'lib, uchta asosiy rolga ega:
+**Bozorchi AI** - bu AI-driven multi-store e-commerce platformasi bo'lib, uchta asosiy rolga ega:
 1. **Super Admin** - Platforma egasi va boshqaruvchisi
 2. **Store Admin (Do'kon Egesi)** - Do'kon administratori
 3. **User/Customer (Mijoz)** - Oddiy foydalanuvchi
@@ -1388,13 +1388,13 @@
 
 ## 📞 CONTACT & SUPPORT
 
-- **Website:** savdogar.com
-- **Email:** support@savdogar.com
-- **Telegram:** @savdogar_support
+- **Website:** bozorchi.com
+- **Email:** support@bozorchi.com
+- **Telegram:** @bozorchi_support
 - **Phone:** +998 XX XXX XX XX
 
 ---
 
-**Savdogar** - Kelajak savdosi, bugundan boshlanadi! 🚀
+**Bozorchi AI** - Kelajak savdosi, bugundan boshlanadi! 🚀
 
 *The future of commerce, starting today!*

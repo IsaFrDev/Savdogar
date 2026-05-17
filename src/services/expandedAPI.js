@@ -1,5 +1,5 @@
 /**
- * Savdogar API Service - Expanded Features
+ * Bozorchi AI API Service - Expanded Features
  * Backend'dagi barcha yangi funksiyalar uchun API calls
  */
 
@@ -149,40 +149,40 @@ export const productEnhancementAPI = {
 
 export const b2bAPI = {
   // Corporate Accounts
-  getCorporateAccount: () => api.get('/savdogar/corporate-accounts/me/'),
-  requestCorporateAccount: (data) => api.post('/savdogar/corporate-accounts/', data),
+  getCorporateAccount: () => api.get('/bozorchi/corporate-accounts/me/'),
+  requestCorporateAccount: (data) => api.post('/bozorchi/corporate-accounts/', data),
 
   // Bulk Orders
-  getBulkOrders: () => api.get('/savdogar/bulk-orders/'),
-  createBulkOrder: (data) => api.post('/savdogar/bulk-orders/', data),
+  getBulkOrders: () => api.get('/bozorchi/bulk-orders/'),
+  createBulkOrder: (data) => api.post('/bozorchi/bulk-orders/', data),
 
   // Wholesale Prices
   getWholesalePrices: (productId) => 
     api.get(`/products/wholesale-prices/?product=${productId}`),
 
   // Suppliers (Admin)
-  getSuppliers: (storeId) => api.get(`/savdogar/suppliers/?store=${storeId}`),
-  createSupplier: (data) => api.post('/savdogar/suppliers/', data),
+  getSuppliers: (storeId) => api.get(`/bozorchi/suppliers/?store=${storeId}`),
+  createSupplier: (data) => api.post('/bozorchi/suppliers/', data),
 
   // Purchase Orders (Admin)
   getPurchaseOrders: (storeId) => 
-    api.get(`/savdogar/purchase-orders/?store=${storeId}`),
-  createPurchaseOrder: (data) => api.post('/savdogar/purchase-orders/', data),
+    api.get(`/bozorchi/purchase-orders/?store=${storeId}`),
+  createPurchaseOrder: (data) => api.post('/bozorchi/purchase-orders/', data),
 };
 
 // ==================== CUSTOMER SUPPORT ====================
 
 export const supportAPI = {
   // Tickets
-  getTickets: () => api.get('/savdogar/support-tickets/'),
-  createTicket: (data) => api.post('/savdogar/support-tickets/', data),
-  getTicket: (id) => api.get(`/savdogar/support-tickets/${id}/`),
+  getTickets: () => api.get('/bozorchi/support-tickets/'),
+  createTicket: (data) => api.post('/bozorchi/support-tickets/', data),
+  getTicket: (id) => api.get(`/bozorchi/support-tickets/${id}/`),
   sendMessage: (ticketId, message) => 
-    api.post(`/savdogar/tickets/${ticketId}/messages/`, { message }),
+    api.post(`/bozorchi/tickets/${ticketId}/messages/`, { message }),
 
   // FAQ
   getFAQs: (storeId, category) => 
-    api.get(`/savdogar/faqs/?store=${storeId}&category=${category || ''}`),
+    api.get(`/bozorchi/faqs/?store=${storeId}&category=${category || ''}`),
 };
 
 // ==================== ANALYTICS ====================
@@ -190,35 +190,35 @@ export const supportAPI = {
 export const analyticsAPI = {
   // Sales
   getSalesReport: (storeId, startDate, endDate) => 
-    api.get(`/savdogar/analytics/sales/?store=${storeId}&start=${startDate}&end=${endDate}`),
+    api.get(`/bozorchi/analytics/sales/?store=${storeId}&start=${startDate}&end=${endDate}`),
   getTopProducts: (storeId, limit = 10) => 
-    api.get(`/savdogar/analytics/top-products/?store=${storeId}&limit=${limit}`),
+    api.get(`/bozorchi/analytics/top-products/?store=${storeId}&limit=${limit}`),
 
   // Customers
   getCustomerLifetimeValue: (storeId) => 
-    api.get(`/savdogar/analytics/clv/?store=${storeId}`),
+    api.get(`/bozorchi/analytics/clv/?store=${storeId}`),
 
   // Inventory
   getInventoryReport: (warehouseId) => 
-    api.get(`/savdogar/analytics/inventory/?warehouse=${warehouseId}`),
+    api.get(`/bozorchi/analytics/inventory/?warehouse=${warehouseId}`),
 
   // Export
   exportReport: (type, params) => 
-    api.get(`/savdogar/analytics/export/${type}/`, { params, responseType: 'blob' }),
+    api.get(`/bozorchi/analytics/export/${type}/`, { params, responseType: 'blob' }),
 };
 
 // ==================== DEVELOPER TOOLS ====================
 
 export const developerAPI = {
   // API Keys
-  getAPIKeys: (storeId) => api.get(`/savdogar/api-keys/?store=${storeId}`),
-  createAPIKey: (data) => api.post('/savdogar/api-keys/', data),
-  deleteAPIKey: (id) => api.delete(`/savdogar/api-keys/${id}/`),
+  getAPIKeys: (storeId) => api.get(`/bozorchi/api-keys/?store=${storeId}`),
+  createAPIKey: (data) => api.post('/bozorchi/api-keys/', data),
+  deleteAPIKey: (id) => api.delete(`/bozorchi/api-keys/${id}/`),
 
   // Webhooks
-  getWebhooks: (storeId) => api.get(`/savdogar/webhooks/?store=${storeId}`),
-  createWebhook: (data) => api.post('/savdogar/webhooks/', data),
-  updateWebhook: (id, data) => api.put(`/savdogar/webhooks/${id}/`, data),
+  getWebhooks: (storeId) => api.get(`/bozorchi/webhooks/?store=${storeId}`),
+  createWebhook: (data) => api.post('/bozorchi/webhooks/', data),
+  updateWebhook: (id, data) => api.put(`/bozorchi/webhooks/${id}/`, data),
 };
 
 // ==================== QUICK WINS ====================

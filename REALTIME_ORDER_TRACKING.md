@@ -2,7 +2,7 @@
 
 ## ✅ TAMOMLANDI!
 
-Savdogar platformasiga **Uzum Market kabi real-time order tracking** qo'shildi!
+Bozorchi AI platformasiga **Uzum Market kabi real-time order tracking** qo'shildi!
 
 ---
 
@@ -227,7 +227,7 @@ INSTALLED_APPS = [
     ...
 ]
 
-ASGI_APPLICATION = 'savdogar.asgi.application'
+ASGI_APPLICATION = 'bozorchi.asgi.application'
 
 CHANNEL_LAYERS = {
     'default': {
@@ -252,7 +252,7 @@ Hech narsa konfiguratsiya qilish kerak emas! Hook avtomatik:
 ### **1. Backend Run:**
 
 ```powershell
-cd C:\Users\hp\Desktop\Savdogar\Savdogar-backend
+cd C:\Users\hp\Desktop\Bozorchi AI\Bozorchi AI-backend
 python manage.py runserver
 ```
 
@@ -263,7 +263,7 @@ python manage.py runserver
 ### **2. Frontend Run:**
 
 ```powershell
-cd C:\Users\hp\Desktop\Savdogar
+cd C:\Users\hp\Desktop\Bozorchi AI
 npm run dev
 ```
 
@@ -445,7 +445,7 @@ reconnect();
 
 **HAMMASI ISHLAYAPTI!** 🚀
 
-Savdogar platformasi endi **Uzum Market** kabi real-time order tracking bilan!
+Bozorchi AI platformasi endi **Uzum Market** kabi real-time order tracking bilan!
 
 ---
 

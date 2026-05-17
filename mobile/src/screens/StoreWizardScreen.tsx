@@ -75,7 +75,7 @@ export default function StoreWizardScreen({ navigation }: any) {
                 onChangeText={setSlug}
                 placeholder="my-store"
               />
-              <Text style={styles.helper}>{slug || 'store'}.savdogar.uz</Text>
+              <Text style={styles.helper}>{slug || 'store'}.bozorchi-ai.vercel.app</Text>
             </View>
 
             <TouchableOpacity style={styles.nextBtn} onPress={() => setStep(2)}>

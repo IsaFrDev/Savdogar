@@ -16,10 +16,10 @@ export function PWAInstallBanner({ language = 'en', variant = 'banner' }: PWAIns
     const labels = {
         title: language === 'uz' ? "Ilovani o'rnating" : language === 'ru' ? 'Установить приложение' : 'Install App',
         subtitle: language === 'uz'
-            ? "Savdogar'ni telefonga o'rnating — tezroq ishlaydi va oflayn rejim"
+            ? "Bozorchi AI'ni telefonga o'rnating — tezroq ishlaydi va oflayn rejim"
             : language === 'ru'
-                ? 'Установите Savdogar на телефон — быстрее и оффлайн режим'
-                : 'Install Savdogar on your device — faster experience & offline mode',
+                ? 'Установите Bozorchi AI на телефон — быстрее и оффлайн режим'
+                : 'Install Bozorchi AI on your device — faster experience & offline mode',
         install: language === 'uz' ? "O'rnatish" : language === 'ru' ? 'Установить' : 'Install',
         installed: language === 'uz' ? "O'rnatilgan ✓" : language === 'ru' ? 'Установлено ✓' : 'Installed ✓',
         iosTitle: language === 'uz' ? 'iOS uchun' : language === 'ru' ? 'Для iOS' : 'For iOS',
@@ -38,7 +38,7 @@ export function PWAInstallBanner({ language = 'en', variant = 'banner' }: PWAIns
                     <div>
                         <p className="font-bold text-emerald-600 dark:text-emerald-400 text-sm">{labels.installed}</p>
                         <p className="text-[var(--text-dim)] text-xs mt-0.5">
-                            {language === 'uz' ? "Savdogar ilovasi qurilmangizga o'rnatilgan" : language === 'ru' ? 'Приложение Savdogar установлено' : 'Savdogar app is installed on your device'}
+                            {language === 'uz' ? "Bozorchi AI ilovasi qurilmangizga o'rnatilgan" : language === 'ru' ? 'Приложение Bozorchi AI установлено' : 'Bozorchi AI app is installed on your device'}
                         </p>
                     </div>
                 </div>
