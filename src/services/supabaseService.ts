@@ -446,7 +446,7 @@ export const supabaseApi = {
                 data: {
                     headline: "Super Chegirma!",
                     content: "Shoshiling! Bizda barcha mahsulotlarga 20% gacha chegirmalar boshlandi. Sifat va hamyonbop narx faqat bizda!",
-                    hashtags: ["#bozorchi", "#chegirma", "#uzbekistan"],
+                    hashtags: ["#savdogar", "#chegirma", "#uzbekistan"],
                     best_time_to_post: "20:00"
                 }
             };

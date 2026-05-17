@@ -38,7 +38,7 @@ export function ContractPreview({ onAgree, agreed }: ContractPreviewProps) {
             en: `
 SAVDOON ENTERPRISE SERVICE AGREEMENT
 
-This Agreement is entered into between Bozorchi AI Platform ("Platform") and the Store Owner ("You").
+This Agreement is entered into between Savdogar Platform ("Platform") and the Store Owner ("You").
 
 1. SUBSCRIPTION & FEES
    1.1 The monthly platform fee is 150,000 UZS (One Hundred Fifty Thousand Som).
@@ -63,7 +63,7 @@ By signing below, you acknowledge and agree to these terms.
             uz: `
 SAVDOON ENTERPRISE XIZMAT KO‘RSATISH SHARTNOMASI
 
-Ushbu Shartnoma Bozorchi AI Platformasi ("Platforma") va Do'kon Egasi ("Siz") o'rtasida tuzilgan.
+Ushbu Shartnoma Savdogar Platformasi ("Platforma") va Do'kon Egasi ("Siz") o'rtasida tuzilgan.
 
 1. OBUNA VA TO‘LOVLAR
    1.1 Oylik platforma to'lovi 150,000 (bir yuz ellik ming) so'mni tashkil qiladi.
@@ -88,7 +88,7 @@ Quyida imzo chekish orqali barcha shartlarga rozilik bildirasiz.
             ru: `
 СОГЛАШЕНИЕ ОБ ОБСЛУЖИВАНИИ SAVDOON ENTERPRISE
 
-Настоящий Договор заключается между Платформой Bozorchi AI ("Платформа") и Владельцем магазина ("Вы").
+Настоящий Договор заключается между Платформой Savdogar ("Платформа") и Владельцем магазина ("Вы").
 
 1. ПОДПИСКА И ОПЛАТА
    1.1 Ежемесячная плата за платформу составляет 150,000 (сто пятьдесят тысяч) сум.

@@ -93,7 +93,7 @@ export function Register({ onSuccess, onLogin }: RegisterProps) {
           <div className="w-24 h-24 rounded-3xl bg-white flex items-center justify-center mx-auto mb-8 shadow-2xl relative group overflow-hidden p-4">
             <img
               src="/logo.svg"
-              alt="Bozorchi AI Logo"
+              alt="Savdogar Logo"
               className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
             />
           </div>
@@ -133,7 +133,7 @@ export function Register({ onSuccess, onLogin }: RegisterProps) {
             type="email"
             value={email}
             onChange={setEmail}
-            placeholder="you@bozorchi-ai.vercel.app"
+            placeholder="you@savdogar.vercel.app"
             icon={<Mail className="w-5 h-5" />}
             required
           />

@@ -56,7 +56,7 @@ export default function AiImageStudio() {
         if (!processedImage) return;
         const link = document.createElement('a');
         link.href = processedImage;
-        link.download = `bozorchi_ai_studio_${Date.now()}.png`;
+        link.download = `savdogar_studio_${Date.now()}.png`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

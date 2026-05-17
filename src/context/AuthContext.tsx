@@ -123,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Use Supabase Auth Login (Secure JWT-based authentication)
 
         // 2. Try Supabase Auth Login
-        const authEmail = email.includes('@') ? email : `${email}@bozorchi.local`;
+        const authEmail = email.includes('@') ? email : `${email}@savdogar.local`;
         const { data, error } = await supabase.auth.signInWithPassword({
             email: authEmail,
             password,
@@ -216,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (usernameInput === 'admin' && passwordInput === 'admin123') {
             const mockUser: User = {
                 id: '00000000-0000-0000-0000-000000000000',
-                email: 'admin@bozorchi.ai',
+                email: 'admin@savdogar.ai',
                 username: 'admin',
                 first_name: 'System',
                 last_name: 'Admin',
@@ -230,7 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return { success: true, user: mockUser };
         } else {
             // Try standard Supabase login as fallback
-            const authEmail = usernameInput.includes('@') ? usernameInput : `${usernameInput}@bozorchi.local`;
+            const authEmail = usernameInput.includes('@') ? usernameInput : `${usernameInput}@savdogar.local`;
             const { data, error } = await supabase.auth.signInWithPassword({
                 email: authEmail,
                 password: passwordInput,

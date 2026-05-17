@@ -39,7 +39,7 @@ export const terminalService = {
 
         if (command === 'whoami') {
             return [
-                { type: 'output', content: `${t('terminal_user_label') || 'User'}: superadmin@bozorchi-ai.vercel.app` },
+                { type: 'output', content: `${t('terminal_user_label') || 'User'}: superadmin@savdogar.vercel.app` },
                 { type: 'output', content: `${t('terminal_role_label') || 'Role'}: ROOT_ACCESS` },
                 { type: 'output', content: `${t('terminal_permissions_label') || 'Permissions'}: ALL_MODULES` }
             ];
