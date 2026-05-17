@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Store, Settings, MapPin, MessageCircle, FileSignature, Check, ChevronRight, ChevronLeft, Upload, AlertCircle, Sparkles, Loader2, Download, LayoutTemplate, Palette, Eye, X, FolderCheck, Search, ShoppingCart } from 'lucide-react';
+import { Store, Settings, MapPin, FileSignature, Check, Upload, AlertCircle, Sparkles, Loader2, Download, LayoutTemplate, Eye, X, FolderCheck, ShoppingCart } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { generateDefaultSite } from '../templates/defaultSiteTemplate';
 import { useAuth } from '../context/AuthContext';
 import { supabaseApi } from '../services/supabaseService';
 import { Button } from '../components/Button';
@@ -143,7 +144,6 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
         { num: 4, title: t('catalogSettings'), icon: Settings },
         { num: 5, title: t('identity'), icon: Upload },
         { num: 6, title: t('locationPickup'), icon: MapPin },
-        { num: 7, title: t('telegramIntegration'), icon: MessageCircle },
         { num: 8, title: t('signContract'), icon: FileSignature },
     ];
 
@@ -168,6 +168,9 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
             setStep(4);
             return;
         }
+
+        // Skip step 7 (Telegram bot) - go directly from 6 to 8
+        if (step === 6) { setStep(8); return; }
 
         if (step < 8) setStep(step + 1);
         else handleComplete();
@@ -213,6 +216,14 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
 
             const createdStore = await supabaseApi.stores.create(storeData);
             const response = { data: createdStore };
+
+            // Auto-generate Default Site HTML files for this store
+            try {
+                const siteFiles = generateDefaultSite(storeName, slug, '#6366F1');
+                await supabaseApi.stores.update(createdStore.id, { store_files: siteFiles });
+            } catch (siteErr) {
+                console.warn('Default site generation skipped:', siteErr);
+            }
 
             // Computer Club Provisioning
             if (finalBusinessType === 'computer_club') {
@@ -336,14 +347,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
             };
             reader.readAsDataURL(file);
 
-            // Extract colors
-            try {
-                const colors = await extractColorsFromImage(file);
-                setPrimaryColor(colors.primary);
-                setSecondaryColor(colors.secondary);
-            } catch (err) {
-                console.error("Color extraction failed", err);
-            }
+            // Colors are fixed - no dynamic extraction needed
         }
     };
 
@@ -458,26 +462,8 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                     </div>
                                 </div>
 
-                                <div className="space-y-3">
-                                    <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">{t('selectPlatform')}</label>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {[
-                                            { id: 'telegram', label: 'Telegram' },
-                                            { id: 'veb_sayt', label: 'Veb-sayt' }
-                                        ].map((p) => (
-                                            <button
-                                                key={p.id}
-                                                onClick={() => setPlatform(p.id as any)}
-                                                className={`p-4 rounded-2xl border-2 transition-all flex items-center gap-3 ${platform === p.id ? 'bg-indigo-50 border-indigo-600' : 'bg-slate-50 border-transparent hover:border-slate-200'}`}
-                                            >
-                                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${platform === p.id ? 'border-indigo-600' : 'border-slate-300'}`}>
-                                                    {platform === p.id && <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />}
-                                                </div>
-                                                <span className="font-bold text-sm text-slate-700">{p.label}</span>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+
+                                {/* Platform is always Web - no selector needed */}
 
                                 <div className="space-y-3">
                                     <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">{t('businessCategory')}</label>
@@ -848,9 +834,10 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                 <Button variant="ghost" onClick={() => {
                                     if (step === 2 && businessType === 'computer_club') setStep(1.5);
                                     else if (step === 1.5) setStep(1);
+                                    else if (step === 8) setStep(6); // skip step 7 (bot)
                                     else setStep(step - 1);
-                                }} disabled={step === 1 || isSubmitting} icon={<ChevronLeft className="w-4 h-4" />} className="text-slate-500 hover:text-slate-900 hover:bg-slate-100">
-                                    {t('back')}
+                                }} disabled={step === 1 || isSubmitting} className="text-slate-500 hover:text-slate-900 hover:bg-slate-100">
+                                    ← {t('back')}
                                 </Button>
                                 <Button
                                     onClick={handleNext}
@@ -868,7 +855,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                     ) : step === 8 ? (
                                         t('create')
                                     ) : (
-                                        <span className="flex items-center gap-2">{t('next')} <ChevronRight className="w-4 h-4" /></span>
+                                        <span className="flex items-center gap-2">{t('next')} →</span>
                                     )}
                                 </Button>
                             </div>
