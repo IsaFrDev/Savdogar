@@ -128,15 +128,29 @@ ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 
 -- Basic Policies (Allow read/write for now to restore functionality)
 -- Note: These are very permissive for debugging purposes.
+DROP POLICY IF EXISTS "Public read for profiles" ON public.profiles;
 CREATE POLICY "Public read for profiles" ON public.profiles FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for stores" ON public.stores;
 CREATE POLICY "Public read for stores" ON public.stores FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for categories" ON public.categories;
 CREATE POLICY "Public read for categories" ON public.categories FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for products" ON public.products;
 CREATE POLICY "Public read for products" ON public.products FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public read for orders" ON public.orders;
 CREATE POLICY "Public read for orders" ON public.orders FOR SELECT USING (true);
 
 -- Ensure authenticated users can insert (simplified for debugging)
+DROP POLICY IF EXISTS "Authenticated users can insert stores" ON public.stores;
 CREATE POLICY "Authenticated users can insert stores" ON public.stores FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can insert products" ON public.products;
 CREATE POLICY "Authenticated users can insert products" ON public.products FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can insert orders" ON public.orders;
 CREATE POLICY "Authenticated users can insert orders" ON public.orders FOR INSERT WITH CHECK (true);
 
 -- 8. Club Zones
@@ -303,6 +317,7 @@ CREATE TABLE IF NOT EXISTS public.club_session_orders (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.club_session_orders ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Auth users manage session orders" ON public.club_session_orders;
 CREATE POLICY "Auth users manage session orders" ON public.club_session_orders FOR ALL USING (auth.role() = 'authenticated');
 
 -- 16. Shift Management
@@ -321,6 +336,7 @@ CREATE TABLE IF NOT EXISTS public.shifts (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Auth users manage shifts" ON public.shifts;
 CREATE POLICY "Auth users manage shifts" ON public.shifts FOR ALL USING (auth.role() = 'authenticated');
 
 -- 17. Happy Hours & Dynamic Pricing
@@ -336,6 +352,7 @@ CREATE TABLE IF NOT EXISTS public.club_happy_hours (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.club_happy_hours ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Auth users manage happy hours" ON public.club_happy_hours;
 CREATE POLICY "Auth users manage happy hours" ON public.club_happy_hours FOR ALL USING (auth.role() = 'authenticated');
 
 -- 18. Expense Tracking
@@ -350,4 +367,5 @@ CREATE TABLE IF NOT EXISTS public.expenses (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Auth users manage expenses" ON public.expenses;
 CREATE POLICY "Auth users manage expenses" ON public.expenses FOR ALL USING (auth.role() = 'authenticated');
