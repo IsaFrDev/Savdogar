@@ -22,7 +22,7 @@ export default defineConfig({
             req.on('data', chunk => { body += chunk.toString(); });
             req.on('end', () => {
               try {
-                const { storeName, storeSlug, supabaseUrl, supabaseKey } = JSON.parse(body);
+                const { storeName, storeSlug, supabaseUrl, supabaseKey, primaryColor, primaryDark, secondaryColor } = JSON.parse(body);
                 const defaultSitePath = path.resolve(__dirname, 'sites/Default Site');
                 const targetPath = path.resolve(__dirname, 'sites', storeSlug);
                 
@@ -42,6 +42,11 @@ export default defineConfig({
                     content = content.replace(/{{STORE_SLUG}}/g, storeSlug);
                     if (supabaseUrl) content = content.replace(/{{SUPABASE_URL}}/g, supabaseUrl);
                     if (supabaseKey) content = content.replace(/{{SUPABASE_KEY}}/g, supabaseKey);
+                    
+                    // Replace Colors
+                    content = content.replace(/{{PRIMARY_COLOR}}/g, primaryColor || '#6366F1');
+                    content = content.replace(/{{PRIMARY_DARK}}/g, primaryDark || '#4f46e5');
+                    content = content.replace(/{{SECONDARY_COLOR}}/g, secondaryColor || '#059669');
                     
                     fs.writeFileSync(path.join(targetPath, file), content);
                   }

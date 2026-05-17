@@ -39,6 +39,16 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
     const [logoFile, setLogoFile] = useState<File | null>(null);
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
+    // Color Theme
+    const colorCombinations = [
+        { id: 'indigo', name: 'Indigo (Asosiy)', primary: '#6366F1', primaryDark: '#4f46e5', secondary: '#059669' },
+        { id: 'korzinka', name: 'Qizil va Sariq', primary: '#E60000', primaryDark: '#CC0000', secondary: '#FFB800' },
+        { id: 'makro', name: 'Yashil va Siyohrang', primary: '#00C48C', primaryDark: '#00A375', secondary: '#7000FF' },
+        { id: 'ocean', name: 'Havorang va Pushti', primary: '#0EA5E9', primaryDark: '#0284C7', secondary: '#F43F5E' },
+        { id: 'dark', name: 'Qora va Tilla', primary: '#0F172A', primaryDark: '#000000', secondary: '#EAB308' },
+    ];
+    const [selectedTheme, setSelectedTheme] = useState(colorCombinations[0]);
+
     // Step 1: Identity & Type
     const [businessType, setBusinessType] = useState<'restoran' | 'onlayn_dokon' | 'computer_club'>('onlayn_dokon');
     const [businessCategory, setBusinessCategory] = useState('');
@@ -225,7 +235,10 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                         storeName: storeName,
                         storeSlug: slug,
                         supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',
-                        supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+                        supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+                        primaryColor: selectedTheme.primary,
+                        primaryDark: selectedTheme.primaryDark,
+                        secondaryColor: selectedTheme.secondary
                     })
                 });
             } catch (siteErr) {
@@ -693,6 +706,30 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                                 <p className="text-[11px] font-black text-[var(--text-muted)] uppercase tracking-widest">{t('clickToUpload')}</p>
                                             </>
                                         )}
+                                    </div>
+                                </div>
+                                
+                                <div className="space-y-4 pt-6 border-t border-slate-100">
+                                    <div>
+                                        <h3 className="text-sm font-black text-[var(--text-main)] uppercase tracking-widest mb-1">Veb-sayt Ranglari</h3>
+                                        <p className="text-xs text-[var(--text-muted)]">Do'koningiz interfeysi qaysi ranglarda bo'lishini tanlang.</p>
+                                    </div>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {colorCombinations.map((theme) => (
+                                            <div
+                                                key={theme.id}
+                                                onClick={() => setSelectedTheme(theme)}
+                                                className={`p-3 rounded-2xl border-2 cursor-pointer transition-all ${selectedTheme.id === theme.id ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 hover:border-slate-200'}`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex -space-x-2">
+                                                        <div className="w-8 h-8 rounded-full shadow-sm border-2 border-white z-10" style={{ backgroundColor: theme.primary }}></div>
+                                                        <div className="w-8 h-8 rounded-full shadow-sm border-2 border-white" style={{ backgroundColor: theme.secondary }}></div>
+                                                    </div>
+                                                    <span className="text-xs font-bold text-slate-700">{theme.name}</span>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
