@@ -6,6 +6,7 @@ import { ShoppingCart, Menu, X, Plus, Minus, Trash2, ArrowRight, Check, Package,
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { supabaseApi } from '../services/supabaseService';
+import { supabase } from '../supabase';
 import { getMediaUrl } from '../utils/media';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
 import { GlassCard } from '../components/GlassCard';
