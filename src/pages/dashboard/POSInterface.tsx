@@ -99,11 +99,13 @@ const POSInterface: React.FC = () => {
     if (!currentStore?.id) return;
     try {
       const data = await supabaseApi.pos.listRegisters(currentStore.id);
-      setRegisters(data);
-      const active = data.find((r: CashRegister) => r.is_active);
+      const regList = Array.isArray(data) ? data : (data && Array.isArray((data as any).data) ? (data as any).data : []);
+      setRegisters(regList);
+      const active = regList.find((r: CashRegister) => r.is_active);
       if (active) setActiveRegister(active);
     } catch (error) {
       console.error('Failed to load registers from Supabase:', error);
+      setRegisters([]);
     }
   };
 
@@ -111,9 +113,10 @@ const POSInterface: React.FC = () => {
     if (!currentStore?.id) return;
     try {
       const data = await supabaseApi.pos.listTransactions(currentStore.id);
-      setTransactions(data);
+      setTransactions(Array.isArray(data) ? data : (data && Array.isArray((data as any).data) ? (data as any).data : []));
     } catch (error) {
       console.error('Failed to load transactions from Supabase:', error);
+      setTransactions([]);
     }
   };
 
@@ -121,13 +124,15 @@ const POSInterface: React.FC = () => {
     if (!currentStore?.id) return;
     try {
       const data = await supabaseApi.products.list(currentStore.id);
+      const prodList = Array.isArray(data) ? data : (data && Array.isArray((data as any).data) ? (data as any).data : []);
       if (query) {
-          setProducts(data.filter(p => p.name.toLowerCase().includes(query.toLowerCase())));
+          setProducts(prodList.filter(p => p.name && p.name.toLowerCase().includes(query.toLowerCase())));
       } else {
-          setProducts(data);
+          setProducts(prodList);
       }
     } catch (error) {
       console.error('Failed to load products from Supabase:', error);
+      setProducts([]);
     }
   };
 

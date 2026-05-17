@@ -301,7 +301,8 @@ export function Categories({ storeId }: CategoriesProps) {
                                                 }}
                                             />
                                         </div>
-                                           <div className="lg:col-span-8 space-y-10">
+                                    </div>
+                                    <div className="lg:col-span-8 space-y-10">
                                         <div className="space-y-6">
                                             <div className="flex justify-between items-center px-1">
                                                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('name')}</label>
@@ -357,7 +358,6 @@ export function Categories({ storeId }: CategoriesProps) {
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Slug (URL)</label>
                                             <input value={formData.slug} onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))} className="w-full h-16 bg-slate-50 border border-slate-100 rounded-2xl px-8 text-emerald-600 font-black uppercase tracking-[0.3em] text-[10px] outline-none focus:border-emerald-500/30 transition-all" />
                                         </div>
-                              </div>
                                     </div>
                                 </div>
                             </div>

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { supabaseApi } from '../../services/supabaseService';
 import { GlassCard } from '../../components/GlassCard';
+import { useApp } from '../../context/AppContext';
 
 export function StoreChatDashboard() {
     const { t, currentStore, language } = useApp();
