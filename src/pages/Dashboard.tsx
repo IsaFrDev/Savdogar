@@ -480,8 +480,8 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
               <button 
                 onClick={() => {
                   if (currentStore?.slug) {
-                    const isLocal = window.location.hostname === 'localhost' || window.location.hostname.includes('192.168');
-                    const url = isLocal 
+                    const isLocalOrVercel = window.location.hostname === 'localhost' || window.location.hostname.includes('192.168') || window.location.hostname.includes('vercel.app');
+                    const url = isLocalOrVercel 
                       ? `${window.location.origin}/?store=${currentStore.slug}`
                       : `https://${currentStore.slug}.savdogar.uz`;
                     window.open(url, '_blank');
