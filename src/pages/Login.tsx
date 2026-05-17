@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Scan, AlertCircle, CheckCircle, Loader2, Shield } from 'lucide-react';
+import { Mail, Lock, Scan, Loader2, Shield } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/Button';
@@ -159,7 +159,7 @@ export function Login({ onLogin, onRegister }: LoginProps) {
             animate={{ opacity: 1, x: 0 }}
             className="mb-8 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-3 text-rose-400"
           >
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
             <span className="text-[11px] font-bold uppercase tracking-wider">{error}</span>
           </motion.div>
         )}
@@ -170,7 +170,7 @@ export function Login({ onLogin, onRegister }: LoginProps) {
             animate={{ opacity: 1, x: 0 }}
             className="mb-8 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-emerald-400"
           >
-            <CheckCircle className="w-5 h-5 flex-shrink-0" />
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 flex-shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
             <span className="text-[11px] font-bold uppercase tracking-wider">{faceIdMessage}</span>
           </motion.div>
         )}
