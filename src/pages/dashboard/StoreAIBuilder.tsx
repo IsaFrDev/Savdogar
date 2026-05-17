@@ -5,6 +5,7 @@ import { IPhone16Frame } from '../../components/IPhone16Frame';
 import { Storefront } from '../Storefront';
 import { supabaseApi } from '../../services/supabaseService';
 import { supabase } from '../../supabase';
+import { useApp } from '../../context/AppContext';
 
 interface Message {
   id: string;

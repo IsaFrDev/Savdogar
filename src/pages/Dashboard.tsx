@@ -23,6 +23,7 @@ import {
   Heart,
   Send,
   Wand2,
+  Paintbrush,
   Image,
   Layers,
   CreditCard,
@@ -494,6 +495,14 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
                  <Globe size={14} className="text-indigo-400" />
                  <span className="hidden sm:inline">Do'konni ko'rish</span>
               </button>
+
+              <button 
+                 onClick={() => setActiveTab('ai-builder')}
+                 className="h-11 px-6 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-[9px] uppercase tracking-widest flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-indigo-500/20"
+               >
+                  <Paintbrush size={14} className="text-white animate-pulse" />
+                  <span className="hidden sm:inline">Dizayn sozlamalari</span>
+               </button>
               
               <div className="hidden sm:block w-px h-6 bg-slate-100 mx-1" />
               

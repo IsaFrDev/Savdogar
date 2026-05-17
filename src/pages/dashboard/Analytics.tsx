@@ -250,7 +250,7 @@ export function Analytics({ storeId }: AnalyticsProps) {
 
         <div className="h-[450px] w-full relative z-10">
           {mounted && (
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <AreaChart data={showForecast ? forecastData : (stats?.history || [])}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -349,7 +349,7 @@ export function Analytics({ storeId }: AnalyticsProps) {
           </div>
           <div className="flex flex-col xl:flex-row items-center gap-12">
             <div className="w-full xl:w-1/2 h-72 relative">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={categoryStats} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value">
                     {categoryStats.map((entry: any, index: number) => (
@@ -399,7 +399,7 @@ export function Analytics({ storeId }: AnalyticsProps) {
           </div>
           <div className="flex flex-col xl:flex-row items-center gap-12">
              <div className="w-full xl:w-1/2 h-72 relative">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <PieChart>
                     <Pie data={trafficSources} cx="50%" cy="50%" innerRadius={70} outerRadius={100} paddingAngle={8} dataKey="value">
                       {trafficSources.map((entry, index) => (

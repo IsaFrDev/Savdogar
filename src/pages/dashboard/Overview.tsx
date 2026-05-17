@@ -291,7 +291,7 @@ export function Overview({ storeId, onTabChange }: OverviewProps) {
 
           <div className="h-[480px] w-full relative z-10">
             {mounted && stats?.history && (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <AreaChart data={stats.history}>
                   <defs>
                     <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">

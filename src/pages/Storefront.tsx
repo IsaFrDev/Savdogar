@@ -2088,4 +2088,6 @@ Havola: ${window.location.origin}${window.location.pathname}?product=${selectedP
 
     </div>
   );
+
+  return mainContent;
 }

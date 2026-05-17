@@ -143,7 +143,7 @@ const AiBusinessIntelligence = () => {
                                         </div>
                                     </div>
                                     <div className="h-[300px]">
-                                        <ResponsiveContainer width="100%" height="100%">
+                                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                             <AreaChart data={data?.forecast_data || [
                                                 { day: 'Mon', revenue: 0, pred: 0 },
                                             ]}>
