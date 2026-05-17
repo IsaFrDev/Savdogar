@@ -148,7 +148,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
 
     const handleNext = async () => {
         if (step === 1) {
-            if (!storeName || !businessCategory || (businessCategory === 'other' && !customCategory)) {
+            if (!storeName || (businessType !== 'computer_club' && (!businessCategory || (businessCategory === 'other' && !customCategory)))) {
                 setError(t('pleaseFillRequiredFields') || 'Iltimos, barcha maydonlarni to\'ldiring');
                 return;
             }
@@ -472,54 +472,57 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
 
                                 {/* Platform is always Web - no selector needed */}
 
-                                <div className="space-y-3">
-                                    <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">{t('businessCategory')}</label>
-                                    <select
-                                        value={businessCategory}
-                                        onChange={(e) => setBusinessCategory(e.target.value)}
-                                        className="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 focus:border-indigo-600 focus:outline-none font-bold text-sm transition-all"
-                                    >
-                                        <option value="">{t('selectCategory') || 'Toifani tanlang'}</option>
-                                        {businessType === 'restoran' ? (
-                                            <>
-                                                <option value="dark_kitchen">{t('darkKitchen')}</option>
-                                                <option value="fast_food">{t('fastFood')}</option>
-                                                <option value="cafe">{t('cafe')}</option>
-                                                <option value="restoran">{t('restoran')}</option>
-                                                <option value="other">{t('other')}</option>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <option value="accessories">{t('accessories')}</option>
-                                                <option value="auto_parts">{t('autoParts')}</option>
-                                                <option value="electronics">{t('electronics')}</option>
-                                                <option value="beauty">{t('beauty')}</option>
-                                                <option value="pet_products">{t('petProducts')}</option>
-                                                <option value="drinks">{t('drinks')}</option>
-                                                <option value="bookstore">{t('bookstore')}</option>
-                                                <option value="clothing">{t('clothing')}</option>
-                                                <option value="appliances">{t('appliances')}</option>
-                                                <option value="grocery">{t('grocery')}</option>
-                                                <option value="shoes">{t('shoes')}</option>
-                                                <option value="sport">{t('sport')}</option>
-                                                <option value="home">{t('home')}</option>
-                                                <option value="computer_club">Kompyuter klub</option>
-                                                <option value="other">{t('other')}</option>
-                                            </>
-                                        )}
-                                    </select>
-                                </div>
+                                {businessType !== 'computer_club' && (
+                                    <>
+                                        <div className="space-y-3">
+                                            <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">{t('businessCategory')}</label>
+                                            <select
+                                                value={businessCategory}
+                                                onChange={(e) => setBusinessCategory(e.target.value)}
+                                                className="w-full p-4 rounded-2xl border-2 border-slate-100 bg-slate-50 focus:border-indigo-600 focus:outline-none font-bold text-sm transition-all"
+                                            >
+                                                <option value="">{t('selectCategory') || 'Toifani tanlang'}</option>
+                                                {businessType === 'restoran' ? (
+                                                    <>
+                                                        <option value="dark_kitchen">{t('darkKitchen')}</option>
+                                                        <option value="fast_food">{t('fastFood')}</option>
+                                                        <option value="cafe">{t('cafe')}</option>
+                                                        <option value="restoran">{t('restoran')}</option>
+                                                        <option value="other">{t('other')}</option>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <option value="accessories">{t('accessories')}</option>
+                                                        <option value="auto_parts">{t('autoParts')}</option>
+                                                        <option value="electronics">{t('electronics')}</option>
+                                                        <option value="beauty">{t('beauty')}</option>
+                                                        <option value="pet_products">{t('petProducts')}</option>
+                                                        <option value="drinks">{t('drinks')}</option>
+                                                        <option value="bookstore">{t('bookstore')}</option>
+                                                        <option value="clothing">{t('clothing')}</option>
+                                                        <option value="appliances">{t('appliances')}</option>
+                                                        <option value="grocery">{t('grocery')}</option>
+                                                        <option value="shoes">{t('shoes')}</option>
+                                                        <option value="sport">{t('sport')}</option>
+                                                        <option value="home">{t('home')}</option>
+                                                        <option value="other">{t('other')}</option>
+                                                    </>
+                                                )}
+                                            </select>
+                                        </div>
 
-                                {businessCategory === 'other' && (
-                                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-                                        <Input
-                                            label={t('otherCustom')}
-                                            value={customCategory}
-                                            onChange={setCustomCategory}
-                                            placeholder={t('otherCustomPlaceholder') || 'O\'zingiz kiriting...'}
-                                            required
-                                        />
-                                    </motion.div>
+                                        {businessCategory === 'other' && (
+                                            <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
+                                                <Input
+                                                    label={t('otherCustom')}
+                                                    value={customCategory}
+                                                    onChange={setCustomCategory}
+                                                    placeholder={t('otherCustomPlaceholder') || 'O\'zingiz kiriting...'}
+                                                    required
+                                                />
+                                            </motion.div>
+                                        )}
+                                    </>
                                 )}
 
                                 <Input
