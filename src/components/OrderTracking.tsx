@@ -9,6 +9,7 @@ interface OrderTrackingProps {
   orderNumber?: string;
   totalAmount?: number;
   onStatusChange?: (newStatus: string) => void;
+  deliveryAddress?: string;
 }
 
 const statusIcons: Record<string, any> = {
@@ -43,9 +44,29 @@ export const OrderTracking: React.FC<OrderTrackingProps> = ({
   orderNumber,
   totalAmount = 0,
   onStatusChange,
+  deliveryAddress,
 }) => {
   const [status, setStatus] = useState(currentStatus);
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Parse courier details from deliveryAddress fallback if present
+  let courierName = '';
+  let courierPhone = '';
+  let cleanAddress = deliveryAddress || '';
+  if (cleanAddress.includes(' | Kuryer:')) {
+    const parts = cleanAddress.split(' | Kuryer:');
+    cleanAddress = parts[0];
+    const courierPart = parts[1]?.trim();
+    if (courierPart) {
+      const phoneMatch = courierPart.match(/\(([^)]+)\)/);
+      if (phoneMatch) {
+        courierPhone = phoneMatch[1];
+        courierName = courierPart.replace(/\([^)]+\)/, '').trim();
+      } else {
+        courierName = courierPart;
+      }
+    }
+  }
   
   // Connect to order WebSocket
   const { status: wsStatus, lastUpdate, reconnect } = useOrderWebSocket(
@@ -173,6 +194,38 @@ export const OrderTracking: React.FC<OrderTrackingProps> = ({
              })}
           </div>
         </div>
+
+        {/* Assigned Courier Card */}
+        {courierName && (
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="p-6 rounded-[2rem] bg-emerald-50 border border-emerald-100 flex items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-600 flex items-center justify-center text-white shrink-0">
+                <Truck className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest leading-none mb-1">
+                  Kuryer Yo'lda
+                </p>
+                <h5 className="text-sm font-black text-slate-800 uppercase tracking-tight leading-none mb-1">
+                  {courierName}
+                </h5>
+                <p className="text-xs font-bold text-slate-500 leading-none">
+                  {courierPhone}
+                </p>
+              </div>
+            </div>
+            <a
+              href={`tel:${courierPhone}`}
+              className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300 active:scale-95 text-center"
+            >
+              Qo'ng'iroq
+            </a>
+          </motion.div>
+        )}
 
         {/* Amount Card - Dark Premium */}
         <motion.div 

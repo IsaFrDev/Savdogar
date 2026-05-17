@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import DOMPurify from 'dompurify';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingCart, Menu, X, Plus, Minus, Trash2, ArrowRight, Check, Package, Loader2, Search, Star, Heart, SlidersHorizontal, Sparkles, Play, MapPin, User, Phone, ShieldCheck, ChevronRight, ShieldAlert } from 'lucide-react';
+import { ShoppingCart, Menu, X, Plus, Minus, Trash2, ArrowRight, Check, Package, Loader2, Search, Star, Heart, SlidersHorizontal, Sparkles, Play, MapPin, User, Phone, ShieldCheck, ChevronRight, ShieldAlert, Zap } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { supabaseApi } from '../services/supabaseService';
@@ -104,6 +104,13 @@ function ShadowRoot({ children }: { children: React.ReactNode }) {
 export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElementSelect }: StorefrontProps) {
   const { t, language, currency, user, formatPrice, ln } = useApp();
   const { user: authUser } = useAuth();
+  
+  // 1-Click Order State
+  const [quickOrderProduct, setQuickOrderProduct] = useState<any | null>(null);
+  const [quickName, setQuickName] = useState('');
+  const [quickPhone, setQuickPhone] = useState('');
+  const [isSubmittingQuick, setIsSubmittingQuick] = useState(false);
+
   const [store, setStore] = useState<any>(null);
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -649,6 +656,75 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
   const cartTotal = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
+  // 1-Click Order Submission
+  const handlePlaceQuickOrder = async () => {
+    if (!quickName || !quickPhone || !quickOrderProduct || !storeId) return;
+    setIsSubmittingQuick(true);
+    try {
+      const orderData = {
+        store_id: storeId,
+        customer_name: quickName,
+        customer_phone: quickPhone,
+        delivery_type: 'pickup',
+        delivery_address: language === 'uz' ? "Tezkor Xarid (Bir bosishda)" : "Быстрый заказ (В 1 клик)",
+        total: quickOrderProduct.price,
+        status: 'pending',
+        items: [{
+          product_id: quickOrderProduct.id,
+          quantity: 1,
+          price: quickOrderProduct.price,
+        }],
+      };
+      const response = await supabaseApi.orders.create(orderData);
+      setLastOrder(response);
+      setQuickOrderProduct(null);
+      setQuickName('');
+      setQuickPhone('');
+      setOrderComplete(true);
+    } catch (error: any) {
+      console.error('Failed to place quick order in Supabase:', error);
+      alert('Quick order failed');
+    }
+    setIsSubmittingQuick(false);
+  };
+
+  // Telegram WebApp (TWA) Integration
+  useEffect(() => {
+    if ((window as any).Telegram?.WebApp) {
+      const webApp = (window as any).Telegram.WebApp;
+      webApp.ready();
+      webApp.expand();
+      
+      // Dynamic TWA branding integration
+      if (store?.primary_color) {
+        try {
+          webApp.setHeaderColor(store.primary_color);
+        } catch (e) {
+          console.warn("Failed to set TWA header color:", e);
+        }
+      }
+      
+      // Dynamic Main Button binding
+      if (cart.length > 0) {
+        webApp.MainButton.text = language === 'uz' 
+          ? `Savatga o'tish (${cartTotal.toLocaleString()} UZS)` 
+          : `Перейти в корзину (${cartTotal.toLocaleString()} UZS)`;
+        webApp.MainButton.show();
+        const handleMainButtonClick = () => {
+          setCartOpen(true);
+        };
+        webApp.MainButton.onClick(handleMainButtonClick);
+        
+        return () => {
+          webApp.MainButton.offClick(handleMainButtonClick);
+          webApp.MainButton.hide();
+        };
+      } else {
+        webApp.MainButton.hide();
+      }
+    }
+  }, [cart, cartTotal, store, language]);
+
   const addToCart = (product: any, variant?: any) => {
     setCart(prev => {
       const existing = prev.find(item =>
@@ -932,13 +1008,23 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
                   <div className="flex items-center justify-between mt-auto gap-4">
                     <span className="text-xl font-black text-[var(--text-primary)] tabular-nums">{product.price.toLocaleString()} <span className="text-xs text-[var(--text-muted)]">{currency}</span></span>
                     {!store.catalog_mode ? (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                        disabled={product.stock === 0}
-                        className="p-3 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-toq)] text-[var(--primary-foreground)] transition-all shadow-lg shadow-[var(--primary-glow)] disabled:opacity-50 active:scale-95"
-                      >
-                        <Plus className="w-5 h-5" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                          disabled={product.stock === 0}
+                          className="p-3 rounded-xl bg-[var(--primary)] hover:bg-[var(--primary-toq)] text-[var(--primary-foreground)] transition-all shadow-lg shadow-[var(--primary-glow)] disabled:opacity-50 active:scale-95"
+                        >
+                          <Plus className="w-5 h-5" />
+                        </button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setQuickOrderProduct(product); }}
+                          disabled={product.stock === 0}
+                          className="p-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-lg shadow-emerald-600/20 disabled:opacity-50 active:scale-95 flex items-center justify-center"
+                          title={t('quickOrder') || 'Tezkor Xarid'}
+                        >
+                          <Zap className="w-5 h-5 fill-current" />
+                        </button>
+                      </div>
                     ) : (
                       <button
                         onClick={() => setSelectedProduct(product)}
@@ -1542,6 +1628,103 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
           handlePlaceOrder={handlePlaceOrder}
         />
 
+        {/* 1-Click Order (Tezkor Xarid) Modal */}
+        <AnimatePresence>
+          {quickOrderProduct && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-md z-[1100]"
+                onClick={() => setQuickOrderProduct(null)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 50 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 50 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white border border-slate-100 rounded-[32px] shadow-2xl p-10 z-[1101] overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500" />
+                
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="text-2xl font-black text-slate-900 tracking-tight uppercase leading-none mb-2 flex items-center gap-3">
+                      <Zap className="w-6 h-6 text-emerald-500 fill-emerald-500 animate-pulse" /> {t('quickOrderTitle')}
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-snug">
+                      {t('quickOrderDesc')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setQuickOrderProduct(null)}
+                    className="w-10 h-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                {/* Product Summary */}
+                <div className="flex items-center gap-5 p-4 rounded-2xl bg-slate-50 border border-slate-100 mb-8">
+                  <div className="w-16 h-16 rounded-xl bg-white border border-slate-100 overflow-hidden flex-shrink-0">
+                    {quickOrderProduct.images?.[0] ? (
+                      <img src={getMediaUrl(quickOrderProduct.images[0].image) || undefined} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-200"><Package size={24} /></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-black text-slate-900 truncate uppercase leading-none mb-1">{ln(quickOrderProduct, 'name')}</h4>
+                    <span className="text-base font-black text-emerald-600 tabular-nums leading-none">
+                      {quickOrderProduct.price.toLocaleString()} <span className="text-xs font-bold text-slate-400">{currency}</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Form fields */}
+                <div className="space-y-6 mb-8">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">{t('firstName') || 'Ismingiz'}</label>
+                    <div className="relative">
+                      <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="text"
+                        value={quickName}
+                        onChange={(e) => setQuickName(e.target.value)}
+                        placeholder={t('firstName') || 'Sanjar'}
+                        className="w-full pl-12 pr-4 h-14 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-2">{t('phone') || 'Telefon raqam'}</label>
+                    <div className="relative">
+                      <Phone size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <input
+                        type="tel"
+                        value={quickPhone}
+                        onChange={(e) => setQuickPhone(e.target.value)}
+                        placeholder="+998 90 123-45-67"
+                        className="w-full pl-12 pr-4 h-14 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-emerald-500 transition-colors"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handlePlaceQuickOrder}
+                  disabled={isSubmittingQuick || !quickName || !quickPhone}
+                  className="w-full h-16 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-3 shadow-xl shadow-emerald-600/20 disabled:opacity-50 transition-all active:scale-95"
+                >
+                  {isSubmittingQuick ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check size={18} />} {t('submitQuickOrder') || 'Sotib Olish'}
+                </button>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
         <ProfileModal
           show={showProfileModal}
           setShow={setShowProfileModal}
@@ -1701,6 +1884,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
                       currentStatus={lastOrder.status}
                       orderNumber={lastOrder.order_number}
                       totalAmount={lastOrder.total}
+                      deliveryAddress={lastOrder.delivery_address}
                     />
                   </div>
                 </div>
@@ -1939,6 +2123,14 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
                           className="w-full py-4 rounded-2xl bg-[var(--primary)] hover:brightness-110 text-[var(--primary-foreground)] font-black uppercase tracking-widest shadow-xl shadow-[var(--primary)]/20 disabled:opacity-50 transition-all flex items-center justify-center gap-3 active:scale-95"
                         >
                           {(selectedProduct.variants?.length || 0) > 0 && !currentVariant ? 'Variantni tanlang' : t('addToCart')} <Plus className="w-5 h-5" />
+                        </button>
+
+                        <button
+                          onClick={() => { setQuickOrderProduct(selectedProduct); setSelectedProduct(null); }}
+                          disabled={(currentVariant ? currentVariant.stock === 0 : selectedProduct.stock === 0)}
+                          className="w-full py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest shadow-xl shadow-emerald-600/20 disabled:opacity-50 transition-all flex items-center justify-center gap-3 active:scale-95"
+                        >
+                          {t('quickOrder')} <Zap className="w-5 h-5 fill-current" />
                         </button>
 
                         {/* Social Ordering (Direct Messaging) */}

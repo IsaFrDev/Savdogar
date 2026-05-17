@@ -43,6 +43,13 @@ export function Orders({ storeId }: OrdersProps) {
   const [isAssigning, setIsAssigning] = useState(false);
   const [isTracking, setIsTracking] = useState(false);
 
+  // Simplified External Courier State
+  const [showCourierPanel, setShowCourierPanel] = useState(false);
+  const [externalCourierName, setExternalCourierName] = useState('');
+  const [externalCourierPhone, setExternalCourierPhone] = useState('');
+  const [isSavingCourier, setIsSavingCourier] = useState(false);
+  const [courierSaved, setCourierSaved] = useState(false);
+
   useEffect(() => {
     if (storeId) {
       loadOrders();
@@ -84,6 +91,42 @@ export function Orders({ storeId }: OrdersProps) {
     } finally {
       setIsAssigning(false);
     }
+  };
+
+  const handleAssignExternalCourier = async () => {
+    if (!selectedOrder || !externalCourierName || !externalCourierPhone) return;
+    setIsSavingCourier(true);
+    try {
+      const updated = await supabaseApi.orders.assignExternalCourier(
+        selectedOrder.id,
+        externalCourierName,
+        externalCourierPhone
+      );
+      setCourierSaved(true);
+      setShowCourierPanel(false);
+      await loadOrders();
+      if (updated) setSelectedOrder({ ...selectedOrder, delivery_address: updated.delivery_address, courier_name: updated.courier_name, courier_phone: updated.courier_phone });
+      setTimeout(() => setCourierSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save external courier:', err);
+    } finally {
+      setIsSavingCourier(false);
+    }
+  };
+
+  // Parse courier info from delivery_address fallback
+  const parseCourierFromAddress = (order: any) => {
+    const addr = order?.delivery_address || '';
+    if (order?.courier_name) return { name: order.courier_name, phone: order.courier_phone || '' };
+    if (addr.includes(' | Kuryer:')) {
+      const courierPart = addr.split(' | Kuryer:')[1]?.trim();
+      const phoneMatch = courierPart?.match(/\(([^)]+)\)/);
+      return {
+        name: phoneMatch ? courierPart.replace(/\([^)]+\)/, '').trim() : courierPart || '',
+        phone: phoneMatch ? phoneMatch[1] : '',
+      };
+    }
+    return null;
   };
 
   const filteredOrders = orders.filter(o => {
@@ -424,10 +467,132 @@ export function Orders({ storeId }: OrdersProps) {
                       </div>
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">Yetkazib berish</p>
                       <p className="text-lg font-bold text-slate-950 leading-snug">
-                        {selectedOrder.delivery_address || 'Do\'kondan olib ketish (Self-pickup)'}
+                        {(selectedOrder.delivery_address || '').split(' | Kuryer:')[0] || "Do'kondan olib ketish (Self-pickup)"}
                       </p>
                    </div>
                 </div>
+
+                {/* Assigned Courier Card or Panel */}
+                {(() => {
+                  const courier = parseCourierFromAddress(selectedOrder);
+                  return courier ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-8 rounded-[40px] bg-emerald-50 border-2 border-emerald-100 flex items-center justify-between gap-6"
+                    >
+                      <div className="flex items-center gap-6">
+                        <div className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-emerald-600/30">
+                          <Truck size={24} />
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest mb-1">
+                            {t('assignedCourier') || 'Biriktirilgan Kuryer'}
+                          </p>
+                          <h4 className="text-xl font-black text-slate-950 uppercase tracking-tighter leading-none mb-1">
+                            {courier.name}
+                          </h4>
+                          <a href={`tel:${courier.phone}`} className="flex items-center gap-2 text-emerald-600 font-black text-sm">
+                            <Phone size={13} /> {courier.phone}
+                          </a>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => { setExternalCourierName(courier.name); setExternalCourierPhone(courier.phone); setShowCourierPanel(true); }}
+                        className="px-6 py-3 bg-white border border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all"
+                      >
+                        O'zgartirish
+                      </button>
+                    </motion.div>
+                  ) : (
+                    <button
+                      onClick={() => setShowCourierPanel(true)}
+                      className="w-full py-5 rounded-[28px] border-2 border-dashed border-emerald-200 hover:border-emerald-400 bg-emerald-50/50 hover:bg-emerald-50 text-emerald-600 font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all group"
+                    >
+                      <Truck size={16} className="group-hover:scale-110 transition-transform" />
+                      {t('externalCourier') || 'Tashqi Kuryer Biriktirish'}
+                    </button>
+                  );
+                })()}
+
+                {/* Courier Assignment Slide Panel */}
+                <AnimatePresence>
+                  {showCourierPanel && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="p-8 rounded-[40px] bg-slate-950 text-white space-y-6">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="text-base font-black uppercase tracking-widest leading-none mb-1 flex items-center gap-3">
+                              <Truck size={16} className="text-emerald-400" />
+                              {t('externalCourier') || 'Kuryer Biriktirish'}
+                            </h4>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                              {selectedOrder.customer_name} • #{selectedOrder.id}
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => setShowCourierPanel(false)}
+                            className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/20 transition-all"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="relative">
+                            <Users size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                              type="text"
+                              value={externalCourierName}
+                              onChange={(e) => setExternalCourierName(e.target.value)}
+                              placeholder={t('courierName') || 'Kuryer ismi...'}
+                              className="w-full pl-10 pr-4 h-12 bg-white/10 border border-white/10 rounded-2xl text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:border-emerald-500/50 transition-colors"
+                            />
+                          </div>
+                          <div className="relative">
+                            <Phone size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                              type="tel"
+                              value={externalCourierPhone}
+                              onChange={(e) => setExternalCourierPhone(e.target.value)}
+                              placeholder={t('courierPhone') || '+998 90 000-00-00'}
+                              className="w-full pl-10 pr-4 h-12 bg-white/10 border border-white/10 rounded-2xl text-sm font-bold text-white placeholder:text-slate-500 outline-none focus:border-emerald-500/50 transition-colors"
+                            />
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={handleAssignExternalCourier}
+                          disabled={isSavingCourier || !externalCourierName || !externalCourierPhone}
+                          className="w-full h-12 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/30 disabled:opacity-50 transition-all active:scale-95"
+                        >
+                          {isSavingCourier ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+                          {t('saveCourier') || 'Kuryerni Saqlash'}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Courier Saved Success Toast */}
+                <AnimatePresence>
+                  {courierSaved && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      className="p-4 rounded-2xl bg-emerald-600 text-white flex items-center gap-3 font-black text-xs uppercase tracking-widest"
+                    >
+                      <CheckCircle size={16} /> {t('assignedCourier') || 'Kuryer muvaffaqiyatli biriktirildi!'}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
                 {/* Items List */}
                 <div className="space-y-8">

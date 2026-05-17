@@ -269,6 +269,29 @@ export const supabaseApi = {
             if (error) throw error;
             return data[0];
         },
+        assignExternalCourier: async (id: number, name: string, phone: string) => {
+            try {
+                const { data, error } = await supabase.from('orders').update({
+                    courier_name: name,
+                    courier_phone: phone
+                }).eq('id', id).select();
+                if (!error && data && data.length > 0) return data[0];
+            } catch (e) {
+                console.warn("Direct courier columns not found, using fallback address-based storage");
+            }
+            
+            const { data: currentOrder } = await supabase.from('orders').select('delivery_address').eq('id', id).single();
+            let cleanAddress = currentOrder?.delivery_address || '';
+            if (cleanAddress.includes(' | Kuryer:')) {
+                cleanAddress = cleanAddress.split(' | Kuryer:')[0];
+            }
+            const newAddress = `${cleanAddress} | Kuryer: ${name} (${phone})`;
+            const { data, error } = await supabase.from('orders').update({
+                delivery_address: newAddress
+            }).eq('id', id).select();
+            if (error) throw error;
+            return data[0];
+        },
         listUserOrders: async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Not authenticated');

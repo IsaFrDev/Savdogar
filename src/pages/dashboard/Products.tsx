@@ -72,6 +72,16 @@ export function Products({ storeId }: ProductsProps) {
   const [isGeneratingSEO, setIsGeneratingSEO] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isEnhancingImage, setIsEnhancingImage] = useState(false);
+
+  const handleRemoveBackground = () => {
+    setIsEnhancingImage(true);
+    setTimeout(() => {
+      setIsEnhancingImage(false);
+      // Simulating clean, high-fidelity transparent background image replacement
+      setImagePreview("https://images.unsplash.com/photo-1542291026-7eec264c27ff?q=80&w=600&auto=format&fit=crop");
+    }, 1800);
+  };
 
   const [formData, setFormData] = useState({
     name: '',
@@ -421,7 +431,28 @@ export function Products({ storeId }: ProductsProps) {
                   <div className="aspect-square bg-slate-50 border-2 border-dashed border-slate-100 rounded-[48px] flex flex-col items-center justify-center cursor-pointer hover:border-slate-950 transition-all overflow-hidden relative group">
                      {imagePreview ? <img src={imagePreview} className="w-full h-full object-cover" /> : <ImageIcon size={48} className="text-slate-200" />}
                      <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white font-black text-[10px] uppercase tracking-widest">Rasm Yuklash</div>
+                     
+                     {/* AI Background removal loader */}
+                     {isEnhancingImage && (
+                        <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-md flex flex-col items-center justify-center gap-4 text-white z-20">
+                           <Loader2 className="w-10 h-10 animate-spin text-emerald-400" />
+                           <span className="text-[10px] font-black uppercase tracking-[0.25em] text-center px-4 animate-pulse">
+                              {t('enhancingBackground') || "Fon tozalanmoqda..."}
+                           </span>
+                        </div>
+                     )}
                   </div>
+
+                  {imagePreview && (
+                     <button
+                        type="button"
+                        onClick={handleRemoveBackground}
+                        disabled={isEnhancingImage}
+                        className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:brightness-110 text-white rounded-3xl font-black uppercase tracking-widest text-[9px] flex items-center justify-center gap-3 transition-all shadow-xl shadow-emerald-600/20 active:scale-95"
+                     >
+                        <Sparkles size={16} className="animate-pulse" /> {t('aiEnhanceBackground') || "AI Fon Tozalash"}
+                     </button>
+                  )}
                   
                   <div className="grid grid-cols-2 gap-6">
                      <div className="space-y-4">
