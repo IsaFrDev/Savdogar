@@ -143,15 +143,62 @@ CREATE POLICY "Public read for products" ON public.products FOR SELECT USING (tr
 DROP POLICY IF EXISTS "Public read for orders" ON public.orders;
 CREATE POLICY "Public read for orders" ON public.orders FOR SELECT USING (true);
 
--- Ensure authenticated users can insert (simplified for debugging)
+-- Ensure authenticated users can insert/update/delete (simplified for debugging)
 DROP POLICY IF EXISTS "Authenticated users can insert stores" ON public.stores;
 CREATE POLICY "Authenticated users can insert stores" ON public.stores FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can update stores" ON public.stores;
+CREATE POLICY "Authenticated users can update stores" ON public.stores FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can delete stores" ON public.stores;
+CREATE POLICY "Authenticated users can delete stores" ON public.stores FOR DELETE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can insert categories" ON public.categories;
+CREATE POLICY "Authenticated users can insert categories" ON public.categories FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can update categories" ON public.categories;
+CREATE POLICY "Authenticated users can update categories" ON public.categories FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can delete categories" ON public.categories;
+CREATE POLICY "Authenticated users can delete categories" ON public.categories FOR DELETE USING (auth.role() = 'authenticated');
 
 DROP POLICY IF EXISTS "Authenticated users can insert products" ON public.products;
 CREATE POLICY "Authenticated users can insert products" ON public.products FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Authenticated users can update products" ON public.products;
+CREATE POLICY "Authenticated users can update products" ON public.products FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can delete products" ON public.products;
+CREATE POLICY "Authenticated users can delete products" ON public.products FOR DELETE USING (auth.role() = 'authenticated');
+
 DROP POLICY IF EXISTS "Authenticated users can insert orders" ON public.orders;
 CREATE POLICY "Authenticated users can insert orders" ON public.orders FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Authenticated users can update orders" ON public.orders;
+CREATE POLICY "Authenticated users can update orders" ON public.orders FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can delete orders" ON public.orders;
+CREATE POLICY "Authenticated users can delete orders" ON public.orders FOR DELETE USING (auth.role() = 'authenticated');
+
+-- Order Items Policies
+DROP POLICY IF EXISTS "Public read for order_items" ON public.order_items;
+CREATE POLICY "Public read for order_items" ON public.order_items FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Public insert for order_items" ON public.order_items;
+CREATE POLICY "Public insert for order_items" ON public.order_items FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Authenticated users can update order_items" ON public.order_items;
+CREATE POLICY "Authenticated users can update order_items" ON public.order_items FOR UPDATE USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "Authenticated users can delete order_items" ON public.order_items;
+CREATE POLICY "Authenticated users can delete order_items" ON public.order_items FOR DELETE USING (auth.role() = 'authenticated');
+
+-- Staff Policies
+DROP POLICY IF EXISTS "Public read for staff" ON public.staff;
+CREATE POLICY "Public read for staff" ON public.staff FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Authenticated users can manage staff" ON public.staff;
+CREATE POLICY "Authenticated users can manage staff" ON public.staff FOR ALL USING (auth.role() = 'authenticated');
 
 -- 8. Club Zones
 CREATE TABLE IF NOT EXISTS public.club_zones (

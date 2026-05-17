@@ -156,8 +156,8 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
   const loadStores = async () => {
     setLoading(true);
     try {
-      // Supabase-dan do'konlarni olish
-      const response = await supabaseApi.stores.list();
+      // Supabase-dan do'konlarni olish (SuperAdmin bo'lmasa faqat o'ziga tegishli do'konlarni yuklaydi)
+      const response = await supabaseApi.stores.list(isSuperAdmin ? undefined : user?.id);
       const storesArray = Array.isArray(response.data) ? response.data : (Array.isArray(response) ? response : []);
       setStores(storesArray as any);
       if (typeof setGlobalStores === 'function') setGlobalStores(storesArray as any);

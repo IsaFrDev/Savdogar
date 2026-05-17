@@ -4,9 +4,12 @@ import { supabase } from '../supabase';
 export const supabaseApi = {
     // Stores
     stores: {
-        list: async () => {
-            const { data, error } = await supabase.from('stores')
-                .select('*');
+        list: async (ownerId?: string) => {
+            let query = supabase.from('stores').select('*');
+            if (ownerId) {
+                query = query.eq('owner_id', ownerId);
+            }
+            const { data, error } = await query;
             if (error) throw error;
             return { data };
         },
