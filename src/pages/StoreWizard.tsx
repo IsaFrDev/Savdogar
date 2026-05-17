@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Store, Settings, MapPin, FileSignature, Check, Upload, AlertCircle, Sparkles, Loader2, Download, LayoutTemplate, Eye, X, FolderCheck, ShoppingCart } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { generateDefaultSite } from '../templates/defaultSiteTemplate';
 import { useAuth } from '../context/AuthContext';
 import { supabaseApi } from '../services/supabaseService';
 import { Button } from '../components/Button';
@@ -217,10 +216,18 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
             const createdStore = await supabaseApi.stores.create(storeData);
             const response = { data: createdStore };
 
-            // Auto-generate Default Site HTML files for this store
+            // Auto-generate Default Site HTML files for this store locally via Vite plugin
             try {
-                const siteFiles = generateDefaultSite(storeName, slug, '#6366F1');
-                await supabaseApi.stores.update(createdStore.id, { store_files: siteFiles });
+                await fetch('/api/create-site', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        storeName: storeName,
+                        storeSlug: slug,
+                        supabaseUrl: import.meta.env.VITE_SUPABASE_URL || '',
+                        supabaseKey: import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+                    })
+                });
             } catch (siteErr) {
                 console.warn('Default site generation skipped:', siteErr);
             }

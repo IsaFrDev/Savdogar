@@ -1,119 +1,133 @@
-/* =============================================
-   products.js  — Demo mahsulotlar + render
-   =============================================
-   Backend bilan ishlashda DEMO_PRODUCTS o'rniga
-   API dan ma'lumot oling va renderProducts() ga
-   uzating.
-*/
+const SUPABASE_URL = '{{SUPABASE_URL}}';
+const SUPABASE_KEY = '{{SUPABASE_KEY}}';
+const STORE_SLUG = '{{STORE_SLUG}}';
 
-const DEMO_PRODUCTS = [
-  { id:1,  name:"Erkaklar sport krossovkasi",      price:890000,  oldPrice:1200000, discount:26, emoji:"👟", cat:"erkak",  rating:4.8, reviews:124 },
-  { id:2,  name:"Ayollar yozgi ko'ylagi",           price:450000,  oldPrice:650000,  discount:31, emoji:"👗", cat:"ayol",   rating:4.9, reviews:87  },
-  { id:3,  name:"Bolalar kombinezoni",              price:320000,  oldPrice:null,    discount:0,  emoji:"🧒", cat:"bola",   rating:4.7, reviews:43  },
-  { id:4,  name:"Sport shimlar (uniseks)",          price:560000,  oldPrice:780000,  discount:28, emoji:"🩳", cat:"sport",  rating:4.6, reviews:201 },
-  { id:5,  name:"Erkaklar klassik ko'ylagi",        price:720000,  oldPrice:null,    discount:0,  emoji:"👔", cat:"erkak",  rating:4.5, reviews:65  },
-  { id:6,  name:"Ayollar sport to'plami",           price:980000,  oldPrice:1400000, discount:30, emoji:"🧘‍♀️", cat:"ayol", rating:5.0, reviews:18  },
-  { id:7,  name:"Yangi: Bolalar krossovkasi 2024",  price:410000,  oldPrice:500000,  discount:18, emoji:"👟", cat:"yangi",  rating:4.9, reviews:5   },
-  { id:8,  name:"Erkaklar hoodie",                  price:650000,  oldPrice:850000,  discount:24, emoji:"🧥", cat:"erkak",  rating:4.7, reviews:93  },
-  { id:9,  name:"Ayollar sport boshi",              price:195000,  oldPrice:null,    discount:0,  emoji:"🧢", cat:"ayol",   rating:4.4, reviews:37  },
-  { id:10, name:"Yangi: Uniseks yomg'irpo'sh",      price:1100000, oldPrice:1500000, discount:27, emoji:"🧣", cat:"yangi",  rating:4.8, reviews:11  },
-  { id:11, name:"Bolalar qishki kurtka",            price:870000,  oldPrice:1100000, discount:21, emoji:"🧤", cat:"bola",   rating:4.6, reviews:29  },
-  { id:12, name:"Sport ayollar krossovkasi",        price:760000,  oldPrice:990000,  discount:23, emoji:"👠", cat:"sport",  rating:4.7, reviews:156 },
-];
+let store = null;
+let products = [];
+let cart = [];
 
-let activeCat = 'all';
+async function api(path) {
+  if (SUPABASE_URL.includes('{{')) return []; // prevent errors if placeholders aren't replaced
+  const r = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+  });
+  return r.json();
+}
 
-function renderProducts(products) {
-  const grid = document.getElementById('products-grid');
-  if (!grid) return;
+async function postOrder(data) {
+  const r = await fetch(SUPABASE_URL + '/rest/v1/orders', {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+    body: JSON.stringify(data)
+  });
+  return r.json();
+}
 
-  const filtered = activeCat === 'all'
-    ? products
-    : products.filter(p => p.cat === activeCat);
-
-  if (!filtered.length) {
-    grid.innerHTML = `<p style="color:var(--text-3);grid-column:1/-1;padding:2rem 0">Mahsulot topilmadi</p>`;
+async function loadStore() {
+  if (SUPABASE_URL.includes('{{')) {
+    // Template mode preview
+    renderProducts([
+      { id: 1, name: 'Test Mahsulot 1', price: 150000, category_obj: { name: 'Kiyim' } },
+      { id: 2, name: 'Test Mahsulot 2', price: 200000, category_obj: { name: 'Elektronika' } }
+    ]);
     return;
   }
+  const data = await api('stores?slug=eq.' + STORE_SLUG + '&select=*&limit=1');
+  store = data[0];
+  if (!store) return;
+  document.title = store.name;
+  window.STORE_NAME = store.name;
+  const el = document.getElementById('store-name');
+  if (el) el.textContent = store.name;
+  const heroTitle = document.getElementById('hero-title');
+  if (heroTitle) heroTitle.textContent = store.name;
+  const heroDesc = document.getElementById('hero-desc');
+  if (heroDesc && store.description) heroDesc.textContent = store.description;
+  loadBanners();
+  loadProducts();
+}
 
-  grid.innerHTML = filtered.map(p => {
-    const isFav = Favs.has(p.id);
-    return `
-    <div class="product-card" onclick="location.href='product.html?id=${p.id}'">
-      <div class="product-img-wrap">
-        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;background:var(--surface-2)">${p.emoji}</div>
-        ${p.discount ? `<div class="product-discount-badge">-${p.discount}%</div>` : ''}
-        <button
-          class="product-fav-btn ${isFav ? 'active' : ''}"
-          onclick="toggleFav(event, ${p.id})"
-          data-fav-btn="${p.id}"
-          aria-label="Sevimli"
-        >${isFav ? '❤️' : '🤍'}</button>
+async function loadBanners() {
+  if (!store) return;
+  const banners = await api('banners?store_id=eq.' + store.id + '&select=*&order=created_at.desc&limit=5');
+  const el = document.getElementById('banners-section');
+  if (!el || !banners.length) { if(el) el.style.display='none'; return; }
+  el.innerHTML = banners.map(b => \`
+    <div class="banner-slide">
+      <div>
+        <p style="font-size:0.7rem;font-weight:900;text-transform:uppercase;letter-spacing:0.15em;opacity:0.7;margin-bottom:0.5rem">\${b.subtitle || 'Aksiya'}</p>
+        <h2>\${b.title || ''}</h2>
+        \${b.cta_text ? '<a href="' + (b.cta_link || '#products') + '" class="btn-primary" style="margin-top:1.5rem;display:inline-block">' + b.cta_text + '</a>' : ''}
       </div>
+      \${b.image ? '<img src="' + b.image + '" alt="' + (b.title||'') + '">' : ''}
+    </div>\`).join('');
+}
+
+async function loadProducts() {
+  if (!store) return;
+  const data = await api('products?store_id=eq.' + store.id + '&select=*,images:product_images(*),category_obj:categories(*)&order=created_at.desc');
+  products = data;
+  renderProducts(products);
+}
+
+function renderProducts(list) {
+  const grid = document.getElementById('products-grid');
+  if (!grid) return;
+  if (!list.length) { grid.innerHTML = '<div class="loading">Mahsulotlar topilmadi</div>'; return; }
+  grid.innerHTML = list.map(p => {
+    const img = p.images && p.images[0] ? p.images[0].image : null;
+    const imgHtml = img ? '<img src="' + img + '" alt="' + p.name + '" loading="lazy">' : '<div class="product-img-placeholder">📦</div>';
+    const cat = p.category_obj && (p.category_obj.name_uz || p.category_obj.name) || '';
+    return \`<div class="product-card" onclick="openQuickOrder('\${p.id}')">
+      <div class="product-img">\${imgHtml}</div>
       <div class="product-info">
-        <div class="product-name">${p.name}</div>
-        <div class="product-prices">
-          <span class="product-price">${fmtPrice(p.price)}</span>
-          ${p.oldPrice ? `<span class="product-old-price">${fmtPrice(p.oldPrice)}</span>` : ''}
+        \${cat ? '<div class="product-cat">' + cat + '</div>' : ''}
+        <div class="product-name">\${p.name_uz || p.name || ''}</div>
+        <div class="product-footer">
+          <div class="product-price">\${(p.price||0).toLocaleString()} <span>UZS</span></div>
+          <div style="display:flex;gap:6px">
+            <button class="quick-order" onclick="event.stopPropagation();openQuickOrder('\${p.id}')" title="Tezkor Xarid">⚡</button>
+          </div>
         </div>
-        <div class="product-rating">
-          <span class="star">★</span>
-          <span>${p.rating}</span>
-          <span style="margin-left:2px">(${p.reviews} sharh)</span>
-        </div>
-        <button
-          class="btn-add-cart"
-          onclick="handleAddCart(event, ${p.id})"
-        >🛒 Savatga qo'shish</button>
       </div>
-    </div>`;
+    </div>\`;
   }).join('');
 }
 
-function toggleFav(e, id) {
-  e.stopPropagation();
-  const added = Favs.toggle(id);
-  const btn = document.querySelector(`[data-fav-btn="${id}"]`);
-  if (btn) {
-    btn.textContent = added ? '❤️' : '🤍';
-    btn.classList.toggle('active', added);
-  }
-  showToast(added ? '❤️ Sevimlilarga qo\'shildi' : 'Sevimlilardan olib tashlandi');
+// Quick Order Modal
+function openQuickOrder(productId) {
+  const p = products.find(x => x.id == productId);
+  if (!p) return;
+  window._qProduct = p;
+  document.getElementById('qo-product-name').textContent = (p.name_uz || p.name || '');
+  document.getElementById('qo-product-price').textContent = (p.price||0).toLocaleString() + ' UZS';
+  document.getElementById('quick-order-modal').classList.add('open');
 }
-
-function handleAddCart(e, id) {
-  e.stopPropagation();
-  const p = DEMO_PRODUCTS.find(x => x.id === id);
-  if (p) addToCart(p);
+function closeQuickOrder() {
+  document.getElementById('quick-order-modal').classList.remove('open');
 }
-
-/* Category filter */
-function initCategoryFilter() {
-  const list = document.getElementById('cat-list');
-  if (!list) return;
-  list.addEventListener('click', e => {
-    const chip = e.target.closest('.cat-chip');
-    if (!chip) return;
-    list.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-    activeCat = chip.dataset.cat;
-    renderProducts(DEMO_PRODUCTS);
-  });
+async function submitQuickOrder() {
+  const name = document.getElementById('qo-name').value.trim();
+  const phone = document.getElementById('qo-phone').value.trim();
+  if (!name || !phone) { alert("Ism va telefon raqam kiriting!"); return; }
+  const btn = document.getElementById('qo-submit');
+  btn.textContent = 'Yuborilmoqda...';
+  btn.disabled = true;
+  try {
+    await postOrder({ store_id: store.id, customer_name: name, customer_phone: phone, delivery_type: 'pickup', delivery_address: 'Tezkor Xarid (1-bosish)', total: window._qProduct.price, status: 'pending' });
+    closeQuickOrder();
+    document.getElementById('qo-name').value = '';
+    document.getElementById('qo-phone').value = '';
+    showToast('✅ Buyurtmangiz qabul qilindi! Tez orada aloqaga chiqamiz.');
+  } catch(e) { alert('Xatolik yuz berdi.'); }
+  btn.textContent = '⚡ Sotib Olish';
+  btn.disabled = false;
 }
-
-/* Search filter */
-function initSearch() {
-  const input = document.getElementById('search-input');
-  if (!input) return;
-  input.addEventListener('input', () => {
-    const q = input.value.trim().toLowerCase();
-    if (!q) { renderProducts(DEMO_PRODUCTS); return; }
-    renderProducts(DEMO_PRODUCTS.filter(p => p.name.toLowerCase().includes(q)));
-  });
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
 }
-
-document.addEventListener('DOMContentLoaded', () => {
-  renderProducts(DEMO_PRODUCTS);
-  initCategoryFilter();
-  initSearch();
-});
+window.addEventListener('DOMContentLoaded', loadStore);
