@@ -483,7 +483,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
                     const isLocalOrVercel = window.location.hostname === 'localhost' || window.location.hostname.includes('192.168') || window.location.hostname.includes('vercel.app');
                     const url = isLocalOrVercel 
                       ? `${window.location.origin}/?store=${currentStore.slug}`
-                      : `https://${currentStore.slug}.savdogar.uz`;
+                      : `https://${currentStore.slug}.vercel.app`;
                     window.open(url, '_blank');
                   } else {
                     alert('Do\'kon manzili topilmadi');
