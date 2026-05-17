@@ -30,7 +30,7 @@ const templates = [
 ];
 
 export function StoreWizard({ onComplete }: StoreWizardProps) {
-    const { t, language, addStore } = useApp();
+    const { t, language, addStore, setLanguage } = useApp();
     const { refreshUser, user } = useAuth();
     const [step, setStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -207,7 +207,8 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                 slug: slug,
                 business_type: finalBusinessType || 'other',
                 owner_id: user?.id,
-                status: 'pending'
+                status: 'pending',
+                default_language: defaultLang
             };
 
             const createdStore = await supabaseApi.stores.create(storeData);
@@ -834,7 +835,10 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                             <Download className="w-4 h-4" /> {t('downloadContract')}
                                         </button>
                                     )}
-                                    <Button onClick={() => onComplete(createdStoreId || 0, storeName)} size="lg" className="px-10 py-5 shadow-xl shadow-indigo-600/30" disabled={!createdStoreId}>{t('goToDashboard')}</Button>
+                                    <Button onClick={() => {
+                                        if (defaultLang) setLanguage(defaultLang);
+                                        onComplete(createdStoreId || 0, storeName);
+                                    }} size="lg" className="px-10 py-5 shadow-xl shadow-indigo-600/30" disabled={!createdStoreId}>{t('goToDashboard')}</Button>
                                 </div>
                             </div>
                         )}

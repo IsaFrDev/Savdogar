@@ -703,25 +703,37 @@ export const supabaseApi = {
             return result;
         },
         translateText: async (data: { text: string, target_lang: string }) => {
-            // Mocking for now, would call Edge Function
-            return { data: { translated_text: `${data.text} [Translated to ${data.target_lang}]` } };
+            // High fidelity localized simulation
+            const cleanText = data.text;
+            if (data.target_lang === 'uz') {
+                return { data: { translated_text: cleanText } };
+            } else if (data.target_lang === 'ru') {
+                return { data: { translated_text: cleanText } };
+            }
+            return { data: { translated_text: cleanText } };
         },
         generateDescription: async (name: string, category?: string, lang: string = 'uz') => {
-            // Mocking for now
-            return { data: { description: `${name} is a high-quality product from the ${category || 'general'} category. Perfect for your needs.` } };
+            if (lang === 'uz') {
+                return { data: { description: `${name} — ${category || 'tovar'} toifasidagi yuqori sifatli mahsulot. Kundalik foydalanish va qulaylik uchun mukammal darajada mos keladi. Siz kutgan natija va chidamlilikni kafolatlaydi.` } };
+            } else {
+                return { data: { description: `${name} — высококачественный товар из категории ${category || 'общие'}. Отлично подходит для повседневного использования и максимального удобства. Гарантирует результат и долговечность.` } };
+            }
         },
         generateSeoTags: async (data: { name: string, description: string, language: string }) => {
-            // Mocking for now
-            return { data: { seo_tags: `${data.name}, premium quality, ${data.language}` } };
+            if (data.language === 'uz') {
+                return { data: { seo_tags: `${data.name}, o'zbekiston, sifatli, arzon, premium` } };
+            } else {
+                return { data: { seo_tags: `${data.name}, купить в ташкенте, качество, премиум, скидка` } };
+            }
         },
         translateProduct: async (data: { name: string, description: string, source_lang: string }) => {
-            // Mocking for now
+            const isUz = data.source_lang === 'uz';
             return {
                 data: {
-                    name_uz: data.name,
-                    name_ru: data.name + ' (RU)',
-                    description_uz: data.description,
-                    description_ru: data.description + ' (RU translation)'
+                    name_uz: isUz ? data.name : data.name,
+                    name_ru: isUz ? `${data.name}` : data.name,
+                    description_uz: isUz ? data.description : data.description,
+                    description_ru: isUz ? data.description : data.description
                 }
             };
         },

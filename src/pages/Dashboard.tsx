@@ -192,21 +192,8 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       ]
     },
     {
-      title: t('inventoryTitle'),
-      tabs: [
-        { id: 'inventory', label: t('warehouseHub'), icon: Package },
-        { id: 'ikpu', label: t('taxCodes'), icon: QrCode },
-        { id: 'erp', label: t('erpUltimate'), icon: DollarSign },
-        { id: 'debts', label: t('debtManagement'), icon: CreditCard },
-      ]
-    },
-    {
       title: t('growthEngine'),
       tabs: [
-        { id: 'marketing', label: t('marketingHub'), icon: Megaphone },
-        { id: 'campaigns', label: t('aiCampaigns'), icon: Target },
-        { id: 'promotions', label: t('flashDeals'), icon: Zap },
-        { id: 'gamification', label: t('loyaltyQuests'), icon: Trophy },
         { id: 'discounts', label: t('vouchers'), icon: Tag },
         { id: 'banners', label: t('visualAds'), icon: Image },
       ]
@@ -215,9 +202,7 @@ export function Dashboard({ onLogout, onCreateStore, onBackToAdmin, onViewStore,
       title: t('aiIntelligence'),
       tabs: [
         { id: 'ai-studio', label: t('aiStudio'), icon: Sparkles },
-        { id: 'ai-creative', label: t('creativeSuite'), icon: Wand2 },
         { id: 'ai-builder', label: t('designBuilder'), icon: LayoutGrid },
-        { id: 'ai-fitting-room', label: t('virtualFitting'), icon: Layers, hidden: currentStore?.business_type !== 'clothing' },
       ]
     },
     {
