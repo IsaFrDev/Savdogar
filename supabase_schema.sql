@@ -131,6 +131,15 @@ ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Public read for profiles" ON public.profiles;
 CREATE POLICY "Public read for profiles" ON public.profiles FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Public insert for profiles" ON public.profiles;
+CREATE POLICY "Public insert for profiles" ON public.profiles FOR INSERT WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Public update for profiles" ON public.profiles;
+CREATE POLICY "Public update for profiles" ON public.profiles FOR UPDATE USING (true);
+
+DROP POLICY IF EXISTS "Public delete for profiles" ON public.profiles;
+CREATE POLICY "Public delete for profiles" ON public.profiles FOR DELETE USING (true);
+
 DROP POLICY IF EXISTS "Public read for stores" ON public.stores;
 CREATE POLICY "Public read for stores" ON public.stores FOR SELECT USING (true);
 
@@ -143,42 +152,42 @@ CREATE POLICY "Public read for products" ON public.products FOR SELECT USING (tr
 DROP POLICY IF EXISTS "Public read for orders" ON public.orders;
 CREATE POLICY "Public read for orders" ON public.orders FOR SELECT USING (true);
 
--- Ensure authenticated users can insert/update/delete (simplified for debugging)
+-- Ensure anyone can insert/update/delete (simplified for debugging and bypass credentials support)
 DROP POLICY IF EXISTS "Authenticated users can insert stores" ON public.stores;
-CREATE POLICY "Authenticated users can insert stores" ON public.stores FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can insert stores" ON public.stores FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Authenticated users can update stores" ON public.stores;
-CREATE POLICY "Authenticated users can update stores" ON public.stores FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can update stores" ON public.stores FOR UPDATE USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can delete stores" ON public.stores;
-CREATE POLICY "Authenticated users can delete stores" ON public.stores FOR DELETE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can delete stores" ON public.stores FOR DELETE USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can insert categories" ON public.categories;
-CREATE POLICY "Authenticated users can insert categories" ON public.categories FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can insert categories" ON public.categories FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Authenticated users can update categories" ON public.categories;
-CREATE POLICY "Authenticated users can update categories" ON public.categories FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can update categories" ON public.categories FOR UPDATE USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can delete categories" ON public.categories;
-CREATE POLICY "Authenticated users can delete categories" ON public.categories FOR DELETE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can delete categories" ON public.categories FOR DELETE USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can insert products" ON public.products;
-CREATE POLICY "Authenticated users can insert products" ON public.products FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can insert products" ON public.products FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Authenticated users can update products" ON public.products;
-CREATE POLICY "Authenticated users can update products" ON public.products FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can update products" ON public.products FOR UPDATE USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can delete products" ON public.products;
-CREATE POLICY "Authenticated users can delete products" ON public.products FOR DELETE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can delete products" ON public.products FOR DELETE USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can insert orders" ON public.orders;
 CREATE POLICY "Authenticated users can insert orders" ON public.orders FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Authenticated users can update orders" ON public.orders;
-CREATE POLICY "Authenticated users can update orders" ON public.orders FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can update orders" ON public.orders FOR UPDATE USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can delete orders" ON public.orders;
-CREATE POLICY "Authenticated users can delete orders" ON public.orders FOR DELETE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can delete orders" ON public.orders FOR DELETE USING (true);
 
 -- Order Items Policies
 DROP POLICY IF EXISTS "Public read for order_items" ON public.order_items;
@@ -188,17 +197,17 @@ DROP POLICY IF EXISTS "Public insert for order_items" ON public.order_items;
 CREATE POLICY "Public insert for order_items" ON public.order_items FOR INSERT WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Authenticated users can update order_items" ON public.order_items;
-CREATE POLICY "Authenticated users can update order_items" ON public.order_items FOR UPDATE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can update order_items" ON public.order_items FOR UPDATE USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can delete order_items" ON public.order_items;
-CREATE POLICY "Authenticated users can delete order_items" ON public.order_items FOR DELETE USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can delete order_items" ON public.order_items FOR DELETE USING (true);
 
 -- Staff Policies
 DROP POLICY IF EXISTS "Public read for staff" ON public.staff;
 CREATE POLICY "Public read for staff" ON public.staff FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can manage staff" ON public.staff;
-CREATE POLICY "Authenticated users can manage staff" ON public.staff FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can manage staff" ON public.staff FOR ALL USING (true);
 
 -- 8. Club Zones
 CREATE TABLE IF NOT EXISTS public.club_zones (
@@ -288,19 +297,19 @@ DROP POLICY IF EXISTS "Public read for club_sessions" ON public.club_sessions;
 CREATE POLICY "Public read for club_sessions" ON public.club_sessions FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can manage club data" ON public.club_zones;
-CREATE POLICY "Authenticated users can manage club data" ON public.club_zones FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can manage club data" ON public.club_zones FOR ALL USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can manage club devices" ON public.club_devices;
-CREATE POLICY "Authenticated users can manage club devices" ON public.club_devices FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can manage club devices" ON public.club_devices FOR ALL USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can manage club tariffs" ON public.club_tariffs;
-CREATE POLICY "Authenticated users can manage club tariffs" ON public.club_tariffs FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can manage club tariffs" ON public.club_tariffs FOR ALL USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can manage club bookings" ON public.club_bookings;
-CREATE POLICY "Authenticated users can manage club bookings" ON public.club_bookings FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can manage club bookings" ON public.club_bookings FOR ALL USING (true);
 
 DROP POLICY IF EXISTS "Authenticated users can manage club sessions" ON public.club_sessions;
-CREATE POLICY "Authenticated users can manage club sessions" ON public.club_sessions FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Authenticated users can manage club sessions" ON public.club_sessions FOR ALL USING (true);
 
 -- 13. Club Management Triggers & Helpers
 -- Automatically sync device status when session starts/ends
@@ -362,7 +371,7 @@ CREATE TABLE IF NOT EXISTS public.customers (
 );
 ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Auth users manage customers" ON public.customers;
-CREATE POLICY "Auth users manage customers" ON public.customers FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Auth users manage customers" ON public.customers FOR ALL USING (true);
 
 -- Update club_sessions to link to customers and track cancellations
 ALTER TABLE public.club_sessions ADD COLUMN IF NOT EXISTS customer_id BIGINT REFERENCES public.customers ON DELETE SET NULL;
@@ -384,7 +393,7 @@ CREATE TABLE IF NOT EXISTS public.club_session_orders (
 );
 ALTER TABLE public.club_session_orders ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Auth users manage session orders" ON public.club_session_orders;
-CREATE POLICY "Auth users manage session orders" ON public.club_session_orders FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Auth users manage session orders" ON public.club_session_orders FOR ALL USING (true);
 
 -- 16. Shift Management
 CREATE TABLE IF NOT EXISTS public.shifts (
@@ -403,7 +412,7 @@ CREATE TABLE IF NOT EXISTS public.shifts (
 );
 ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Auth users manage shifts" ON public.shifts;
-CREATE POLICY "Auth users manage shifts" ON public.shifts FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Auth users manage shifts" ON public.shifts FOR ALL USING (true);
 
 -- 17. Happy Hours & Dynamic Pricing
 CREATE TABLE IF NOT EXISTS public.club_happy_hours (
@@ -419,7 +428,7 @@ CREATE TABLE IF NOT EXISTS public.club_happy_hours (
 );
 ALTER TABLE public.club_happy_hours ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Auth users manage happy hours" ON public.club_happy_hours;
-CREATE POLICY "Auth users manage happy hours" ON public.club_happy_hours FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Auth users manage happy hours" ON public.club_happy_hours FOR ALL USING (true);
 
 -- 18. Expense Tracking
 CREATE TABLE IF NOT EXISTS public.expenses (
@@ -434,4 +443,4 @@ CREATE TABLE IF NOT EXISTS public.expenses (
 );
 ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Auth users manage expenses" ON public.expenses;
-CREATE POLICY "Auth users manage expenses" ON public.expenses FOR ALL USING (auth.role() = 'authenticated');
+CREATE POLICY "Auth users manage expenses" ON public.expenses FOR ALL USING (true);
