@@ -728,6 +728,41 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
     }
   };
 
+  // Global Action Interceptor for Custom HTML
+  useEffect(() => {
+    const container = storefrontRef.current;
+    if (!container || !store?.store_files) return;
+
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const actionBtn = target.closest('[data-action]');
+      if (!actionBtn) return;
+
+      const action = actionBtn.getAttribute('data-action');
+      const productId = actionBtn.getAttribute('data-product-id');
+
+      if (action === 'add-to-cart' && productId) {
+        const product = products.find(p => p.id === parseInt(productId));
+        if (product) {
+          addToCart(product);
+          try {
+            alert(t('addedToCart') || "Savatga qo'shildi");
+          } catch (e) {
+            console.log("Added to cart");
+          }
+        }
+      } else if (action === 'view-product' && productId) {
+        const product = products.find(p => p.id === parseInt(productId));
+        if (product) setSelectedProduct(product);
+      } else if (action === 'open-cart') {
+        setCartOpen(true);
+      }
+    };
+
+    container.addEventListener('click', handleGlobalClick);
+    return () => container.removeEventListener('click', handleGlobalClick);
+  }, [store, products]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 w-full overflow-hidden flex flex-col">
@@ -931,36 +966,7 @@ export function Storefront({ onBack, onBackToAdmin, storeId, isPreview, onElemen
     </section>
   );
 
-  // Global Action Interceptor for Custom HTML
-  useEffect(() => {
-    const container = storefrontRef.current;
-    if (!container || !store?.store_files) return;
 
-    const handleGlobalClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      const actionBtn = target.closest('[data-action]');
-      if (!actionBtn) return;
-
-      const action = actionBtn.getAttribute('data-action');
-      const productId = actionBtn.getAttribute('data-product-id');
-
-      if (action === 'add-to-cart' && productId) {
-        const product = products.find(p => p.id === parseInt(productId));
-        if (product) {
-          addToCart(product);
-          toast.success(t('addedToCart') || 'Savatga qo\'shildi');
-        }
-      } else if (action === 'view-product' && productId) {
-        const product = products.find(p => p.id === parseInt(productId));
-        if (product) setSelectedProduct(product);
-      } else if (action === 'open-cart') {
-        setCartOpen(true);
-      }
-    };
-
-    container.addEventListener('click', handleGlobalClick);
-    return () => container.removeEventListener('click', handleGlobalClick);
-  }, [store, products]);
 
   const renderCustomStorefront = () => {
     if (!store?.store_files && !store?.store_html) return null;
