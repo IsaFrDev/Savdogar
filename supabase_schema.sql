@@ -257,7 +257,7 @@ CREATE TRIGGER on_club_session_status_change
     FOR EACH ROW EXECUTE FUNCTION public.handle_club_session_status();
 
 -- View for reporting
-CREATE OR REPLACE VIEW public.club_daily_stats AS
+CREATE OR REPLACE VIEW public.club_daily_stats WITH (security_invoker = true) AS
 SELECT 
     store_id,
     COUNT(id) as total_sessions,
