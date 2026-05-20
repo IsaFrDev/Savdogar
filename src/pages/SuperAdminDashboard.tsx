@@ -1140,69 +1140,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                             </div>
 
                                             <div className="space-y-6">
-                                                <div className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--glass-border)]">
-                                                    <div className="flex items-center justify-between mb-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <Fingerprint className="w-5 h-5 text-indigo-400" />
-                                                            <span className="text-sm font-black text-[var(--text-primary)] uppercase tracking-wider">Face ID</span>
-                                                        </div>
-                                                        {user?.face_id_registered ? (
-                                                            <span className="px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded text-[9px] font-black uppercase border border-emerald-500/20">Active</span>
-                                                        ) : (
-                                                            <span className="px-2 py-1 bg-[var(--bg-surface-hover)] text-[var(--text-muted)] rounded text-[9px] font-black uppercase border border-[var(--glass-border)]">Inactive</span>
-                                                        )}
-                                                    </div>
 
-                                                    <p className="text-[var(--text-muted)] text-[11px] font-bold leading-relaxed mb-6">
-                                                        {language === 'uz' ? "Biometrik login xavfsizlik va tezlikni bir vaqtda ta'minlaydi." : "Biometric login provides both security and speed."}
-                                                    </p>
-
-                                                    <AnimatePresence>
-                                                        {faceIdError && (
-                                                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[9px] font-black uppercase tracking-wider flex items-center gap-2 overflow-hidden">
-                                                                <X className="w-3.5 h-3.5" />
-                                                                {faceIdError}
-                                                            </motion.div>
-                                                        )}
-                                                        {faceIdSuccess && (
-                                                            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[9px] font-black uppercase tracking-wider flex items-center gap-2 overflow-hidden">
-                                                                <CheckCircle className="w-3.5 h-3.5" />
-                                                                Success!
-                                                            </motion.div>
-                                                        )}
-                                                    </AnimatePresence>
-
-                                                    <button
-                                                        onClick={async () => {
-                                                            setFaceIdError('');
-                                                            setFaceIdSuccess(false);
-                                                            setIsFaceIdRegistering(true);
-                                                            try {
-                                                                await registerFaceId();
-                                                                await refreshUser();
-                                                                setFaceIdSuccess(true);
-                                                            } catch (err: any) {
-                                                                setFaceIdError(err.message || 'Face ID registration failed');
-                                                            } finally {
-                                                                setIsFaceIdRegistering(false);
-                                                            }
-                                                        }}
-                                                        disabled={isFaceIdRegistering}
-                                                        className={`w-full py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all flex items-center justify-center gap-3 ${isFaceIdRegistering
-                                                            ? 'bg-white/5 text-slate-500'
-                                                            : 'bg-[var(--brand-primary)] hover:brightness-110 text-[var(--primary-foreground)] shadow-xl shadow-[var(--brand-primary-glow)] active:scale-95'
-                                                            }`}
-                                                    >
-                                                        {isFaceIdRegistering ? (
-                                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                                        ) : (
-                                                            <>
-                                                                <Scan className="w-4 h-4" />
-                                                                {user?.face_id_registered ? (language === 'uz' ? "Yangilash" : "Update") : (language === 'uz' ? "O'rnatish" : "Setup")}
-                                                            </>
-                                                        )}
-                                                    </button>
-                                                </div>
 
                                                 <div className="p-6 rounded-3xl bg-[var(--bg-surface)] border border-[var(--glass-border)] flex items-center justify-between">
                                                     <div className="flex items-center gap-3">
@@ -1212,12 +1150,7 @@ export function SuperAdminDashboard({ onLogout, onSwitchToUserView, onManageStor
                                                     <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Coming Soon</span>
                                                 </div>
 
-                                                <div className="pt-4 border-t border-[var(--glass-border)] flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
-                                                    <span className="text-[var(--text-muted)]">WebAuthn Status</span>
-                                                    <span className={window.PublicKeyCredential ? "text-emerald-400" : "text-rose-400"}>
-                                                        {window.PublicKeyCredential ? 'Supported' : 'Unsupported'}
-                                                    </span>
-                                                </div>
+
                                             </div>
                                         </GlassCard>
 

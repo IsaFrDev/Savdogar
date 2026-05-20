@@ -63,6 +63,19 @@ function AppContent() {
     }
   }, []);
 
+  // Keep Standalone Express API awake (Render sleep prevention)
+  useEffect(() => {
+    const apiPinger = setInterval(() => {
+      const apiEndpoint = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      fetch(`${apiEndpoint}/ping`)
+        .then(res => res.json())
+        .then(data => console.log('⚡ API Keep-awake response:', data))
+        .catch(err => console.warn('⚡ API Keep-awake ping skipped:', err.message));
+    }, 5 * 60 * 1000);
+
+    return () => clearInterval(apiPinger);
+  }, []);
+
   // Check URL for subdomain or special paths
   useEffect(() => {
     const pathname = window.location.pathname;

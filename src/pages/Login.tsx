@@ -212,54 +212,6 @@ export function Login({ onLogin, onRegister }: LoginProps) {
                 t('login')
               )}
             </Button>
-
-            <button
-              type="button"
-              onClick={() => {/* Google Login Logic */}}
-              className="w-full mt-4 h-14 rounded-2xl border border-[var(--color-border)] bg-white/5 backdrop-blur-md flex items-center justify-center gap-3 text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--text-primary)] hover:bg-white/10 transition-all shadow-xl group"
-            >
-              <div className="w-5 h-5 rounded-full bg-[#DB4437] group-hover:scale-110 transition-transform" />
-              Google bilan kirish
-            </button>
-
-            <div className="pt-4">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-[var(--color-border)]" />
-                </div>
-                <div className="relative flex justify-center text-[10px]">
-                  <span className="px-4 bg-[var(--bg-main)] text-[var(--text-muted)] font-black uppercase tracking-[0.4em]">
-                    {t('or')}
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)]/40 p-5 space-y-4 backdrop-blur-sm">
-                <div className="flex items-start gap-3">
-                  <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--brand-primary)]/15 text-[var(--brand-primary)]">
-                    <Scan className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-[var(--text-primary)]">
-                      {t('faceIdLogin')}
-                    </p>
-                    <p className="mt-1.5 text-[10px] leading-relaxed text-[var(--text-muted)]">
-                      {t('faceIdEmailHint')}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  type="button"
-                  className="w-full h-12 rounded-xl border-[var(--brand-primary)]/30 text-[var(--text-secondary)] hover:border-[var(--brand-primary)]/60 hover:text-[var(--brand-primary)]"
-                  icon={isFaceIdLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Shield className="w-5 h-5" />}
-                  onClick={handleFaceIdLogin}
-                  disabled={isFaceIdLoading}
-                >
-                  {isFaceIdLoading ? t('checking') : t('faceIdLogin')}
-                </Button>
-              </div>
-            </div>
           </form>
         ) : step === 'device_verification' ? (
           <form onSubmit={handleDeviceVerify} className="space-y-8">
