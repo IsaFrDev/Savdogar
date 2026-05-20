@@ -50,7 +50,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
     const [selectedTheme, setSelectedTheme] = useState(colorCombinations[0]);
 
     // Step 1: Identity & Type
-    const [businessType, setBusinessType] = useState<'restoran' | 'onlayn_dokon' | 'computer_club'>('onlayn_dokon');
+    const [businessType, setBusinessType] = useState<'restoran' | 'onlayn_dokon' | 'computer_club' | 'tour_firma'>('onlayn_dokon');
     const [businessCategory, setBusinessCategory] = useState('');
     const [customCategory, setCustomCategory] = useState('');
     const [platform, setPlatform] = useState<'telegram' | 'veb_sayt'>('telegram');
@@ -212,7 +212,11 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                 restoran: 'restaurant', computer_club: 'computer_club'
             };
             const rawCategory = businessCategory === 'other' ? customCategory : businessCategory;
-            const finalBusinessType = backendTypeMap[rawCategory] || 'other';
+            const finalBusinessType = businessType === 'computer_club' 
+                ? 'computer_club' 
+                : businessType === 'tour_firma'
+                    ? 'tour_firma'
+                    : backendTypeMap[rawCategory] || 'other';
 
             const storeData = {
                 name: storeName,
@@ -457,13 +461,14 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
                                     required
                                 />
 
-                                <div className="space-y-3">
+                                 <div className="space-y-3">
                                     <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">{t('businessType')}</label>
                                     <div className="grid grid-cols-2 gap-4">
                                         {[
                                             { id: 'onlayn_dokon', label: t('onlayn_dokon') || 'Onlayn do\'kon' },
                                             { id: 'restoran', label: t('restoran') || 'Restoran' },
-                                            { id: 'computer_club', label: 'Kompyuter klub' }
+                                            { id: 'computer_club', label: 'Kompyuter klub' },
+                                            { id: 'tour_firma', label: 'Tur Firma' }
                                         ].map((type) => (
                                             <button
                                                 key={type.id}
@@ -485,7 +490,7 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
 
                                 {/* Platform is always Web - no selector needed */}
 
-                                {businessType !== 'computer_club' && (
+                                {businessType !== 'computer_club' && businessType !== 'tour_firma' && (
                                     <>
                                         <div className="space-y-3">
                                             <label className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)]">{t('businessCategory')}</label>
