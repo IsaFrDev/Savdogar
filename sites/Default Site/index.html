@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{STORE_NAME}} - Online Do'kon</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+  <!-- NAVBAR INCLUDE -->
+  <div id="navbar-placeholder"></div>
+
+  <main>
+    <section class="hero container">
+      <h1 id="hero-title">{{STORE_NAME}}</h1>
+      <p id="hero-desc">Sifatli va hamyonbop mahsulotlar</p>
+      <div class="hero-btns">
+        <a href="#products" class="btn-primary">Xarid qilish</a>
+      </div>
+    </section>
+
+    <section class="banners container" id="banners-section"></section>
+
+    <section class="container" id="products">
+      <h2 class="section-title">Barcha Mahsulotlar</h2>
+      <div class="products-grid" id="products-grid">
+        <div class="loading">Yuklanmoqda...</div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <div class="footer-name">{{STORE_NAME}}</div>
+      <div class="footer-muted">© 2025 Barcha huquqlar himoyalangan</div>
+    </div>
+  </footer>
+
+  <!-- Quick Order Modal -->
+  <div class="modal-overlay" id="quick-order-modal">
+    <div class="modal">
+      <button class="modal-close" onclick="closeQuickOrder()">✕</button>
+      <h3>⚡ Tezkor Xarid</h3>
+      <p id="qo-product-name"></p>
+      <p id="qo-product-price" style="font-size:1.2rem;font-weight:900;color:var(--primary);margin-bottom:1.5rem"></p>
+      <div class="form-group">
+        <label>Ismingiz</label>
+        <input type="text" id="qo-name" placeholder="Ismingizni kiriting">
+      </div>
+      <div class="form-group">
+        <label>Telefon raqam</label>
+        <input type="tel" id="qo-phone" placeholder="+998 90 123-45-67">
+      </div>
+      <button class="modal-submit" id="qo-submit" onclick="submitQuickOrder()">⚡ Sotib Olish</button>
+    </div>
+  </div>
+  <div class="toast" id="toast"></div>
+
+  <script src="auth.js"></script>
+  <script src="products.js"></script>
+  <script>
+    fetch('_navbar.html')
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById('navbar-placeholder').innerHTML = data.replace(/{{STORE_NAME}}/g, window.STORE_NAME || 'Do\\'kon');
+      });
+  </script>
+</body>
+</html>

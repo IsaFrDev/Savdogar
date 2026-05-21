@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil - {{STORE_NAME}}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+
+  <!-- NAVBAR INCLUDE -->
+  <div id="navbar-placeholder"></div>
+
+  <main class="container" style="padding-top: 3rem; min-height: 70vh;">
+    <h2 class="section-title">Shaxsiy Profil</h2>
+    <div style="background: var(--card); padding: 2rem; border-radius: var(--radius); border: 1.5px solid var(--border); max-width: 500px;">
+      <div id="profile-info">
+        <p style="color: var(--muted); margin-bottom: 1rem;">Tizimga kiring yoki ro'yxatdan o'ting</p>
+        <button class="btn-primary" style="width: 100%;">Tizimga kirish</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="container footer-inner">
+      <div class="footer-name">{{STORE_NAME}}</div>
+      <div class="footer-muted">© 2025 Barcha huquqlar himoyalangan</div>
+    </div>
+  </footer>
+
+  <script src="auth.js"></script>
+  <script src="products.js"></script>
+  <script>
+    fetch('_navbar.html')
+      .then(res => res.text())
+      .then(data => {
+        document.getElementById('navbar-placeholder').innerHTML = data.replace(/{{STORE_NAME}}/g, window.STORE_NAME || 'Do\\'kon');
+      });
+  </script>
+</body>
+</html>
