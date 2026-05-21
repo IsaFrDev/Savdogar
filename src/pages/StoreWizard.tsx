@@ -126,8 +126,8 @@ export function StoreWizard({ onComplete }: StoreWizardProps) {
     };
 
     // Colors are now fixed based on Default Site theme
-    const primaryColor = '#6366F1';
-    const secondaryColor = '#F43F5E';
+    const [primaryColor, setPrimaryColor] = useState('#6366F1');
+    const [secondaryColor, setSecondaryColor] = useState('#F43F5E');
 
     useEffect(() => {
         const root = document.documentElement;
