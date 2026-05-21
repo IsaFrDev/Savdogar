@@ -2,12 +2,16 @@ from flask import Flask, request, jsonify
 import os
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 
 # Simple health check
-@app.route('/ping', methods=['GET'])
-def legacy_ping():
-    return 'pong', 200
+@app.route('/api/ping', methods=['GET'])
+def ping():
+    return jsonify({'status': 'pong'}), 200
 
+# Enable CORS for all origins (adjust in production if needed)
+from flask_cors import CORS
+CORS(app)
 # Store endpoint handling both creation (POST) and listing (GET)
 @app.route('/api/stores', methods=['GET', 'POST'])
 def stores_handler():
