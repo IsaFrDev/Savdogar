@@ -1,9 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ||
-    ((typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.hostname === '0.0.0.0'))
-        ? 'http://localhost:8000/api'
-        : `${typeof window !== 'undefined' ? window.location.origin : ''}/api`);
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://savdogar-api-production.up.railway.app/api';
 
 // Create axios instance
 export const api = axios.create({
@@ -178,7 +175,8 @@ export const authApi = {
 
     login: (email: string, password: string) =>
         api.post('/auth/login/', { email, password }),
-
+    // Email confirmation after registration
+    confirmEmail: (token: string) => api.post('/auth/confirm-email/', { token }),
     superAdminLogin: (username: string, password: string) =>
         api.post('/auth/superadmin/login/', { username, password }),
 
