@@ -1,57 +1,103 @@
-from flask import Flask, request, jsonify
 import os
+from fastapi import FastAPI, HTTPException
+from supabase import create_client, Client
+from pydantic import BaseModel
+from typing import List, Any
+from dotenv import load_dotenv
 
-app = Flask(__name__)
-app.url_map.strict_slashes = False
+# -------------------------------------------------
+# Load environment variables (development only)
+# -------------------------------------------------
+load_dotenv()  # reads .env if present; Railway injects env vars automatically
 
-# Simple health check
-@app.route('/api/ping', methods=['GET'])
-def ping():
-    return jsonify({'status': 'pong'}), 200
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
 
-# Enable CORS for all origins (adjust in production if needed)
-from flask_cors import CORS
-CORS(app)
-# Store endpoint handling both creation (POST) and listing (GET)
-@app.route('/api/stores', methods=['GET', 'POST'])
-def stores_handler():
-    if request.method == 'POST':
-        data = request.get_json()
-        store_id = os.urandom(4).hex()
-        response = {
-            'id': store_id,
-            'name': data.get('name'),
-            'owner_id': data.get('owner_id')
-        }
-        return jsonify(response), 201
-    else:  # GET
-        # Placeholder: return empty list or mock data
-        return jsonify([]), 200
+if not SUPABASE_URL or not SUPABASE_ANON_KEY:
+    raise RuntimeError(
+        "Supabase configuration missing. Set SUPABASE_URL and SUPABASE_ANON_KEY."
+    )
 
-# Order endpoint handling both creation (POST) and listing (GET)
-@app.route('/api/orders', methods=['GET', 'POST'])
-def orders_handler():
-    if request.method == 'POST':
-        data = request.get_json()
-        order_id = os.urandom(4).hex()
-        response = {
-            'id': order_id,
-            'store_id': data.get('store_id'),
-            'items': data.get('items')
-        }
-        return jsonify(response), 201
-    else:  # GET
-        return jsonify([]), 200
+# -------------------------------------------------
+# Initialise Supabase client (single instance, reused)
+# -------------------------------------------------
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-# Email confirmation placeholder endpoint
-@app.route('/api/auth/confirm-email', methods=['POST'])
-def confirm_email():
-    # In a real implementation, verify token and activate user
-    data = request.get_json()
-    token = data.get('token')
-    # Simulate success
-    return jsonify({'status': 'email_confirmed', 'token': token}), 200
+# -------------------------------------------------
+# FastAPI app
+# -------------------------------------------------
+app = FastAPI(
+    title="Sayyohlik Agentligi API",
+    description="Simple CRUD API backed by Supabase (public anon key).",
+    version="0.1.0",
+)
 
-if __name__ == '__main__':
-    port = int(os.getenv('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+
+# -------------------------------------------------
+# Pydantic models – adapt them to your Supabase tables
+# -------------------------------------------------
+class Tour(BaseModel):
+    id: str
+    name: str
+    description: str | None = None
+    price: float
+    available: bool = True
+
+
+# -------------------------------------------------
+# Helper – generic table operations
+# -------------------------------------------------
+def get_table(table_name: str):
+    """Return a Supabase table proxy. Raises 404 if table does not exist."""
+    if table_name not in supabase.tables():
+        raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found")
+    return supabase.table(table_name)
+
+
+# -------------------------------------------------
+# Example endpoints (you can add more)
+# -------------------------------------------------
+@app.get("/tours", response_model=List[Tour])
+def list_tours():
+    """Return all tours (public data)."""
+    res = supabase.table("tours").select("*").execute()
+    if res.error:
+        raise HTTPException(status_code=500, detail=res.error.message)
+    return [Tour(**row) for row in res.data]
+
+
+@app.get("/tours/{tour_id}", response_model=Tour)
+def get_tour(tour_id: str):
+    """Fetch a single tour by its primary‑key."""
+    res = supabase.table("tours").select("*").eq("id", tour_id).single().execute()
+    if res.error:
+        raise HTTPException(status_code=404, detail="Tour not found")
+    return Tour(**res.data)
+
+
+@app.post("/tours", response_model=Tour, status_code=201)
+def create_tour(tour: Tour):
+    """Create a new tour (public anon key can write if your Supabase policy allows it)."""
+    payload = tour.dict()
+    # Supabase expects `id` to be UUID or string – let the client send it or let the DB generate.
+    res = supabase.table("tours").insert(payload).execute()
+    if res.error:
+        raise HTTPException(status_code=400, detail=res.error.message)
+    return Tour(**res.data[0])
+
+
+@app.delete("/tours/{tour_id}", status_code=204)
+def delete_tour(tour_id: str):
+    """Delete a tour."""
+    res = supabase.table("tours").delete().eq("id", tour_id).execute()
+    if res.error:
+        raise HTTPException(status_code=404, detail=res.error.message)
+    return None
+
+
+# -------------------------------------------------
+# Health‑check endpoint (useful for Railway)
+# -------------------------------------------------
+@app.get("/health")
+def health():
+    return {"status": "ok"}
