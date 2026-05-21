@@ -29,3 +29,5 @@ user-agents==2.2.0
 openpyxl>=3.1.2
 channels-redis>=4.0.0
 django-redis>=5.4.0
+django-jazzmin>=2.6.0
+
